@@ -23,6 +23,25 @@
   </head>
 
   <body>
-    <%= yield %>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <%= link_to "Scout Worker", root_path, class: "site-header__brand" %>
+        <nav class="site-nav">
+          <%= link_to "Projects", projects_path, class: ("active" if controller_name == "projects" || controller_name == "workflows") %>
+          <%= link_to "Prompt templates", prompt_templates_path, class: ("active" if controller_name == "prompt_templates") %>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page">
+      <% if notice %>
+        <div class="flash flash-notice"><%= notice %></div>
+      <% end %>
+      <% if alert %>
+        <div class="flash flash-alert"><%= alert %></div>
+      <% end %>
+
+      <%= yield %>
+    </main>
   </body>
 </html>

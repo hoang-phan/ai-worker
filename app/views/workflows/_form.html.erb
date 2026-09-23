@@ -1,41 +1,43 @@
-<%= form_with model: [project, workflow] do |f| %>
-  <% if workflow.errors.any? %>
-    <ul>
-      <% workflow.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
+<div class="card form-card">
+  <%= form_with model: [project, workflow] do |f| %>
+    <% if workflow.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(workflow.errors.count, "error") %> prevented this workflow from saving:</strong>
+        <ul>
+          <% workflow.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :jira_ticket %>
+      <%= f.text_field :jira_ticket %>
+    </div>
+
+    <div class="field">
+      <%= f.label :branch_name %>
+      <%= f.text_field :branch_name %>
+    </div>
+
+    <div class="field">
+      <%= f.label :github_reviewer, "GitHub reviewer (username)" %>
+      <%= f.text_field :github_reviewer %>
+    </div>
+
+    <div class="field">
+      <%= f.label :skills, "Skills to use (comma-separated)" %>
+      <%= f.text_area :skills, rows: 3 %>
+    </div>
+
+    <div class="field">
+      <%= f.label :position %>
+      <%= f.number_field :position %>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
   <% end %>
-
-  <div>
-    <%= f.label :jira_ticket %>
-    <%= f.text_field :jira_ticket %>
-  </div>
-
-  <div>
-    <%= f.label :branch_name %>
-    <%= f.text_field :branch_name %>
-  </div>
-
-  <div>
-    <%= f.label :github_reviewer, "GitHub reviewer (username)" %>
-    <%= f.text_field :github_reviewer %>
-  </div>
-
-  <div>
-    <%= f.label :skills, "Skills to use (comma-separated)" %>
-    <%= f.text_area :skills %>
-  </div>
-
-  <div>
-    <%= f.label :position %>
-    <%= f.number_field :position %>
-  </div>
-
-  <div>
-    <%= f.label :status %>
-    <%= f.select :status, Workflow.statuses.keys %>
-  </div>
-
-  <%= f.submit %>
-<% end %>
+</div>

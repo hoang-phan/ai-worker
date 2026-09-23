@@ -1,6 +1,6 @@
 class WorkflowsController < ApplicationController
   before_action :set_project
-  before_action :set_workflow, only: %i[show edit update destroy]
+  before_action :set_workflow, only: %i[show edit update destroy start]
 
   def show
     @stage_runs = @workflow.stages.flat_map(&:stage_runs).sort_by(&:created_at).reverse
@@ -35,6 +35,15 @@ class WorkflowsController < ApplicationController
     redirect_to @project, notice: "Workflow deleted."
   end
 
+  def start
+    if @workflow.pending?
+      @workflow.update!(status: :implementing)
+      redirect_to project_workflow_path(@project, @workflow), notice: "Workflow started."
+    else
+      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow has already been started."
+    end
+  end
+
   private
 
   def set_project
@@ -50,6 +59,6 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_params
-    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :status, :position)
+    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :position)
   end
 end

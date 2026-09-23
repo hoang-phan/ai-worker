@@ -1,7 +1,13 @@
-<h1><%= @prompt_template.name %></h1>
+<div class="page-header">
+  <div>
+    <h1><%= @prompt_template.name %></h1>
+    <p class="page-header__meta">
+      <span class="badge badge-info"><%= @prompt_template.stage_type %></span>
+    </p>
+  </div>
+  <div class="page-header__actions">
+    <%= link_to "Edit", edit_prompt_template_path(@prompt_template), class: "btn btn-secondary" %>
+  </div>
+</div>
 
-<p>Stage type: <%= @prompt_template.stage_type %> &middot; Active: <%= @prompt_template.active? ? "yes" : "no" %></p>
-
-<pre><%= @prompt_template.body %></pre>
-
-<%= link_to "Edit", edit_prompt_template_path(@prompt_template) %>
+<div class="code-block"><%= @prompt_template.body %></div>

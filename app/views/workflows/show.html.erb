@@ -1,58 +1,97 @@
-<h1><%= @workflow.jira_ticket %> &mdash; <%= @project.name %></h1>
+<p class="page-header__meta"><%= link_to @project.name, @project %></p>
 
-<p>
-  Branch: <%= @workflow.branch_name %><br>
-  Reviewer: <%= @workflow.github_reviewer %><br>
-  Skills: <%= @workflow.skill_list.join(", ") %><br>
-  Status: <%= @workflow.status %><br>
-  PR: <%= link_to @workflow.github_pr_url, @workflow.github_pr_url if @workflow.github_pr_url.present? %>
-</p>
+<div class="page-header">
+  <div>
+    <h1><%= @workflow.jira_ticket %></h1>
+  </div>
+  <div class="page-header__actions">
+    <% if @workflow.pending? %>
+      <%= button_to "Start", start_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
+    <% end %>
+    <%= link_to "Edit", edit_project_workflow_path(@project, @workflow), class: "btn btn-secondary" %>
+    <%= link_to "Delete", project_workflow_path(@project, @workflow), class: "btn btn-secondary link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this workflow?" } %>
+  </div>
+</div>
 
-<%= link_to "Edit", edit_project_workflow_path(@project, @workflow) %>
-<%= link_to "Delete", project_workflow_path(@project, @workflow), data: { turbo_method: :delete, turbo_confirm: "Delete this workflow?" } %>
+<div class="card">
+  <div class="field">
+    <label>Branch</label>
+    <p><%= @workflow.branch_name %></p>
+  </div>
+  <div class="field">
+    <label>Reviewer</label>
+    <p><%= @workflow.github_reviewer %></p>
+  </div>
+  <div class="field">
+    <label>Skills</label>
+    <p><%= @workflow.skill_list.join(", ") %></p>
+  </div>
+  <div class="field">
+    <label>Status</label>
+    <% status_badge = case @workflow.status
+       when "done" then "badge-success"
+       when "implementing", "reviewing" then "badge-info"
+       else "badge-neutral"
+       end %>
+    <span class="badge <%= status_badge %>"><%= @workflow.status %></span>
+  </div>
+  <% if @workflow.github_pr_url.present? %>
+    <div class="field">
+      <label>Pull request</label>
+      <p><%= link_to @workflow.github_pr_url, @workflow.github_pr_url, target: "_blank", rel: "noopener" %></p>
+    </div>
+  <% end %>
+</div>
 
 <h2>Stages</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>Position</th>
-      <th>Type</th>
-      <th>Status</th>
-      <th>Template</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @workflow.stages.each do |stage| %>
+<div class="table-wrap">
+  <table>
+    <thead>
       <tr>
-        <td><%= stage.position %></td>
-        <td><%= stage.stage_type %></td>
-        <td><%= stage.status %></td>
-        <td><%= stage.effective_template&.name %></td>
+        <th>Type</th>
+        <th></th>
+        <th>Template</th>
+        <th></th>
       </tr>
-    <% end %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <% @workflow.stages.each do |stage| %>
+        <tr>
+          <td><%= stage.stage_type %></td>
+          <td><%= content_tag(:span, "current", class: "badge badge-info") if @workflow.current_stage == stage %></td>
+          <td><%= stage.effective_template&.name %></td>
+          <td><%= link_to "Edit", edit_project_workflow_stage_path(@project, @workflow, stage), class: "btn btn-secondary" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
 
 <h2>Stage run history</h2>
 
-<table>
-  <thead>
-    <tr>
-      <th>When</th>
-      <th>Action</th>
-      <th>Output</th>
-      <th>Error</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @stage_runs.each do |run| %>
+<div class="table-wrap">
+  <table>
+    <thead>
       <tr>
-        <td><%= run.created_at %></td>
-        <td><%= run.action %></td>
-        <td><%= truncate(run.output, length: 200) %></td>
-        <td><%= run.error %></td>
+        <th>When</th>
+        <th>Action</th>
+        <th>Output</th>
+        <th>Error</th>
       </tr>
-    <% end %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <% @stage_runs.each do |run| %>
+        <tr>
+          <td class="text-muted"><%= run.created_at %></td>
+          <td><%= run.action %></td>
+          <td class="text-muted"><%= truncate(run.output, length: 200) %></td>
+          <td><%= content_tag(:span, run.error, class: "text-muted") if run.error.present? %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @stage_runs.empty? %>
+    <div class="empty-state">No stage runs yet.</div>
+  <% end %>
+</div>

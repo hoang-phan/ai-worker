@@ -1,27 +1,37 @@
-<h1>Projects</h1>
+<div class="page-header">
+  <h1>Projects</h1>
+  <div class="page-header__actions">
+    <%= link_to "New project", new_project_path, class: "btn btn-primary" %>
+  </div>
+</div>
 
-<%= link_to "New project", new_project_path %>
-
-<table>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Local directory</th>
-      <th>Repo</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @projects.each do |project| %>
+<div class="table-wrap">
+  <table>
+    <thead>
       <tr>
-        <td><%= link_to project.name, project %></td>
-        <td><%= project.local_directory %></td>
-        <td><%= project.repo_full_name %></td>
-        <td>
-          <%= link_to "Edit", edit_project_path(project) %>
-          <%= link_to "Delete", project, data: { turbo_method: :delete, turbo_confirm: "Delete #{project.name} and all its workflows?" } %>
-        </td>
+        <th>Name</th>
+        <th>Local directory</th>
+        <th>Repo</th>
+        <th></th>
       </tr>
-    <% end %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <% @projects.each do |project| %>
+        <tr>
+          <td><%= link_to project.name, project %></td>
+          <td class="text-muted"><%= project.local_directory %></td>
+          <td class="text-muted"><%= project.repo_full_name %></td>
+          <td>
+            <div class="actions-cell">
+              <%= link_to "Edit", edit_project_path(project), class: "link-action" %>
+              <%= link_to "Delete", project, class: "link-action link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete #{project.name} and all its workflows?" } %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if @projects.empty? %>
+    <div class="empty-state">No projects yet. <%= link_to "Create one", new_project_path %>.</div>
+  <% end %>
+</div>

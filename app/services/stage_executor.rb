@@ -11,7 +11,6 @@ class StageExecutor
     when "pr_check" then run_pr_check
     end
   rescue Git::CommandError, Github::CommandError, ClaudeCli::CommandError, ArgumentError => e
-    stage.update!(status: :failed)
     log(action: "failed", error: e.message)
   end
 
@@ -20,16 +19,13 @@ class StageExecutor
   attr_reader :workflow, :stage, :project
 
   def run_implementation
-    stage.update!(status: :in_progress)
-
     Git::BranchService.create_branch!(project, workflow.branch_name)
     prompt = render_prompt
     output = ClaudeCli::Runner.run(project.local_directory, prompt)
 
     pr_url = Github::Client.new(project).pr_url_for_branch(workflow.branch_name)
-    workflow.update!(github_pr_url: pr_url)
+    workflow.update!(github_pr_url: pr_url, status: :reviewing)
 
-    stage.update!(status: :completed)
     log(action: "ran_implementation", output: output)
   end
 
@@ -39,8 +35,7 @@ class StageExecutor
 
     case decision
     when "APPROVED"
-      workflow.update!(status: :closed)
-      stage.update!(status: :completed)
+      workflow.update!(status: :done)
       log(action: "approved_closed")
     when "CHANGES_REQUESTED"
       Git::BranchService.create_branch!(project, workflow.branch_name)
@@ -54,10 +49,10 @@ class StageExecutor
   end
 
   def render_prompt
-    template = stage.effective_template
-    raise ArgumentError, "no prompt template available for stage #{stage.id}" unless template
+    body = stage.prompt.presence || stage.effective_template&.body
+    raise ArgumentError, "no prompt available for stage #{stage.id}" unless body
 
-    Prompts::Renderer.render(template.body, workflow)
+    Prompts::Renderer.render(body, workflow)
   end
 
   def log(action:, output: nil, error: nil)

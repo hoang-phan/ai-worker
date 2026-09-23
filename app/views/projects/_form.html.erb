@@ -1,26 +1,33 @@
-<%= form_with model: project do |f| %>
-  <% if project.errors.any? %>
-    <ul>
-      <% project.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
+<div class="card form-card">
+  <%= form_with model: project do |f| %>
+    <% if project.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(project.errors.count, "error") %> prevented this project from saving:</strong>
+        <ul>
+          <% project.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :name %>
+      <%= f.text_field :name %>
+    </div>
+
+    <div class="field">
+      <%= f.label :local_directory, "Local directory (absolute path, on main)" %>
+      <%= f.text_field :local_directory %>
+    </div>
+
+    <div class="field">
+      <%= f.label :repo_full_name, "GitHub repo (org/repo)" %>
+      <%= f.text_field :repo_full_name %>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
   <% end %>
-
-  <div>
-    <%= f.label :name %>
-    <%= f.text_field :name %>
-  </div>
-
-  <div>
-    <%= f.label :local_directory, "Local directory (absolute path, on main)" %>
-    <%= f.text_field :local_directory %>
-  </div>
-
-  <div>
-    <%= f.label :repo_full_name, "GitHub repo (org/repo)" %>
-    <%= f.text_field :repo_full_name %>
-  </div>
-
-  <%= f.submit %>
-<% end %>
+</div>

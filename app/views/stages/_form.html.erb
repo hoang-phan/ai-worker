@@ -1,0 +1,69 @@
+<div
+  class="card form-card"
+  id="stage-prompt-context"
+  data-workflow-jira="<%= workflow.jira_ticket %>"
+  data-workflow-pr="<%= workflow.github_pr_url %>"
+  data-workflow-reviewer="<%= workflow.github_reviewer %>"
+  data-workflow-skills="<%= workflow.skill_list.join(", ") %>"
+>
+  <%= form_with model: [project, workflow, stage] do |f| %>
+    <% if stage.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(stage.errors.count, "error") %> prevented this stage from saving:</strong>
+        <ul>
+          <% stage.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :prompt_template_id, "Prompt template" %>
+      <%= f.select :prompt_template_id,
+            options_for_select(
+              stage.candidate_templates.map { |t| [t.name, t.id, { data: { body: t.body } }] },
+              stage.prompt_template_id
+            ),
+            include_blank: "Use default template for #{stage.stage_type}" %>
+      <p class="field-hint">Selecting a template fills in the prompt below with this workflow's details &mdash; edit it freely before saving.</p>
+    </div>
+
+    <div class="field">
+      <%= f.label :prompt %>
+      <%= f.text_area :prompt, rows: 20 %>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  (function () {
+    var context = document.getElementById("stage-prompt-context");
+    var select = document.getElementById("stage_prompt_template_id");
+    var textarea = document.getElementById("stage_prompt");
+    if (!context || !select || !textarea) return;
+
+    var placeholders = {
+      "{JIRA}": context.dataset.workflowJira || "",
+      "{PR}": context.dataset.workflowPr || "",
+      "{REVIEWER}": context.dataset.workflowReviewer || "",
+      "{SKILLS}": context.dataset.workflowSkills || ""
+    };
+
+    select.addEventListener("change", function () {
+      var option = select.options[select.selectedIndex];
+      var body = option.dataset.body;
+      if (!body) return;
+
+      Object.keys(placeholders).forEach(function (token) {
+        body = body.split(token).join(placeholders[token]);
+      });
+
+      textarea.value = body;
+    });
+  })();
+</script>

@@ -1,33 +1,38 @@
-<%= form_with model: prompt_template do |f| %>
-  <% if prompt_template.errors.any? %>
-    <ul>
-      <% prompt_template.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
+<div class="card form-card">
+  <%= form_with model: prompt_template do |f| %>
+    <% if prompt_template.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(prompt_template.errors.count, "error") %> prevented this template from saving:</strong>
+        <ul>
+          <% prompt_template.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :name %>
+      <%= f.text_field :name %>
+    </div>
+
+    <div class="field">
+      <%= f.label :stage_type %>
+      <%= f.select :stage_type, PromptTemplate.stage_types.keys %>
+    </div>
+
+    <div class="field">
+      <%= f.label :body %>
+      <div class="placeholder-list">
+        <% PromptTemplate::PLACEHOLDERS.each do |placeholder| %>
+          <span class="placeholder-chip"><%= placeholder %></span>
+        <% end %>
+      </div>
+      <%= f.text_area :body, rows: 20 %>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
   <% end %>
-
-  <div>
-    <%= f.label :name %>
-    <%= f.text_field :name %>
-  </div>
-
-  <div>
-    <%= f.label :stage_type %>
-    <%= f.select :stage_type, PromptTemplate.stage_types.keys %>
-  </div>
-
-  <div>
-    <%= f.label :active %>
-    <%= f.check_box :active %>
-    <small>Only one active template per stage type &mdash; saving this as active deactivates any other.</small>
-  </div>
-
-  <div>
-    <%= f.label :body %>
-    <p>Placeholders: <%= PromptTemplate::PLACEHOLDERS.join(" ") %></p>
-    <%= f.text_area :body, rows: 20, cols: 100 %>
-  </div>
-
-  <%= f.submit %>
-<% end %>
+</div>

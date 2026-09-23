@@ -1,0 +1,7 @@
+<p class="page-header__meta"><%= link_to @workflow.jira_ticket, project_workflow_path(@project, @workflow) %></p>
+
+<div class="page-header">
+  <h1>Edit <%= @stage.stage_type.humanize %> stage</h1>
+</div>
+
+<%= render "form", project: @project, workflow: @workflow, stage: @stage %>
