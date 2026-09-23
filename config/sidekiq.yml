@@ -1,0 +1,10 @@
+:concurrency: 5
+
+:queues:
+  - default
+  - stage_execution
+
+# Run a second, dedicated Sidekiq process for `stage_execution` with
+# `-c 1 -q stage_execution` in production (see docs/RUNBOOK.md) — each job
+# on this queue blocks on a `claude -p` run that can take minutes, so it
+# must not share a thread pool with anything else.

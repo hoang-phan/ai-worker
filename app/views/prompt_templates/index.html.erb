@@ -1,0 +1,27 @@
+<h1>Prompt templates</h1>
+
+<%= link_to "New template", new_prompt_template_path %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Stage type</th>
+      <th>Active</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @prompt_templates.each do |template| %>
+      <tr>
+        <td><%= link_to template.name, template %></td>
+        <td><%= template.stage_type %></td>
+        <td><%= template.active? ? "yes" : "no" %></td>
+        <td>
+          <%= link_to "Edit", edit_prompt_template_path(template) %>
+          <%= link_to "Delete", template, data: { turbo_method: :delete, turbo_confirm: "Delete template #{template.name}?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

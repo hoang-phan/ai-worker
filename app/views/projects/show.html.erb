@@ -1,0 +1,36 @@
+<h1><%= @project.name %></h1>
+
+<p><%= @project.local_directory %> &middot; <%= @project.repo_full_name %></p>
+
+<%= link_to "Edit", edit_project_path(@project) %>
+
+<h2>Workflows</h2>
+
+<%= link_to "New workflow", new_project_workflow_path(@project) %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Position</th>
+      <th>Jira</th>
+      <th>Branch</th>
+      <th>Status</th>
+      <th>Current stage</th>
+      <th>PR</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @workflows.each do |workflow| %>
+      <tr>
+        <td><%= workflow.position %></td>
+        <td><%= link_to workflow.jira_ticket, project_workflow_path(@project, workflow) %></td>
+        <td><%= workflow.branch_name %></td>
+        <td><%= workflow.status %></td>
+        <td><%= workflow.next_stage&.stage_type || "done" %></td>
+        <td><%= link_to workflow.github_pr_url, workflow.github_pr_url if workflow.github_pr_url.present? %></td>
+        <td><%= link_to "Edit", edit_project_workflow_path(@project, workflow) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,58 @@
+<h1><%= @workflow.jira_ticket %> &mdash; <%= @project.name %></h1>
+
+<p>
+  Branch: <%= @workflow.branch_name %><br>
+  Reviewer: <%= @workflow.github_reviewer %><br>
+  Skills: <%= @workflow.skill_list.join(", ") %><br>
+  Status: <%= @workflow.status %><br>
+  PR: <%= link_to @workflow.github_pr_url, @workflow.github_pr_url if @workflow.github_pr_url.present? %>
+</p>
+
+<%= link_to "Edit", edit_project_workflow_path(@project, @workflow) %>
+<%= link_to "Delete", project_workflow_path(@project, @workflow), data: { turbo_method: :delete, turbo_confirm: "Delete this workflow?" } %>
+
+<h2>Stages</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Position</th>
+      <th>Type</th>
+      <th>Status</th>
+      <th>Template</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @workflow.stages.each do |stage| %>
+      <tr>
+        <td><%= stage.position %></td>
+        <td><%= stage.stage_type %></td>
+        <td><%= stage.status %></td>
+        <td><%= stage.effective_template&.name %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2>Stage run history</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>When</th>
+      <th>Action</th>
+      <th>Output</th>
+      <th>Error</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @stage_runs.each do |run| %>
+      <tr>
+        <td><%= run.created_at %></td>
+        <td><%= run.action %></td>
+        <td><%= truncate(run.output, length: 200) %></td>
+        <td><%= run.error %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

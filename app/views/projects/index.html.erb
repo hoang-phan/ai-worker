@@ -1,0 +1,27 @@
+<h1>Projects</h1>
+
+<%= link_to "New project", new_project_path %>
+
+<table>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Local directory</th>
+      <th>Repo</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @projects.each do |project| %>
+      <tr>
+        <td><%= link_to project.name, project %></td>
+        <td><%= project.local_directory %></td>
+        <td><%= project.repo_full_name %></td>
+        <td>
+          <%= link_to "Edit", edit_project_path(project) %>
+          <%= link_to "Delete", project, data: { turbo_method: :delete, turbo_confirm: "Delete #{project.name} and all its workflows?" } %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
