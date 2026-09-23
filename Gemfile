@@ -2,6 +2,10 @@ source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.3", ">= 8.1.3.1"
+# Pin below 3.0 — json 3.0.2's JSON.parse dropped positional-hash options support,
+# which breaks ActiveSupport::JSON.decode (session/cookie decoding, e.g. CSRF token
+# generation in form_with) with ArgumentError: wrong number of arguments (given 2, expected 1)
+gem "json", "~> 2.21"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
