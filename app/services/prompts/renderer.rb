@@ -13,8 +13,10 @@ module Prompts
       template_body
         .gsub("{JIRA}", workflow.jira_ticket.to_s)
         .gsub("{PR}", workflow.github_pr_url.to_s)
-        .gsub("{REVIEWER}", workflow.github_reviewer.to_s)
+        .gsub("{REVIEWER}", Github::Client.parse_reviewers(workflow.github_reviewer).join(","))
         .gsub("{SKILLS}", workflow.skill_list.join(", "))
+        .gsub("{IMAGES}", workflow.image_paths.join(", "))
+        .gsub("{TASK}", workflow.task_description.to_s)
     end
 
     private

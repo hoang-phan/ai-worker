@@ -1,11 +1,11 @@
 ---
-name: scout-worker-ui
-description: Applies scout-worker's CRUD-screen discipline. Use for any task touching app/controllers/**, app/views/**, or config/routes.rb — the Projects/Workflows/PromptTemplates screens.
+name: ai-worker-ui
+description: Applies ai-worker's CRUD-screen discipline. Use for any task touching app/controllers/**, app/views/**, or config/routes.rb — the Projects/Workflows/PromptTemplates screens.
 ---
 
-# scout-worker-ui
+# ai-worker-ui
 
-Scope: `app/controllers/**`, `app/views/**`, `config/routes.rb`. Read `app/models/*.rb` only for attribute/validation/enum names when building forms — do not modify models here (that's `scout-worker-domain`'s scope) and do not touch `app/jobs`/`app/services` (that's `scout-worker-orchestration`'s scope).
+Scope: `app/controllers/**`, `app/views/**`, `config/routes.rb`. Read `app/models/*.rb` only for attribute/validation/enum names when building forms — do not modify models here (that's `ai-worker-domain`'s scope) and do not touch `app/jobs`/`app/services` (that's `ai-worker-orchestration`'s scope).
 
 ## File map (the whole scope)
 

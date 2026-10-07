@@ -10,6 +10,7 @@ Rails.application.routes.draw do
     resources :workflows, except: :index do
       member do
         post :start
+        delete "images/:name", action: :destroy_image, as: :image, constraints: { name: /[^\/]+/ }
       end
       resources :stages, only: %i[edit update]
     end

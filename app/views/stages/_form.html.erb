@@ -5,6 +5,7 @@
   data-workflow-pr="<%= workflow.github_pr_url %>"
   data-workflow-reviewer="<%= workflow.github_reviewer %>"
   data-workflow-skills="<%= workflow.skill_list.join(", ") %>"
+  data-workflow-task="<%= workflow.task_description %>"
 >
   <%= form_with model: [project, workflow, stage] do |f| %>
     <% if stage.errors.any? %>
@@ -51,7 +52,8 @@
       "{JIRA}": context.dataset.workflowJira || "",
       "{PR}": context.dataset.workflowPr || "",
       "{REVIEWER}": context.dataset.workflowReviewer || "",
-      "{SKILLS}": context.dataset.workflowSkills || ""
+      "{SKILLS}": context.dataset.workflowSkills || "",
+      "{TASK}": context.dataset.workflowTask || ""
     };
 
     select.addEventListener("change", function () {

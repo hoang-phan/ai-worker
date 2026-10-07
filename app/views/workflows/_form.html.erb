@@ -11,24 +11,49 @@
       </div>
     <% end %>
 
+    <% if project.personal? %>
+      <div class="field">
+        <%= f.label :task_description, "What needs to be done" %>
+        <%= f.text_area :task_description, rows: 6 %>
+      </div>
+    <% else %>
+      <div class="field">
+        <%= f.label :jira_ticket %>
+        <%= f.text_field :jira_ticket %>
+      </div>
+
+      <div class="field">
+        <%= f.label :branch_name %>
+        <%= f.text_field :branch_name %>
+      </div>
+
+      <div class="field">
+        <%= f.label :github_reviewer, "GitHub reviewers (usernames, comma-separated; any one approval completes review)" %>
+        <%= f.text_field :github_reviewer %>
+      </div>
+
+      <div class="field">
+        <%= f.label :skills, "Skills to use (comma-separated)" %>
+        <%= f.text_area :skills, rows: 3 %>
+      </div>
+    <% end %>
+
     <div class="field">
-      <%= f.label :jira_ticket %>
-      <%= f.text_field :jira_ticket %>
+      <%= f.label :images, "Reference images (available to the agent via {IMAGES})" %>
+      <%= f.file_field :images, multiple: true, accept: "image/*" %>
+      <% if workflow.persisted? %>
+        <% workflow.image_paths.each do |path| %>
+          <p>
+            <%= File.basename(path) %>
+            <%= link_to "Remove", image_project_workflow_path(project, workflow, name: File.basename(path)), class: "link-danger", data: { turbo_method: :delete } %>
+          </p>
+        <% end %>
+      <% end %>
     </div>
 
     <div class="field">
-      <%= f.label :branch_name %>
-      <%= f.text_field :branch_name %>
-    </div>
-
-    <div class="field">
-      <%= f.label :github_reviewer, "GitHub reviewer (username)" %>
-      <%= f.text_field :github_reviewer %>
-    </div>
-
-    <div class="field">
-      <%= f.label :skills, "Skills to use (comma-separated)" %>
-      <%= f.text_area :skills, rows: 3 %>
+      <%= f.label :agent, "AI agent" %>
+      <%= f.select :agent, Workflow.agents.keys.map { |a| [ a.titleize, a ] } %>
     </div>
 
     <div class="field">

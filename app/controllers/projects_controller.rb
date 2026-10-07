@@ -45,6 +45,6 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :local_directory, :repo_full_name)
+    params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind)
   end
 end

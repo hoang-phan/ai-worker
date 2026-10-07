@@ -9,7 +9,7 @@ worker:
    `main` branch and an `origin` remote reachable by `git fetch`.
 2. Have `gh` already authenticated (`gh auth login`) with access to its
    GitHub repo.
-3. Have `claude` on `PATH`, already authenticated.
+3. Have the agent CLI (`claude` or `agent`) on `PATH`, already authenticated.
 
 Register it via the UI (`/projects/new`): `name`, `local_directory` (the
 absolute path from #1), `repo_full_name` (`org/repo`, used for `gh -R`).
@@ -38,7 +38,7 @@ Concretely, when onboarding a project:
    "does this ticket touch area X."
 2. For each seam that's a plausible unattended-implementation target,
    write a `.claude/skills/<area>/SKILL.md` in *that project's own repo*
-   (not in `scout-worker`) with a scoping `description` and a file map,
+   (not in `ai-worker`) with a scoping `description` and a file map,
    following the `ff-candidate-app` example above.
 3. When creating a Workflow, put the matching skill name(s) into its
    `skills` field. The implementation and pr_check prompt templates
@@ -46,7 +46,7 @@ Concretely, when onboarding a project:
    `docs/PROMPT_TEMPLATES.md`) — that's what keeps an unattended run from
    reading the whole target codebase.
 
-This repo's own `.claude/skills/` (`scout-worker-domain`,
-`scout-worker-orchestration`, `scout-worker-ui`, `scout-worker-review`)
-follow the identical pattern, scoped to `scout-worker`'s own subsystems —
+This repo's own `.claude/skills/` (`ai-worker-domain`,
+`ai-worker-orchestration`, `ai-worker-ui`, `ai-worker-review`)
+follow the identical pattern, scoped to `ai-worker`'s own subsystems —
 use them as a second worked example.

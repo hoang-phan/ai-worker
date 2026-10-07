@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Scout Worker" %></title>
+    <title><%= content_for(:title) || "AI Worker" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Scout Worker">
+    <meta name="application-name" content="AI Worker">
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -26,7 +26,7 @@
   <body>
     <header class="site-header">
       <div class="site-header__inner">
-        <%= link_to "Scout Worker", root_path, class: "site-header__brand" %>
+        <%= link_to "AI Worker", root_path, class: "site-header__brand" %>
         <nav class="site-nav">
           <%= link_to "Projects", projects_path, class: ("active" if controller_name == "projects" || controller_name == "workflows") %>
           <%= link_to "Prompt templates", prompt_templates_path, class: ("active" if controller_name == "prompt_templates") %>

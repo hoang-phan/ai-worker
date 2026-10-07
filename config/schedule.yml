@@ -1,4 +1,4 @@
 workflow_scheduler:
-  cron: "*/30 * * * *"
+  cron: "*/5 * * * *"
   class: "WorkflowSchedulerJob"
   queue: stage_execution

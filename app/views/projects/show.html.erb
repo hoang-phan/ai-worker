@@ -20,11 +20,15 @@
     <thead>
       <tr>
         <th>Position</th>
-        <th>Jira</th>
-        <th>Branch</th>
+        <th><%= @project.personal? ? "Task" : "Jira" %></th>
+        <% unless @project.personal? %>
+          <th>Branch</th>
+        <% end %>
         <th>Status</th>
         <th>Current stage</th>
-        <th>PR</th>
+        <% unless @project.personal? %>
+          <th>PR</th>
+        <% end %>
         <th></th>
       </tr>
     </thead>
@@ -32,8 +36,10 @@
       <% @workflows.each do |workflow| %>
         <tr>
           <td class="numeric"><%= workflow.position %></td>
-          <td><%= link_to workflow.jira_ticket, project_workflow_path(@project, workflow) %></td>
-          <td class="text-muted"><%= workflow.branch_name %></td>
+          <td><%= link_to(@project.personal? ? truncate(workflow.task_description, length: 60) : workflow.jira_ticket, project_workflow_path(@project, workflow)) %></td>
+          <% unless @project.personal? %>
+            <td class="text-muted"><%= workflow.branch_name %></td>
+          <% end %>
           <td>
             <% status_badge = case workflow.status
                when "done" then "badge-success"
@@ -43,7 +49,9 @@
             <span class="badge <%= status_badge %>"><%= workflow.status %></span>
           </td>
           <td><%= workflow.current_stage&.stage_type || workflow.status %></td>
-          <td><%= link_to "View PR", workflow.github_pr_url, target: "_blank", rel: "noopener", class: "link-action" if workflow.github_pr_url.present? %></td>
+          <% unless @project.personal? %>
+            <td><%= link_to "View PR", workflow.github_pr_url, target: "_blank", rel: "noopener", class: "link-action" if workflow.github_pr_url.present? %></td>
+          <% end %>
           <td><%= link_to "Edit", edit_project_workflow_path(@project, workflow), class: "link-action" %></td>
         </tr>
       <% end %>

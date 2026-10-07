@@ -1,8 +1,6 @@
 require "open3"
 
 module Git
-  class CommandError < StandardError; end
-
   # Creates (or resumes) a workflow's branch from `main` inside a project's
   # local checkout. Never shells out with a compound `cd X && ...` string —
   # always passes `chdir:` so this works the same whether the process's own

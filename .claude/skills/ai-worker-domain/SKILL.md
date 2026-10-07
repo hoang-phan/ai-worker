@@ -1,9 +1,9 @@
 ---
-name: scout-worker-domain
-description: Applies scout-worker's data model discipline. Use for any task touching app/models/**, db/migrate/**, or db/schema.rb — adding/changing fields on Project, Workflow, Stage, StageRun, or PromptTemplate, their enums, validations, or associations.
+name: ai-worker-domain
+description: Applies ai-worker's data model discipline. Use for any task touching app/models/**, db/migrate/**, or db/schema.rb — adding/changing fields on Project, Workflow, Stage, StageRun, or PromptTemplate, their enums, validations, or associations.
 ---
 
-# scout-worker-domain
+# ai-worker-domain
 
 Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them.
 
@@ -19,5 +19,5 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 
 - `status`/`stage_type`/`action` are always closed, enumerable sets (Rails `enum` or a frozen `ACTIONS` array) — never a free-text status column. If you need a new state, add it to the existing enum/array rather than introducing a parallel field.
 - Every new migration needs an explicit `null: false, default:` for anything that drives control flow (status, position, active) — this app polls these columns from a cron job, so an unexpected `NULL` breaks scheduling silently. Match the existing migrations under `db/migrate/2026...create_workflows.rb` / `..._create_stages.rb` for the pattern.
-- `Workflow#skill_list` is the only place that parses the `skills` text column — if you change its format (e.g. to a real join table), update it there and update `Prompts::Renderer`'s `{SKILLS}` substitution (owned by `scout-worker-orchestration`, not this skill) to match.
+- `Workflow#skill_list` is the only place that parses the `skills` text column — if you change its format (e.g. to a real join table), update it there and update `Prompts::Renderer`'s `{SKILLS}` substitution (owned by `ai-worker-orchestration`, not this skill) to match.
 - After adding/changing a migration: `bin/rails db:migrate`, then sanity-check in `bin/rails runner` the way the models were verified originally — create a `Project`/`Workflow`, confirm `next_stage` and `effective_template` behave, before touching anything UI- or job-related.

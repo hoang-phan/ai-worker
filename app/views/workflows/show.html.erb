@@ -2,7 +2,7 @@
 
 <div class="page-header">
   <div>
-    <h1><%= @workflow.jira_ticket %></h1>
+    <h1><%= @project.personal? ? "Task ##{@workflow.id}" : @workflow.jira_ticket %></h1>
   </div>
   <div class="page-header__actions">
     <% if @workflow.pending? %>
@@ -14,17 +14,36 @@
 </div>
 
 <div class="card">
+  <% if @project.personal? %>
+    <div class="field">
+      <label>Task</label>
+      <p><%= @workflow.task_description %></p>
+    </div>
+  <% else %>
+    <div class="field">
+      <label>Branch</label>
+      <p><%= @workflow.branch_name %></p>
+    </div>
+    <div class="field">
+      <label>Reviewer</label>
+      <p><%= @workflow.github_reviewer %></p>
+    </div>
+    <div class="field">
+      <label>Skills</label>
+      <p><%= @workflow.skill_list.join(", ") %></p>
+    </div>
+  <% end %>
+  <% if @workflow.image_paths.any? %>
+    <div class="field">
+      <label>Reference images</label>
+      <% @workflow.image_paths.each do |path| %>
+        <p class="text-muted"><%= path %></p>
+      <% end %>
+    </div>
+  <% end %>
   <div class="field">
-    <label>Branch</label>
-    <p><%= @workflow.branch_name %></p>
-  </div>
-  <div class="field">
-    <label>Reviewer</label>
-    <p><%= @workflow.github_reviewer %></p>
-  </div>
-  <div class="field">
-    <label>Skills</label>
-    <p><%= @workflow.skill_list.join(", ") %></p>
+    <label>AI agent</label>
+    <p><%= @workflow.agent.titleize %></p>
   </div>
   <div class="field">
     <label>Status</label>

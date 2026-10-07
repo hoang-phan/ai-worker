@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_130100) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_000000) do
   create_table "projects", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "kind", default: 0, null: false
     t.string "local_directory"
     t.string "name"
     t.string "repo_full_name"
@@ -49,6 +50,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_130100) do
   end
 
   create_table "workflows", force: :cascade do |t|
+    t.integer "agent", default: 0, null: false
+    t.integer "ai_log_offset", default: 0, null: false
+    t.string "ai_log_path"
+    t.integer "ai_pid"
+    t.datetime "ai_started_at"
     t.string "branch_name"
     t.datetime "created_at", null: false
     t.string "github_pr_url"
@@ -59,6 +65,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_130100) do
     t.integer "project_id", null: false
     t.text "skills"
     t.integer "status", default: 0, null: false
+    t.text "task_description"
     t.datetime "updated_at", null: false
     t.index ["project_id"], name: "index_workflows_on_project_id"
   end
