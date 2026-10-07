@@ -79,8 +79,9 @@ run takes, instead of only for the duration of one job.
 
 ## Agents
 
-`Workflow#agent` (`claude` or `cursor`, default `claude`) selects which CLI
-`AiCli::Runner` spawns. The commands live in `AiCli::Runner::AGENTS`:
+The server-wide `AGENT` env var (`claude` or `cursor`, default `claude`) selects
+which CLI `AiCli::Runner` spawns for every workflow, e.g. `AGENT=cursor bin/dev`
+(set it for both the web and Sidekiq processes; foreman passes it to both). The commands live in `AiCli::Runner::AGENTS`:
 
 | agent  | command                                      |
 |--------|----------------------------------------------|
@@ -88,5 +89,5 @@ run takes, instead of only for the duration of one job.
 | cursor | `agent -p "<prompt>" --force`                |
 
 Adding another CLI (e.g. OpenAI Codex, likely `codex exec ...`) means one
-entry in `AGENTS` plus one value in the `Workflow.agent` enum. `AI_VERBOSE`
+entry in `AGENTS`. `AI_VERBOSE`
 stream-json output only applies to `claude`.

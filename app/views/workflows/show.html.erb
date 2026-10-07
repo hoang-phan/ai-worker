@@ -42,10 +42,6 @@
     </div>
   <% end %>
   <div class="field">
-    <label>AI agent</label>
-    <p><%= @workflow.agent.titleize %></p>
-  </div>
-  <div class="field">
     <label>Status</label>
     <% status_badge = case @workflow.status
        when "done" then "badge-success"

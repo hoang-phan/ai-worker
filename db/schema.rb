@@ -10,9 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_04_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_07_000001) do
   create_table "projects", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "default_reviewers"
+    t.text "default_skills"
     t.integer "kind", default: 0, null: false
     t.string "local_directory"
     t.string "name"
@@ -50,7 +52,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_04_000000) do
   end
 
   create_table "workflows", force: :cascade do |t|
-    t.integer "agent", default: 0, null: false
     t.integer "ai_log_offset", default: 0, null: false
     t.string "ai_log_path"
     t.integer "ai_pid"

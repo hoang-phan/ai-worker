@@ -7,7 +7,7 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = @project.workflows.new(position: next_position)
+    @workflow = @project.workflows.new(position: next_position, skills: @project.default_skills, github_reviewer: @project.default_reviewers)
   end
 
   def edit
@@ -66,6 +66,6 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_params
-    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :task_description, :agent, :position)
+    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :task_description, :position)
   end
 end

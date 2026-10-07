@@ -4,7 +4,7 @@ Automates the "implement → open PR → address review → merge" loop across
 multiple local projects using an AI coding agent CLI (`claude` or Cursor's `agent`) and `gh`.
 
 You define a **Project** (a local git clone) and one or more **Workflows**
-on it (a Jira ticket, a branch, a GitHub reviewer, which AI agent to use, and which
+on it (a Jira ticket, a branch, a GitHub reviewer, and which
 skills to use). Every 30 minutes a Sidekiq cron job picks the first active
 workflow and runs its next stage:
 
@@ -25,7 +25,7 @@ placeholder reference, and `docs/RUNBOOK.md` for day-to-day operation.
 - Ruby (see `.ruby-version`), Rails 8.1, SQLite.
 - Redis, reachable at `REDIS_URL` (defaults to `redis://localhost:6379/0`).
 - `gh` CLI, authenticated (`gh auth login`) with access to every project's repo.
-- `claude` CLI and/or Cursor's `agent` CLI, authenticated, on `PATH` (whichever agents your workflows select).
+- `claude` CLI or Cursor's `agent` CLI, authenticated, on `PATH`. Pick one per server with `AGENT=claude|cursor bin/dev` (default `claude`).
 
 ```
 bundle install

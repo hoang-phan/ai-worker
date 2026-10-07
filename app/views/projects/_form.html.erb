@@ -32,6 +32,18 @@
       <%= f.text_field :repo_full_name %>
     </div>
 
+    <div class="field">
+      <%= f.label :default_reviewers, "Default GitHub reviewers (usernames, comma-separated)" %>
+      <%= f.text_field :default_reviewers %>
+      <p class="field-hint">Team projects only. Prefilled on new workflows; override per workflow.</p>
+    </div>
+
+    <div class="field">
+      <%= f.label :default_skills, "Default skills (comma-separated)" %>
+      <%= f.text_area :default_skills, rows: 3 %>
+      <p class="field-hint">Team projects only. Prefilled on new workflows; override per workflow.</p>
+    </div>
+
     <div class="form-actions">
       <%= f.submit %>
     </div>

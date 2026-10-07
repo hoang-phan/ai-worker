@@ -12,15 +12,20 @@ module AiCli
   class Runner
     # Non-interactive invocation per agent. stdin is /dev/null, so every
     # agent must be told to skip permission prompts or it would hang.
-    # To support another CLI (e.g. codex), add an entry here and a value
-    # to Workflow.agent.
+    # To support another CLI (e.g. codex), add an entry here.
     AGENTS = {
       "claude" => { binary: "claude", args: [ "-p", :prompt, "--dangerously-skip-permissions" ] },
       "cursor" => { binary: "agent", args: [ "-p", :prompt, "--force" ] }
     }.freeze
 
-    def self.start(project_directory, prompt, log_path:, agent: "claude")
-      new(log_tag: nil).start(project_directory, prompt, log_path: log_path, agent: agent)
+    # The server-wide agent, chosen at boot via the AGENT env var, e.g.
+    # `AGENT=cursor bin/dev`. Defaults to claude.
+    def self.agent
+      ENV["AGENT"].presence || "claude"
+    end
+
+    def self.start(project_directory, prompt, log_path:)
+      new(log_tag: nil).start(project_directory, prompt, log_path: log_path)
     end
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].
@@ -38,11 +43,11 @@ module AiCli
       @log_tag = log_tag
     end
 
-    def start(project_directory, prompt, log_path:, agent: "claude")
+    def start(project_directory, prompt, log_path:)
       FileUtils.mkdir_p(File.dirname(log_path))
 
       Process.spawn(
-        *command(agent.to_s, prompt),
+        *command(self.class.agent, prompt),
         chdir: project_directory,
         in: File::NULL,
         out: [ log_path, "a" ],
@@ -87,7 +92,7 @@ module AiCli
     # the run progresses — set it before boot, e.g. `AI_VERBOSE=1 bin/dev`.
     # Only applies to claude.
     def command(agent, prompt)
-      spec = AGENTS[agent] or raise CommandError, "unknown agent #{agent.inspect}"
+      spec = AGENTS[agent] or raise CommandError, "unknown AGENT #{agent.inspect} (expected one of #{AGENTS.keys.join(", ")})"
       command = [ spec[:binary], *spec[:args].map { |arg| arg == :prompt ? prompt : arg } ]
       if agent == "claude" && ENV["AI_VERBOSE"].present?
         command += [ "--output-format", "stream-json", "--verbose", "--include-partial-messages" ]

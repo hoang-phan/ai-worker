@@ -2,8 +2,6 @@ class Workflow < ApplicationRecord
   belongs_to :project
   has_many :stages, dependent: :destroy
 
-  # which CLI runs this workflow's stages; see AiCli::Runner::AGENTS
-  enum :agent, { claude: 0, cursor: 1 }
   enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3 }
 
   # which stage type is currently active for each in-flight workflow status

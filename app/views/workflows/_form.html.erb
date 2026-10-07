@@ -52,11 +52,6 @@
     </div>
 
     <div class="field">
-      <%= f.label :agent, "AI agent" %>
-      <%= f.select :agent, Workflow.agents.keys.map { |a| [ a.titleize, a ] } %>
-    </div>
-
-    <div class="field">
       <%= f.label :position %>
       <%= f.number_field :position %>
     </div>

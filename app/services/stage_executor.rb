@@ -71,7 +71,7 @@ class StageExecutor
   # of starting new work on the next tick.
   def start_ai_run(prompt)
     log_path = new_log_path
-    pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_path, agent: workflow.agent)
+    pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_path)
 
     workflow.update!(
       processing: true,
@@ -86,7 +86,7 @@ class StageExecutor
   def poll_ai_run
     if stale?
       kill_stale_run
-      raise AiCli::CommandError, "#{workflow.agent} timed out after #{STALE_AFTER.inspect} (pid=#{workflow.ai_pid})"
+      raise AiCli::CommandError, "#{AiCli::Runner.agent} timed out after #{STALE_AFTER.inspect} (pid=#{workflow.ai_pid})"
     end
 
     tail_log
@@ -98,9 +98,9 @@ class StageExecutor
     output = full_log
 
     unless exit_status.nil? || exit_status.success?
-      raise AiCli::CommandError, "#{workflow.agent} failed (pid=#{workflow.ai_pid}): #{output.presence || 'no output'}"
+      raise AiCli::CommandError, "#{AiCli::Runner.agent} failed (pid=#{workflow.ai_pid}): #{output.presence || 'no output'}"
     end
-    raise AiCli::CommandError, "#{workflow.agent} exit status unknown (pid=#{workflow.ai_pid}), treating as failed" if exit_status.nil?
+    raise AiCli::CommandError, "#{AiCli::Runner.agent} exit status unknown (pid=#{workflow.ai_pid}), treating as failed" if exit_status.nil?
 
     finalize_success(output)
   end
