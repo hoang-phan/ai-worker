@@ -52,7 +52,12 @@
           <% unless @project.personal? %>
             <td><%= link_to "View PR", workflow.github_pr_url, target: "_blank", rel: "noopener", class: "link-action" if workflow.github_pr_url.present? %></td>
           <% end %>
-          <td><%= link_to "Edit", edit_project_workflow_path(@project, workflow), class: "link-action" %></td>
+          <td>
+            <% if workflow.pending? %>
+              <%= button_to "Start", start_project_workflow_path(@project, workflow), method: :post, class: "link-action", form: { style: "display:inline" } %>
+            <% end %>
+            <%= link_to "Edit", edit_project_workflow_path(@project, workflow), class: "link-action" %>
+          </td>
         </tr>
       <% end %>
     </tbody>

@@ -45,9 +45,9 @@ class WorkflowsController < ApplicationController
   def start
     if @workflow.pending?
       @workflow.update!(status: :implementing)
-      redirect_to project_workflow_path(@project, @workflow), notice: "Workflow started."
+      redirect_back_or_to project_workflow_path(@project, @workflow), notice: "Workflow started."
     else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow has already been started."
+      redirect_back_or_to project_workflow_path(@project, @workflow), alert: "Workflow has already been started."
     end
   end
 
