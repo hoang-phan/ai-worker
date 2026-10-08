@@ -39,6 +39,8 @@ what happened:
 - `ran_implementation` — implementation stage's the agent CLI (`claude -p` or `agent -p --force`) run finished
   successfully, PR opened. `output` has the full agent log.
 - `approved_closed` — pr_check saw an approval; workflow is now `done`.
+- `pr_merged_closed` — pr_check saw the PR already merged; workflow is now `done`.
+- `conflict_resolution_started` / `conflicts_resolved` — pr_check launched / finished an agent run resolving merge conflicts.
 - `requested_changes_fixed` — pr_check saw requested changes, ran a fix,
   re-requested review. Expect another one of these (or `approved_closed`)
   on a later tick. `output` has the full agent log.
@@ -52,26 +54,22 @@ what happened:
   either way, so the next tick will retry from scratch rather than being
   permanently stuck polling a dead run.
 
-- `halted` — the stage failed `StageExecutor::MAX_CONSECUTIVE_FAILURES`
-  (3) times in a row, so the scheduler stopped retrying it (logged once).
-- `resumed` — manual marker that resets the failure count (see below).
+- `resumed` — logged when someone resumes an `errored` workflow.
 
 ## Unsticking a failed stage
 
-After 3 consecutive failures the stage is `halted` and ticks no longer
-start new runs. Once the cause is fixed, resume it with:
+A `failed` run is retried on the next tick, up to
+`StageExecutor::MAX_CONSECUTIVE_FAILURES` (3) in a row; then the workflow moves
+to `status: errored`. The scheduler only picks `implementing`/`reviewing`
+workflows, so an errored one isn't retried and doesn't block workflows queued
+behind it. Fix the
+cause first (bad branch state in the local clone, `gh`/agent CLI auth
+expired, etc.), then press **Resume** on the workflow page, or:
 
 ```ruby
-stage = Workflow.find(...).current_stage
-stage.stage_runs.create!(action: "resumed")
+w = Workflow.find(...)
+w.update!(status: w.resume_status) # reviewing if a PR exists, else implementing
 ```
-
-A `failed` `StageRun` already clears `workflow.processing?` (see above),
-so the next tick will retry it on its own (up to the halt limit above). Fix whatever caused
-the failure first (bad branch state in the project's local clone,
-`gh`/agent CLI auth expired, etc.) — the workflow's `status` (and therefore
-`current_stage`) doesn't change on failure, so it just fails again next
-tick otherwise.
 
 ## Manually running a stage right now
 

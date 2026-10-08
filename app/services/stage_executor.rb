@@ -4,9 +4,9 @@ class StageExecutor
   # against a hung/orphaned process blocking this workflow forever.
   STALE_AFTER = 3.hours
 
-  # After this many consecutive `failed` runs for a stage, stop retrying
-  # (each retry is a full the agent CLI run) until someone logs a `resumed`
-  # StageRun — see docs/RUNBOOK.md.
+  # After this many consecutive `failed` runs for a stage the workflow is
+  # parked as `errored` (each retry is a full agent CLI run), so the scheduler
+  # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
   CONFLICT_PROMPT = <<~PROMPT.freeze
@@ -25,8 +25,6 @@ class StageExecutor
   def call
     if workflow.processing?
       poll_ai_run
-    elsif halted?
-      log_halted
     else
       case stage.stage_type
       when "implementation" then start_implementation
@@ -58,6 +56,13 @@ class StageExecutor
 
   def run_pr_check
     github = Github::Client.new(project)
+
+    # A merged PR is done — skip review/check inspection entirely.
+    if github.merged?(workflow.github_pr_url)
+      workflow.update!(status: :done)
+      return log(action: "pr_merged_closed")
+    end
+
     decision = github.review_decision(workflow.github_pr_url, reviewers)
 
     # An approval with failing checks is treated like a change request.
@@ -169,29 +174,23 @@ class StageExecutor
     log(action: "auto_merge_failed", error: e.message)
   end
 
+  # A failure stays in the current status so the next tick retries it, until
+  # MAX_CONSECUTIVE_FAILURES in a row park the workflow in `errored`, which
+  # WorkflowSchedulerJob ignores. A person resumes it from the UI once the
+  # cause is fixed.
   def fail_stage(error)
     Git::BranchService.abort_merge!(project) if resolving_conflicts?
     workflow.update!(ai_run_attrs)
     log(action: "failed", error: error.message)
+    workflow.update!(status: :errored) if consecutive_failures >= MAX_CONSECUTIVE_FAILURES
   end
 
-  # Trailing run of failed/started/halted rows (newest first) with no
-  # success or `resumed` in between.
+  # Trailing run of failed/started rows (newest first) with no success or
+  # `resumed` in between.
   def consecutive_failures
     stage.stage_runs.order(id: :desc).pluck(:action)
-         .take_while { |action| %w[failed started halted].include?(action) }
+         .take_while { |action| %w[failed started].include?(action) }
          .count("failed")
-  end
-
-  def halted?
-    consecutive_failures >= MAX_CONSECUTIVE_FAILURES
-  end
-
-  # Logged once, not on every tick.
-  def log_halted
-    return if stage.stage_runs.order(:id).last&.action == "halted"
-
-    log(action: "halted", error: "#{MAX_CONSECUTIVE_FAILURES} consecutive failures — not retrying until a `resumed` StageRun is logged")
   end
 
   def tail_log

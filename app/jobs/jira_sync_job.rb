@@ -4,7 +4,7 @@
 class JiraSyncJob < ApplicationJob
   queue_as :default
 
-  FETCH_EVERY = 24.hours
+  FETCH_EVERY = 3.hours
 
   def perform
     JiraSync.includes(:project).find_each do |jira_sync|

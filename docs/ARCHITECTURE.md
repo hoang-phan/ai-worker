@@ -9,7 +9,7 @@ PromptTemplate  (referenced by Stage#prompt_template_id, or by stage_type defaul
 ```
 
 - **Project** — `name`, `local_directory` (an existing local clone, on `main`), `repo_full_name` (`org/repo`, used for `gh -R`).
-- **Workflow** — one Jira ticket's automation run: `jira_ticket`, `branch_name`, `github_reviewer`, `skills` (comma-separated, rendered into `{SKILLS}`), `github_pr_url` (set once the implementation stage runs), `status` (`active`/`closed`), `position` (manual FIFO ordering), `processing` (overlap guard). Creating a Workflow auto-creates its two `Stage`s: `implementation` (position 1) and `pr_check` (position 2).
+- **Workflow** — one Jira ticket's automation run: `jira_ticket`, `branch_name`, `github_reviewer`, `skills` (comma-separated, rendered into `{SKILLS}`), `github_pr_url` (set once the implementation stage runs), `status` (`pending`/`implementing`/`reviewing`/`done`/`errored`), `position` (manual FIFO ordering), `processing` (overlap guard). Creating a Workflow auto-creates its two `Stage`s: `implementation` (position 1) and `pr_check` (position 2).
 - **Stage** — `stage_type` (`implementation`/`pr_check`), `status` (`pending`/`in_progress`/`completed`/`failed`), `position`, optional `prompt_template_id` (falls back to the active default template for its `stage_type` — `Stage#effective_template`).
 - **StageRun** — one audit-log row per execution attempt. Since `pr_check` can run every 30 minutes for a long time, this is where its history lives, not on the `Stage` row itself. `action` is one of `StageRun::ACTIONS`.
 - **PromptTemplate** — `name`, `stage_type`, `body` (contains `{JIRA}`/`{PR}`/`{REVIEWER}`/`{SKILLS}`), `active` (exactly one active template per `stage_type`; saving a new active one deactivates the previous).
@@ -79,7 +79,7 @@ run takes, instead of only for the duration of one job.
 
 ## Agents
 
-The server-wide `AGENT` env var (`claude` or `cursor`, default `claude`) selects
+The server-wide `AGENT` env var (`claude`, `cursor` or `codex`, default `claude`) selects
 which CLI `AiCli::Runner` spawns for every workflow, e.g. `AGENT=cursor bin/dev`
 (set it for both the web and Sidekiq processes; foreman passes it to both). The commands live in `AiCli::Runner::AGENTS`:
 
@@ -87,7 +87,9 @@ which CLI `AiCli::Runner` spawns for every workflow, e.g. `AGENT=cursor bin/dev`
 |--------|----------------------------------------------|
 | claude | `claude -p "<prompt>" --dangerously-skip-permissions` |
 | cursor | `agent -p "<prompt>" --force`                |
+| codex  | `codex exec --dangerously-bypass-approvals-and-sandbox "<prompt>"` |
 
-Adding another CLI (e.g. OpenAI Codex, likely `codex exec ...`) means one
-entry in `AGENTS`. `AI_VERBOSE`
+Adding another CLI means one entry in `AGENTS`. Codex's stdout/stderr go to the
+same per-run log file as the others and are tailed into the Rails log.
+Env vars can live in a git-ignored `.env` (see `.env.example`), loaded by `dotenv-rails`. `AI_VERBOSE`
 stream-json output only applies to `claude`.

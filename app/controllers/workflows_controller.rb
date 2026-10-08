@@ -1,6 +1,6 @@
 class WorkflowsController < ApplicationController
   before_action :set_project
-  before_action :set_workflow, only: %i[show edit update destroy start resume destroy_image]
+  before_action :set_workflow, only: %i[show edit update destroy start resume rollback_to_review destroy_image]
 
   def show
     @stage_runs = @workflow.stages.flat_map(&:stage_runs).sort_by(&:created_at).reverse
@@ -52,12 +52,24 @@ class WorkflowsController < ApplicationController
   end
 
   def resume
-    stage = @workflow.current_stage
-    if stage&.stage_runs&.first&.action == "halted"
-      stage.stage_runs.create!(action: "resumed")
+    if @workflow.errored?
+      @workflow.update!(status: @workflow.resume_status)
+      @workflow.current_stage&.stage_runs&.create!(action: "resumed")
       redirect_to project_workflow_path(@project, @workflow), notice: "Workflow resumed."
     else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow is not halted."
+      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow is not errored."
+    end
+  end
+
+  # Manually sends a finished workflow back to the review stage so the next
+  # scheduler tick re-inspects the PR and fixes outstanding findings/checks.
+  def rollback_to_review
+    if @workflow.done? && @workflow.github_pr_url.present?
+      @workflow.update!(status: :reviewing)
+      @workflow.current_stage&.stage_runs&.create!(action: "rolled_back_to_review")
+      redirect_to project_workflow_path(@project, @workflow), notice: "Workflow rolled back to review."
+    else
+      redirect_to project_workflow_path(@project, @workflow), alert: "Only done workflows with a pull request can be rolled back."
     end
   end
 

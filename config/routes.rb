@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       member do
         post :start
         post :resume
+        post :rollback_to_review
         delete "images/:name", action: :destroy_image, as: :image, constraints: { name: /[^\/]+/ }
       end
       resources :stages, only: %i[edit update]

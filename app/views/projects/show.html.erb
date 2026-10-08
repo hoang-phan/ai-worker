@@ -44,6 +44,7 @@
             <% status_badge = case workflow.status
                when "done" then "badge-success"
                when "implementing", "reviewing" then "badge-info"
+               when "errored" then "badge-danger"
                else "badge-neutral"
                end %>
             <span class="badge <%= status_badge %>"><%= workflow.status %></span>

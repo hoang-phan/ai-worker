@@ -4,6 +4,6 @@ workflow_scheduler:
   queue: stage_execution
 
 jira_sync:
-  cron: "* * * * *"
+  cron: "0 * * * *"
   class: "JiraSyncJob"
   queue: default

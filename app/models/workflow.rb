@@ -2,7 +2,7 @@ class Workflow < ApplicationRecord
   belongs_to :project
   has_many :stages, dependent: :destroy
 
-  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3 }
+  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4 }
 
   # which stage type is currently active for each in-flight workflow status
   STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check" }.freeze
@@ -59,6 +59,12 @@ class Workflow < ApplicationRecord
   # comma-separated skill names entered in the UI, rendered into the {SKILLS} placeholder
   def skill_list
     skills.to_s.split(",").map(&:strip).reject(&:blank?)
+  end
+
+  # The in-flight status an errored workflow goes back to: reviewing once a PR
+  # exists (personal-project workflows never have one), otherwise implementing.
+  def resume_status
+    github_pr_url.present? ? :reviewing : :implementing
   end
 
   def current_stage

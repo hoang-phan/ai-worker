@@ -25,7 +25,7 @@ placeholder reference, and `docs/RUNBOOK.md` for day-to-day operation.
 - Ruby (see `.ruby-version`), Rails 8.1, SQLite.
 - Redis, reachable at `REDIS_URL` (defaults to `redis://localhost:6379/0`).
 - `gh` CLI, authenticated (`gh auth login`) with access to every project's repo.
-- `claude` CLI or Cursor's `agent` CLI, authenticated, on `PATH`. Pick one per server with `AGENT=claude|cursor bin/dev` (default `claude`).
+- `claude`, Cursor's `agent`, or `codex` CLI, authenticated, on `PATH`. Pick one per server with `AGENT=claude|cursor|codex` (default `claude`), set in `.env` (copy `.env.example`) or inline with `bin/dev`.
 
 ```
 bundle install

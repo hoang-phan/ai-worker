@@ -12,14 +12,15 @@ module AiCli
   class Runner
     # Non-interactive invocation per agent. stdin is /dev/null, so every
     # agent must be told to skip permission prompts or it would hang.
-    # To support another CLI (e.g. codex), add an entry here.
+    # To support another CLI, add an entry here.
     AGENTS = {
       "claude" => { binary: "claude", args: [ "-p", :prompt, "--dangerously-skip-permissions" ] },
-      "cursor" => { binary: "agent", args: [ "-p", :prompt, "--force" ] }
+      "cursor" => { binary: "agent", args: [ "-p", :prompt, "--force" ] },
+      "codex" => { binary: "codex", args: [ "exec", "--dangerously-bypass-approvals-and-sandbox", :prompt ] }
     }.freeze
 
     # The server-wide agent, chosen at boot via the AGENT env var, e.g.
-    # `AGENT=cursor bin/dev`. Defaults to claude.
+    # `AGENT=cursor bin/dev` or `AGENT=codex` in .env. Defaults to claude.
     def self.agent
       ENV["AGENT"].presence || "claude"
     end

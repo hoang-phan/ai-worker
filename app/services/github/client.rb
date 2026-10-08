@@ -35,6 +35,11 @@ module Github
         raise(CommandError, "agent finished but no PR was found (branch=#{branch_name.inspect}, ticket=#{jira_ticket.inspect})")
     end
 
+    def merged?(pr_url)
+      out = run!([ "gh", "pr", "view", pr_url, "--json", "state" ])
+      JSON.parse(out)["state"].to_s.upcase == "MERGED"
+    end
+
     # "APPROVED", "CHANGES_REQUESTED", or nil (still waiting).
     #
     # With several reviewers assigned, any one of them approving is enough,
@@ -75,7 +80,7 @@ module Github
         "gh", "api",
         "repos/#{project.repo_full_name}/pulls/#{number}/requested_reviewers",
         *Array(reviewers).flat_map { |reviewer| [ "-f", "reviewers[]=#{reviewer}" ] }
-      ])
+      ], scope_to_repo: false)
     end
 
     # Turns on GitHub auto-merge: the PR merges itself once required reviews
@@ -115,8 +120,11 @@ module Github
       pr_url.to_s[%r{/pull/(\d+)}, 1] or raise CommandError, "could not parse PR number from #{pr_url}"
     end
 
-    def run!(command)
-      out, err, status = Open3.capture3(*command, "-R", project.repo_full_name, chdir: project.local_directory)
+    # `gh api` has no `-R` flag (the repo is part of its endpoint path), so
+    # callers of it pass `scope_to_repo: false`.
+    def run!(command, scope_to_repo: true)
+      command = [ *command, "-R", project.repo_full_name ] if scope_to_repo
+      out, err, status = Open3.capture3(*command, chdir: project.local_directory)
       raise CommandError, "#{command.join(' ')} failed: #{err.presence || out}" unless status.success?
 
       out
