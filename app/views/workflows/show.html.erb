@@ -8,6 +8,9 @@
     <% if @workflow.pending? %>
       <%= button_to "Start", start_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
+    <% if @workflow.current_stage&.stage_runs&.first&.action == "halted" %>
+      <%= button_to "Resume", resume_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
+    <% end %>
     <%= link_to "Edit", edit_project_workflow_path(@project, @workflow), class: "btn btn-secondary" %>
     <%= link_to "Delete", project_workflow_path(@project, @workflow), class: "btn btn-secondary link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this workflow?" } %>
   </div>

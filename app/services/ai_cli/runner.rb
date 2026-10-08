@@ -46,7 +46,10 @@ module AiCli
     def start(project_directory, prompt, log_path:)
       FileUtils.mkdir_p(File.dirname(log_path))
 
+      # `claude -p` stops background subagents 10 minutes after the last
+      # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
       Process.spawn(
+        { "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0" },
         *command(self.class.agent, prompt),
         chdir: project_directory,
         in: File::NULL,

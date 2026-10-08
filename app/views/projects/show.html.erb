@@ -61,3 +61,44 @@
     <div class="empty-state">No workflows yet. <%= link_to "Create one", new_project_workflow_path(@project) %>.</div>
   <% end %>
 </div>
+
+<% if @project.jira? %>
+  <div class="page-header">
+    <h2>Jira syncs</h2>
+    <div class="page-header__actions">
+      <%= link_to "New sync", new_project_jira_sync_path(@project), class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Scope</th>
+          <th>Auto</th>
+          <th>Last synced</th>
+          <th>Last result</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @project.jira_syncs.order(:id).each do |sync| %>
+          <tr>
+            <td><%= sync.label %></td>
+            <td><%= sync.auto_sync? ? "Yes" : "No" %></td>
+            <td class="text-muted"><%= sync.last_synced_at ? time_ago_in_words(sync.last_synced_at) + " ago" : "never" %></td>
+            <td class="text-muted"><%= sync.last_result %></td>
+            <td>
+              <%= button_to "Sync now", run_project_jira_sync_path(@project, sync), class: "link-action", form: { style: "display:inline" } %>
+              <%= link_to "Edit", edit_project_jira_sync_path(@project, sync), class: "link-action" %>
+              <%= link_to "Delete", project_jira_sync_path(@project, sync), class: "link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this sync?" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if @project.jira_syncs.empty? %>
+      <div class="empty-state">No syncs yet. <%= link_to "Add one", new_project_jira_sync_path(@project) %> to pull assigned tickets from a Jira project or parent ticket.</div>
+    <% end %>
+  </div>
+<% end %>

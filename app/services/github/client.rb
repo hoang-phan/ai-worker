@@ -56,6 +56,19 @@ module Github
       nil
     end
 
+    FAILED_CONCLUSIONS = %w[FAILURE TIMED_OUT STARTUP_FAILURE ACTION_REQUIRED].freeze
+    FAILED_STATES = %w[FAILURE ERROR].freeze
+
+    # True if any GitHub check on the PR has finished in a failing state.
+    # Checks still queued/in progress (no conclusion yet) are ignored.
+    def checks_failing?(pr_url)
+      out = run!([ "gh", "pr", "view", pr_url, "--json", "statusCheckRollup" ])
+      JSON.parse(out)["statusCheckRollup"].to_a.any? do |check|
+        FAILED_CONCLUSIONS.include?(check["conclusion"].to_s.upcase) ||
+          FAILED_STATES.include?(check["state"].to_s.upcase)
+      end
+    end
+
     def request_review!(pr_url, reviewers)
       number = pr_number(pr_url)
       run!([

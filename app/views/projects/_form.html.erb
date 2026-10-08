@@ -19,7 +19,7 @@
     <div class="field">
       <%= f.label :kind %>
       <%= f.select :kind, Project.kinds.keys.map { |k| [k.titleize, k] } %>
-      <p class="field-hint">Team: GitHub-backed, goes through branch/PR/review stages. Personal: local-only, each workflow is one task that gets implemented and committed directly, no PR.</p>
+      <p class="field-hint">Jira: GitHub-backed, driven by Jira tickets, goes through branch/PR/review stages. Personal: local-only, each workflow is one task that gets implemented and committed directly, no PR.</p>
     </div>
 
     <div class="field">
@@ -35,14 +35,29 @@
     <div class="field">
       <%= f.label :default_reviewers, "Default GitHub reviewers (usernames, comma-separated)" %>
       <%= f.text_field :default_reviewers %>
-      <p class="field-hint">Team projects only. Prefilled on new workflows; override per workflow.</p>
+      <p class="field-hint">Jira projects only. Prefilled on new workflows; override per workflow.</p>
     </div>
 
     <div class="field">
       <%= f.label :default_skills, "Default skills (comma-separated)" %>
       <%= f.text_area :default_skills, rows: 3 %>
-      <p class="field-hint">Team projects only. Prefilled on new workflows; override per workflow.</p>
+      <p class="field-hint">Jira projects only. Prefilled on new workflows; override per workflow.</p>
     </div>
+
+    <fieldset class="field">
+      <legend>Jira integration (optional)</legend>
+      <p class="field-hint">Jira projects only. Tickets are fetched by the agent CLI through its Atlassian MCP connector (no API token needed). Add the Jira projects / parent tickets to pull from as syncs on the project page.</p>
+
+      <div class="field">
+        <%= f.label :jira_base_url, "Jira site URL" %>
+        <%= f.text_field :jira_base_url, placeholder: "https://netengine-trial.atlassian.net" %>
+      </div>
+
+      <div class="field">
+        <%= f.label :jira_assignee, "Assignee" %>
+        <%= f.text_field :jira_assignee, placeholder: "Email, full name, account ID, profile URL or currentUser()" %>
+      </div>
+    </fieldset>
 
     <div class="form-actions">
       <%= f.submit %>

@@ -2,3 +2,8 @@ workflow_scheduler:
   cron: "*/5 * * * *"
   class: "WorkflowSchedulerJob"
   queue: stage_execution
+
+jira_sync:
+  cron: "* * * * *"
+  class: "JiraSyncJob"
+  queue: default

@@ -45,6 +45,7 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers)
+    params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers,
+      :jira_base_url, :jira_assignee)
   end
 end

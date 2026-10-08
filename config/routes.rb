@@ -7,9 +7,13 @@ Rails.application.routes.draw do
   mount Sidekiq::Web => "/sidekiq"
 
   resources :projects do
+    resources :jira_syncs, except: %i[index show] do
+      post :run, on: :member
+    end
     resources :workflows, except: :index do
       member do
         post :start
+        post :resume
         delete "images/:name", action: :destroy_image, as: :image, constraints: { name: /[^\/]+/ }
       end
       resources :stages, only: %i[edit update]

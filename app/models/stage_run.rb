@@ -9,6 +9,7 @@ class StageRun < ApplicationRecord
     approved_closed
     requested_changes_fixed
     no_action_pending
+    checks_failing
     task_completed
     failed
     halted

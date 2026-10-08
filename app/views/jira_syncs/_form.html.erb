@@ -1,0 +1,33 @@
+<div class="card form-card">
+  <%= form_with model: [project, jira_sync] do |f| %>
+    <% if jira_sync.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(jira_sync.errors.count, "error") %> prevented this sync from saving:</strong>
+        <ul>
+          <% jira_sync.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :jira_project, "Jira project (optional)" %>
+      <%= f.text_field :jira_project, placeholder: "UNS, project URL or project name" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :parent_ticket, "Parent ticket (optional)" %>
+      <%= f.text_field :parent_ticket, placeholder: "UIUX-100, ticket URL or title" %>
+      <p class="field-hint">Leave both blank to pull every "To Do" ticket assigned to the project's Jira assignee. New tickets become pending workflows (never auto-started).</p>
+    </div>
+
+    <div class="field">
+      <label><%= f.check_box :auto_sync %> Sync automatically on a schedule</label>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
+  <% end %>
+</div>

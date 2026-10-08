@@ -9,6 +9,13 @@ class StageExecutor
   # StageRun — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
+  CONFLICT_PROMPT = <<~PROMPT.freeze
+    The current branch is in the middle of `git merge main` and has merge conflicts.
+    Resolve every conflict (find them with `git status` / `git diff --name-only --diff-filter=U`),
+    keeping the intent of both sides, then `git add` the resolved files and finish the merge with
+    `git commit --no-edit`. Make sure the project still builds and its tests pass. Do not push.
+  PROMPT
+
   def initialize(workflow, stage)
     @workflow = workflow
     @stage = stage
@@ -53,13 +60,22 @@ class StageExecutor
     github = Github::Client.new(project)
     decision = github.review_decision(workflow.github_pr_url, reviewers)
 
+    # An approval with failing checks is treated like a change request.
+    if decision == "APPROVED" && github.checks_failing?(workflow.github_pr_url)
+      log(action: "checks_failing")
+      decision = "CHANGES_REQUESTED"
+    end
+
     case decision
     when "APPROVED"
       workflow.update!(status: :done)
       log(action: "approved_closed")
     when "CHANGES_REQUESTED"
-      Git::BranchService.create_branch!(project, workflow.branch_name)
-      start_ai_run(render_prompt)
+      if Git::BranchService.update_with_main!(project, workflow.branch_name) == :conflict
+        start_ai_run(CONFLICT_PROMPT, action: "conflict_resolution_started")
+      else
+        start_ai_run(render_prompt)
+      end
     else
       log(action: "no_action_pending")
     end
@@ -69,7 +85,7 @@ class StageExecutor
   # the run itself can take longer than Sidekiq's job timeout. Marks
   # the workflow as processing so WorkflowSchedulerJob polls it instead
   # of starting new work on the next tick.
-  def start_ai_run(prompt)
+  def start_ai_run(prompt, action: "started")
     log_path = new_log_path
     pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_path)
 
@@ -80,7 +96,7 @@ class StageExecutor
       ai_started_at: Time.current,
       ai_log_offset: 0
     )
-    log(action: "started")
+    log(action: action)
   end
 
   def poll_ai_run
@@ -106,6 +122,8 @@ class StageExecutor
   end
 
   def finalize_success(output)
+    return finish_conflict_resolution(output) if resolving_conflicts?
+
     case stage.stage_type
     when "implementation"
       pr_url = Github::Client.new(project).find_pr_url(
@@ -124,6 +142,23 @@ class StageExecutor
     end
   end
 
+  def resolving_conflicts?
+    stage.stage_runs.order(:id).last&.action == "conflict_resolution_started"
+  end
+
+  # The conflict-resolution run must leave the merge committed; only then does
+  # the review-fix prompt run (immediately, in the same tick).
+  def finish_conflict_resolution(output)
+    if Git::BranchService.merge_in_progress?(project)
+      Git::BranchService.abort_merge!(project)
+      raise AiCli::CommandError, "#{AiCli::Runner.agent} did not finish resolving merge conflicts with main"
+    end
+
+    workflow.update!(ai_run_attrs)
+    log(action: "conflicts_resolved", output: output)
+    start_ai_run(render_prompt)
+  end
+
   # Best-effort, and run only after the workflow has moved to `reviewing`:
   # a failure here (e.g. auto-merge disabled on the repo) must not fail the
   # stage, or the retry would re-run the whole implementation.
@@ -135,6 +170,7 @@ class StageExecutor
   end
 
   def fail_stage(error)
+    Git::BranchService.abort_merge!(project) if resolving_conflicts?
     workflow.update!(ai_run_attrs)
     log(action: "failed", error: error.message)
   end

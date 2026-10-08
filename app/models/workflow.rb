@@ -9,9 +9,9 @@ class Workflow < ApplicationRecord
   # personal-project workflows have a single stage and skip "reviewing" entirely
   SIMPLE_STAGE_TYPE_BY_STATUS = { "implementing" => "task" }.freeze
 
-  validates :jira_ticket, presence: true, if: -> { project&.team? }
-  validates :branch_name, presence: true, if: -> { project&.team? }
-  validates :github_reviewer, presence: true, if: -> { project&.team? }
+  validates :jira_ticket, presence: true, if: -> { project&.jira? }
+  validates :branch_name, presence: true, if: -> { project&.jira? }
+  validates :github_reviewer, presence: true, if: -> { project&.jira? }
   validates :task_description, presence: true, if: -> { project&.personal? }
   validates :github_pr_url, format: { with: %r{\Ahttps://github\.com/[^/\s]+/[^/\s]+/pull/\d+\z}, message: "must be a github.com pull request URL" }, allow_blank: true
 
