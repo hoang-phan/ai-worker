@@ -1,4 +1,4 @@
-<div class="card form-card">
+<div class="card form-card" data-controller="skill-insert">
   <%= form_with model: [project, workflow] do |f| %>
     <% if workflow.errors.any? %>
       <div class="error-summary">
@@ -14,7 +14,8 @@
     <% if project.personal? %>
       <div class="field">
         <%= f.label :task_description, "What needs to be done" %>
-        <%= f.text_area :task_description, rows: 6 %>
+        <%= render "shared/skill_hints", project: project %>
+        <%= f.text_area :task_description, rows: 6, data: { skill_insert_target: "input" } %>
       </div>
     <% else %>
       <div class="field">
@@ -34,7 +35,8 @@
 
       <div class="field">
         <%= f.label :skills, "Skills to use (comma-separated)" %>
-        <%= f.text_area :skills, rows: 3 %>
+        <%= render "shared/skill_hints", project: project %>
+        <%= f.text_area :skills, rows: 3, data: { skill_insert_target: "input" } %>
       </div>
     <% end %>
 

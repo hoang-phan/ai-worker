@@ -7,5 +7,6 @@
 # Run a second, dedicated Sidekiq process for `stage_execution` with
 # `-c 1 -q stage_execution` in production (see docs/RUNBOOK.md). Jobs on
 # this queue no longer block on the agent CLI (it runs detached and is
-# polled across ticks), but concurrency 1 still matches the "one
-# workflow's stage at a time" semantics the `processing` guard depends on.
+# polled across ticks). Keep concurrency 1: WorkflowSchedulerJob's per-clone
+# and MAX_CONCURRENT_AGENTS checks aren't atomic, so ticks must serialize.
+# Agent parallelism comes from the detached processes, not Sidekiq threads.

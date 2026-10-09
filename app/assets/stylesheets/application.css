@@ -420,6 +420,15 @@ input[type="submit"]:hover {
   font-family: var(--font-mono);
 }
 
+button.skill-chip {
+  border: 0;
+  cursor: pointer;
+}
+
+button.skill-chip:hover {
+  background: #dfe3ea;
+}
+
 .text-muted {
   color: var(--color-text-muted);
 }

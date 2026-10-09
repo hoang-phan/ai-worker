@@ -32,6 +32,17 @@
 
     <div class="field">
       <%= f.label :prompt %>
+      <% skill_names = project_skill_names(project) %>
+      <% if skill_names.any? %>
+        <div class="placeholder-list">
+          <% skill_names.each do |skill| %>
+            <button type="button" class="placeholder-chip skill-chip" data-skill="<%= skill %>">/<%= skill %></button>
+          <% end %>
+        </div>
+        <p class="field-hint">Click a skill to insert it at the cursor.</p>
+      <% else %>
+        <p class="field-hint">No skills found in <code><%= File.join(File.expand_path(project.local_directory.to_s), ".agents", "skills") %></code>.</p>
+      <% end %>
       <%= f.text_area :prompt, rows: 20 %>
     </div>
 
@@ -66,6 +77,19 @@
       });
 
       textarea.value = body;
+    });
+
+    document.querySelectorAll(".skill-chip").forEach(function (chip) {
+      // keep the textarea's selection when the button is pressed
+      chip.addEventListener("mousedown", function (event) { event.preventDefault(); });
+      chip.addEventListener("click", function () {
+        var text = "/" + chip.dataset.skill;
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        if (typeof start !== "number") { start = end = textarea.value.length; }
+        textarea.setRangeText(text, start, end, "end");
+        textarea.focus();
+      });
     });
   })();
 </script>

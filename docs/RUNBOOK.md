@@ -17,13 +17,19 @@ and always returns quickly — `StageExecutor` starts the agent CLI (`claude -p`
 and never waits on it, so a run than can take many minutes never ties up
 the job past Sidekiq's job timeout (this app used to run it blocking via
 `Open3.popen3`, which is exactly what got killed by that timeout — see
-`docs/ARCHITECTURE.md`). Concurrency 1 on `stage_execution` still matches
-"the first active workflow, one stage at a time" semantics, and the
-`Workflow#processing` guard (now `ai_pid`/`ai_log_path`/
-`ai_started_at`/`ai_log_offset` alongside it) is what blocks the
-*next* tick from starting a second run while the current one is still
-going — every tick either starts new work or polls the existing run, and
-`Process.wait2(pid, Process::WNOHANG)` never blocks either way.
+`docs/ARCHITECTURE.md`). Each tick walks every `implementing`/`reviewing`
+workflow in `position` order, so one waiting on review never blocks the
+rest. The `Workflow#processing` guard (with `ai_pid`/`ai_log_path`/
+`ai_started_at`/`ai_log_offset`) marks in-flight runs, which are polled
+with `Process.wait2(pid, Process::WNOHANG)` (never blocking). Parallel
+runs are limited by:
+
+- one running agent per `project.local_directory` (stages `git checkout`/
+  `pull`/`merge` in the clone, so two runs there would corrupt each other);
+- `MAX_CONCURRENT_AGENTS` (env, default 3) agents overall.
+
+Keep `stage_execution` at concurrency 1: those checks aren't atomic, so
+ticks must serialize. Parallelism comes from the detached agent processes.
 
 ## Reading `StageRun` history
 

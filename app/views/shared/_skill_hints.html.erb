@@ -1,0 +1,11 @@
+<% skill_names = project_skill_names(project) %>
+<% if skill_names.any? %>
+  <div class="placeholder-list">
+    <% skill_names.each do |skill| %>
+      <button type="button" class="placeholder-chip skill-chip" data-skill="<%= skill %>" data-action="mousedown->skill-insert#keepSelection click->skill-insert#insert">/<%= skill %></button>
+    <% end %>
+  </div>
+  <p class="field-hint">Click a skill to insert it at the cursor.</p>
+<% else %>
+  <p class="field-hint">No skills found in <code><%= File.join(File.expand_path(project.local_directory.to_s), ".agents", "skills") %></code>.</p>
+<% end %>
