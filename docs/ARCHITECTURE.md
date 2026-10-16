@@ -9,7 +9,7 @@ PromptTemplate  (referenced by Stage#prompt_template_id, or by stage_type defaul
 ```
 
 - **Project** — `name`, `local_directory` (an existing local clone, on `main`), `repo_full_name` (`org/repo`, used for `gh -R`).
-- **Workflow** — one Jira ticket's automation run: `jira_ticket`, `branch_name`, `github_reviewer`, `skills` (comma-separated, rendered into `{SKILLS}`), `github_pr_url` (set once the implementation stage runs), `status` (`pending`/`implementing`/`reviewing`/`done`/`errored`), `position` (manual FIFO ordering), `processing` (overlap guard). Creating a Workflow auto-creates its two `Stage`s: `implementation` (position 1) and `pr_check` (position 2).
+- **Workflow** — one Jira ticket's automation run: `jira_ticket`, `branch_name`, `github_reviewer`, `skills` (comma-separated, rendered into `{SKILLS}`), `github_pr_url` (set once the implementation stage runs), `status` (`pending`/`implementing`/`reviewing`/`done`/`errored`/`merged`/`jira_updated`), `position` (manual FIFO ordering), `processing` (overlap guard). Creating a Workflow auto-creates its two `Stage`s: `implementation` (position 1) and `pr_check` (position 2).
 - **Stage** — `stage_type` (`implementation`/`pr_check`), `status` (`pending`/`in_progress`/`completed`/`failed`), `position`, optional `prompt_template_id` (falls back to the active default template for its `stage_type` — `Stage#effective_template`).
 - **StageRun** — one audit-log row per execution attempt. Since `pr_check` can run every 30 minutes for a long time, this is where its history lives, not on the `Stage` row itself. `action` is one of `StageRun::ACTIONS`.
 - **PromptTemplate** — `name`, `stage_type`, `body` (contains `{JIRA}`/`{PR}`/`{REVIEWER}`/`{SKILLS}`), `active` (exactly one active template per `stage_type`; saving a new active one deactivates the previous).
@@ -93,3 +93,19 @@ Adding another CLI means one entry in `AGENTS`. Codex's stdout/stderr go to the
 same per-run log file as the others and are tailed into the Rails log.
 Env vars can live in a git-ignored `.env` (see `.env.example`), loaded by `dotenv-rails`. `AI_VERBOSE`
 stream-json output only applies to `claude`.
+
+## PR-review workflows (Slack)
+
+### Post-merge Jira update
+
+`done`, `merged` and `jira_updated` all free the project for its next workflow. On a tick with no work in progress (nothing `implementing`, no agent running; workflows merely waiting on review don't count), `WorkflowSchedulerJob` (1) moves `done` Jira workflows whose PR is now merged to `merged` (`StageRun: pr_merged_detected`; `pr_check` also goes straight to `merged` if it finds the PR already merged), then (2) starts one `merged` workflow's `jira_update` stage (created lazily): the agent moves the ticket to UAT (UI-testable; assigns `Project#jira_tester`, sets Developer to the original assignee) or Releaseable, and must end with `JIRA_RESULT: UAT|RELEASEABLE`. Success → `jira_updated`; failures retry like any stage. Falls back to `PromptTemplate::DEFAULT_JIRA_UPDATE_BODY`; `{TESTER}` placeholder. The migration marks pre-existing done Jira workflows `jira_updated` so old tickets aren't touched.
+
+A second `Workflow#kind`, `pr_review`, reviews *someone else's* PR. It has one stage (`pr_review`) and goes `implementing` → `done` (or `errored`); it never uses `reviewing`.
+
+- `SlackReviewJob` (every minute, `default` queue) works like `JiraSyncJob`: for each Jira-kind project with `slack_review_enabled`, `Slack::MentionFetcher` starts a detached agent run (Slack MCP) at most every 30 minutes — headless, with `claude -p --allowedTools` limited to the Slack read/search tools and `Write` (`Slack::MentionFetcher::ALLOWED_TOOLS`) rather than `--dangerously-skip-permissions`; the Slack connector must be authenticated for the user the server runs as — which writes the project's Slack mentions + the repo's PR URLs they (or their thread) contain to `tmp/slack_reviews/<project id>/mentions.json`. A later tick imports it via `Slack::ReviewSync`: one workflow per (Slack message, PR), skipping PRs that are closed/merged, authored by the `gh` user, or already imported (the project's "last result" says why, e.g. `skipped 3 (3 merged)`). Review workflows are created `implementing`, and the job enqueues `WorkflowSchedulerJob` right after creating any, so they start without waiting for the next */5 cron tick. "Sync now" on the project page triggers a fetch immediately.
+- `StageExecutor#start_pr_review` checks the PR is still open, checks out its head branch in the project's clone (`git fetch` + checkout + `pull --ff-only`; fork PRs via `gh pr checkout`), then runs the agent with the `pr_review` prompt (`{PR}`, `{SLACK}`; falls back to `PromptTemplate::DEFAULT_PR_REVIEW_BODY`), which reviews, submits the GitHub verdict and replies in the Slack thread. Success → `review_completed`.
+- Scheduling: same per-clone guard as every workflow (one running agent per `local_directory`). Review workflows are not blocked by a development workflow that is merely waiting on its PR, and don't hold the project's "head" slot.
+
+## Runbook workflows
+
+Workflows of kind `runbook` (any project, one per deployment) use their own user-defined stages that pause for a **Next** click; see `docs/RUNBOOK_WORKFLOWS.md`.

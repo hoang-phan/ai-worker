@@ -1,9 +1,14 @@
 workflow_scheduler:
-  cron: "*/5 * * * *"
+  cron: "*/3 * * * *"
   class: "WorkflowSchedulerJob"
   queue: stage_execution
 
 jira_sync:
-  cron: "0 * * * *"
+  cron: "*/5 * * * *"
   class: "JiraSyncJob"
+  queue: default
+
+slack_review:
+  cron: "*/5 * * * *"
+  class: "SlackReviewJob"
   queue: default

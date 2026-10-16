@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_150000) do
   create_table "jira_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.datetime "created_at", null: false
@@ -29,10 +29,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_020000) do
     t.text "default_skills"
     t.string "jira_assignee"
     t.string "jira_base_url"
+    t.string "jira_tester"
     t.integer "kind", default: 0, null: false
     t.string "local_directory"
     t.string "name"
     t.string "repo_full_name"
+    t.string "slack_last_result"
+    t.datetime "slack_last_synced_at"
+    t.string "slack_mention"
+    t.boolean "slack_review_enabled", default: false, null: false
     t.datetime "updated_at", null: false
   end
 
@@ -55,11 +60,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_020000) do
   end
 
   create_table "stages", force: :cascade do |t|
+    t.boolean "auto_advance", default: false, null: false
+    t.string "channel"
     t.datetime "created_at", null: false
+    t.string "name"
+    t.integer "position"
     t.text "prompt"
     t.integer "prompt_template_id"
+    t.integer "run_mode", default: 0, null: false
     t.integer "stage_type", null: false
     t.datetime "updated_at", null: false
+    t.string "wait_for_workflow"
     t.integer "workflow_id", null: false
     t.index ["prompt_template_id"], name: "index_stages_on_prompt_template_id"
     t.index ["workflow_id"], name: "index_stages_on_workflow_id"
@@ -70,18 +81,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_020000) do
     t.string "ai_log_path"
     t.integer "ai_pid"
     t.datetime "ai_started_at"
+    t.boolean "auto_run", default: false, null: false
+    t.boolean "awaiting_next", default: false, null: false
     t.string "branch_name"
     t.datetime "created_at", null: false
+    t.integer "current_stage_id"
     t.string "github_pr_url"
     t.string "github_reviewer"
     t.string "jira_ticket"
+    t.integer "kind", default: 0, null: false
     t.integer "position", default: 0, null: false
     t.boolean "processing", default: false, null: false
     t.integer "project_id", null: false
     t.text "skills"
+    t.string "slack_url"
     t.integer "status", default: 0, null: false
     t.text "task_description"
     t.datetime "updated_at", null: false
+    t.json "variables"
     t.index ["project_id"], name: "index_workflows_on_project_id"
   end
 

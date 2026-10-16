@@ -45,7 +45,10 @@ what happened:
 - `ran_implementation` — implementation stage's the agent CLI (`claude -p` or `agent -p --force`) run finished
   successfully, PR opened. `output` has the full agent log.
 - `approved_closed` — pr_check saw an approval; workflow is now `done`.
-- `pr_merged_closed` — pr_check saw the PR already merged; workflow is now `done`.
+- `pr_merged_closed` — pr_check saw the PR already merged; workflow is now `merged`.
+- `pr_merged_detected` — an idle tick found a `done` workflow's PR merged; now `merged`.
+- `jira_updated` — the agent moved the Jira ticket to UAT/Releaseable; workflow is now `jira_updated`.
+- `merge_check_failed` — `gh` lookup failed on an idle tick; retried next idle tick.
 - `conflict_resolution_started` / `conflicts_resolved` — pr_check launched / finished an agent run resolving merge conflicts.
 - `requested_changes_fixed` — pr_check saw requested changes, ran a fix,
   re-requested review. Expect another one of these (or `approved_closed`)

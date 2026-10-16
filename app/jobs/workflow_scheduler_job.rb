@@ -17,8 +17,22 @@ class WorkflowSchedulerJob < ApplicationJob
   #   * at most `max_concurrent_agents` runs overall.
   # Keep the scheduler queue at concurrency 1: ticks must stay serialized, since
   # the checks above aren't atomic.
-  def perform
-    workflows = Workflow.where(status: [ :implementing, :reviewing ]).includes(:project).order(:position).to_a
+  #
+  # `run_workflow_id` is the manual trigger (a runbook's "Run stage" button). Runbook
+  # workflows are started by the cron tick only while `auto_run` is set (by Run / Next, kept
+  # through stages with `auto_advance`, cleared at a pause or failure); otherwise only by being named here.
+  def perform(run_workflow_id = nil)
+    run_active_workflows(run_workflow_id)
+    run_post_merge_phase
+  end
+
+  private
+
+  def run_active_workflows(run_workflow_id = nil)
+    active_workflows = Workflow.where(status: [ :implementing, :reviewing ]).includes(:project).order(:position).to_a
+    # A Jira update (`merged` status) that's mid-run is polled like any other run.
+    updating = Workflow.where(status: :merged, processing: true).includes(:project).order(:position).to_a
+    workflows = active_workflows + updating
     return if workflows.empty?
 
     running, waiting = workflows.partition(&:processing?)
@@ -26,8 +40,19 @@ class WorkflowSchedulerJob < ApplicationJob
     # holds its project's slot, even if a later one is the one in flight.
     # Workflows on one project run strictly one after another: only the first
     # (by position) is eligible to start; later ones wait until it is done.
-    heads = workflows.uniq { |workflow| clone_key(workflow.project) }
-    waiting &= heads
+    # Runbook workflows are exempt like PR reviews, and start on a cron tick only when `auto_run`
+    # is set; otherwise a person starts the stage with "Run stage" (`run_workflow_id`). Once it runs
+    # it is polled like any other run, then moves on (`auto_advance`) or parks in `waiting` until Next.
+    # PR-review workflows are the exception: they run once and never wait on
+    # anyone, so they neither hold the slot nor are blocked by a development
+    # workflow that is only waiting on its PR — only a *running* agent on the
+    # same clone (the busy_dirs check below) holds them back.
+    heads = active_workflows.select(&:development?).uniq { |workflow| clone_key(workflow.project) }
+    waiting = waiting.select do |workflow|
+      if workflow.runbook? then workflow.id == run_workflow_id || workflow.auto_run?
+      else workflow.pr_review? || heads.include?(workflow)
+      end
+    end
 
     # Poll in-flight runs first so finished ones free their slot/clone this tick.
     running.each { |workflow| execute(workflow) }
@@ -47,7 +72,34 @@ class WorkflowSchedulerJob < ApplicationJob
     end
   end
 
-  private
+  # Merged PRs are only processed when the scheduler is otherwise idle: nothing
+  # implementing or running an agent (workflows merely waiting on review count
+  # as idle). First `done` workflows whose PR got merged become `merged`, then
+  # one `merged` workflow at a time gets its Jira ticket updated (the run is
+  # polled by `run_active_workflows` on later ticks, and holds the idle check
+  # shut until it finishes).
+  def run_post_merge_phase
+    return if work_in_progress?
+
+    confirm_merges
+    workflow = Workflow.merged.where(processing: false).includes(:project).order(:position).first
+    execute(workflow) if workflow
+  end
+
+  def work_in_progress?
+    Workflow.implementing.exists? || Workflow.where(processing: true).exists?
+  end
+
+  def confirm_merges
+    Workflow.done.development.where.not(github_pr_url: nil).includes(:project).order(:position).each do |workflow|
+      next unless workflow.tracks_jira_after_merge?
+
+      pr_check = workflow.stages.find_by(stage_type: :pr_check)
+      StageExecutor.new(workflow, pr_check).check_merged if pr_check
+    rescue StandardError => e
+      Rails.logger.error("[scheduler] merge check workflow=#{workflow.id} #{e.class}: #{e.message}")
+    end
+  end
 
   # Projects pointing at the same clone via different spellings ("~/x", "x/",
   # symlinks) must still count as one clone, or the per-clone guard misses them.

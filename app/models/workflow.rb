@@ -1,19 +1,37 @@
 class Workflow < ApplicationRecord
   belongs_to :project
-  has_many :stages, dependent: :destroy
+  has_many :stages, -> { order(:position, :id) }, dependent: :destroy
 
-  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4 }
+  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4, merged: 5, jira_updated: 6, waiting: 7 }
+
+  # development: a Jira ticket / personal task we implement ourselves.
+  # pr_review: someone else's PR (found in a Slack mention) that we review.
+  # runbook: a deploy/release-style run with its own ordered stages (any project can have many),
+  # paused for a person (Next) after each.
+  enum :kind, { development: 0, pr_review: 1, runbook: 2 }
 
   # which stage type is currently active for each in-flight workflow status
-  STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check" }.freeze
+  # (`merged` runs the post-merge Jira update; `done` and `jira_updated` are terminal-ish and
+  # don't block the next workflow, nor does `merged`.)
+  STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check", "merged" => "jira_update" }.freeze
   # personal-project workflows have a single stage and skip "reviewing" entirely
   SIMPLE_STAGE_TYPE_BY_STATUS = { "implementing" => "task" }.freeze
+  # PR-review workflows have a single stage, run once, and skip "reviewing"
+  PR_REVIEW_STAGE_TYPE_BY_STATUS = { "implementing" => "pr_review" }.freeze
 
-  validates :jira_ticket, presence: true, if: -> { project&.jira? }
-  validates :branch_name, presence: true, if: -> { project&.jira? }
-  validates :github_reviewer, presence: true, if: -> { project&.jira? }
-  validates :task_description, presence: true, if: -> { project&.personal? }
+  validates :jira_ticket, presence: true, if: :jira_development?
+  validates :branch_name, presence: true, if: :jira_development?
+  validates :github_reviewer, presence: true, if: :jira_development?
+  validates :task_description, presence: true, if: :personal_development?
+  validates :github_pr_url, presence: true, if: :pr_review?
+  validate :pr_review_needs_github_project, if: :pr_review?
   validates :github_pr_url, format: { with: %r{\Ahttps://github\.com/[^/\s]+/[^/\s]+/pull/\d+\z}, message: "must be a github.com pull request URL" }, allow_blank: true
+
+  validate :variable_names_are_placeholders
+  validate :copy_source_is_a_runbook_of_this_project, if: :runbook?
+
+  # Create-time only: id of another runbook workflow of the project whose stages this one starts with.
+  attr_accessor :copy_stages_from_id
 
   after_create :seed_stages
   after_destroy :purge_images
@@ -62,20 +80,137 @@ class Workflow < ApplicationRecord
   end
 
   # The in-flight status an errored workflow goes back to: reviewing once a PR
-  # exists (personal-project workflows never have one), otherwise implementing.
+  # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
   def resume_status
-    github_pr_url.present? ? :reviewing : :implementing
+    development? && github_pr_url.present? ? :reviewing : :implementing
+  end
+
+  # "org/repo#123" for PR-review workflows, otherwise the Jira ticket / task.
+  def label
+    if runbook?
+      summary = variables.values.compact_blank.join(" · ").squish.truncate(60)
+      summary.presence || "Run ##{id}"
+    elsif pr_review?
+      github_pr_url.to_s[%r{github\.com/([^/]+/[^/]+)/pull/(\d+)}] && "#{$1}##{$2}"
+    elsif project.personal?
+      task_description.to_s
+    else
+      jira_ticket.to_s
+    end
+  end
+
+  def variables
+    super || {}
+  end
+
+  # Names a stage produced at run time (`VAR: NAME=value` in its output), as opposed to inputs the user typed.
+  def output_variable_names
+    StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
+            .flat_map { |output| StageExecutor.emitted_variables(output).keys }.uniq
+  end
+
+  # The variables the user set up front (channel, CSS group …), without anything a stage emitted.
+  def input_variables
+    variables.except(*output_variable_names)
+  end
+
+  # Edited in the UI as one `NAME=value` per line.
+  def variables_text
+    variables.map { |name, value| "#{name}=#{value.to_s.gsub("\n", "\\n")}" }.join("\n")
+  end
+
+  def variables_text=(text)
+    self.variables = text.to_s.lines.filter_map do |line|
+      name, value = line.strip.split("=", 2)
+      [ name.strip.upcase, value.to_s.strip.gsub("\\n", "\n") ] if name.present?
+    end.to_h
+  end
+
+  # Starts a runbook at its first stage (a runbook with no stages is just done).
+  def start_runbook!
+    first = stages.first
+    return update!(status: :done) unless first
+
+    update!(status: :implementing, current_stage_id: first.id, awaiting_next: false, auto_run: false)
+  end
+
+  # The Next button (and a stage's `auto_advance`): close out the finished stage and move to the following one,
+  # or finish the workflow after the last stage. The scheduler then starts the following stage by itself
+  # (`auto_run`) — it stops again only at a stage without `auto_advance`, at a failure, or at the end.
+  def advance!
+    raise ArgumentError, "workflow is not waiting for Next" unless runbook? && awaiting_next?
+
+    finished = current_stage
+    following = next_runbook_stage
+    finished&.stage_runs&.create!(action: "advanced")
+    if following
+      update!(current_stage_id: following.id, status: :implementing, awaiting_next: false, auto_run: true)
+    else
+      update!(status: :done, awaiting_next: false, auto_run: false)
+    end
+  end
+
+  def next_runbook_stage
+    list = stages.to_a
+    index = list.index { |stage| stage.id == current_stage_id }
+    index ? list[index + 1] : list.first
+  end
+
+  def previous_runbook_stage
+    list = stages.to_a
+    index = list.index { |stage| stage.id == current_stage_id }
+    index&.positive? ? list[index - 1] : nil
   end
 
   def current_stage
-    mapping = project.personal? ? SIMPLE_STAGE_TYPE_BY_STATUS : STAGE_TYPE_BY_STATUS
+    return stages.find_by(id: current_stage_id) if runbook?
+
+    mapping = if pr_review? then PR_REVIEW_STAGE_TYPE_BY_STATUS
+    elsif project.personal? then SIMPLE_STAGE_TYPE_BY_STATUS
+    else STAGE_TYPE_BY_STATUS
+    end
     stage_type = mapping[status]
     return nil unless stage_type
+
+    # The Jira-update stage isn't seeded with the workflow (older workflows
+    # predate it), so create it the first time it's needed.
+    return stages.find_or_create_by!(stage_type: stage_type) if stage_type == "jira_update"
 
     stages.find_by(stage_type: stage_type)
   end
 
+  # Jira-project development workflows that got a PR: the ones whose ticket
+  # moves to UAT/Releaseable once the PR is merged.
+  def tracks_jira_after_merge?
+    development? && project.jira? && github_pr_url.present?
+  end
+
   private
+
+  def copy_source
+    project.workflows.runbook.find_by(id: copy_stages_from_id) if copy_stages_from_id.present?
+  end
+
+  def copy_source_is_a_runbook_of_this_project
+    errors.add(:copy_stages_from_id, "must be a runbook workflow of this project") if copy_stages_from_id.present? && copy_source.nil?
+  end
+
+  def variable_names_are_placeholders
+    bad = variables.keys.grep_v(Prompts::Renderer::VARIABLE_NAME)
+    errors.add(:variables, "names must be letters, digits or underscores (#{bad.join(', ')})") if bad.any?
+  end
+
+  def jira_development?
+    development? && project&.jira?
+  end
+
+  def personal_development?
+    development? && project&.personal?
+  end
+
+  def pr_review_needs_github_project
+    errors.add(:base, "PR reviews need a Jira (GitHub-backed) project") unless project&.jira?
+  end
 
   def unique_image_path(name)
     path = image_dir.join(name)
@@ -90,7 +225,15 @@ class Workflow < ApplicationRecord
   end
 
   def seed_stages
-    if project.personal?
+    if runbook?
+      copy_source&.stages&.each do |source|
+        stages.create!(stage_type: :runbook_step, name: source.name, position: source.position,
+                       run_mode: source.run_mode, channel: source.channel, prompt: source.prompt,
+                       auto_advance: source.auto_advance, wait_for_workflow: source.wait_for_workflow)
+      end
+    elsif pr_review?
+      stages.create!(stage_type: :pr_review)
+    elsif project.personal?
       stages.create!(stage_type: :task)
     else
       stages.create!(stage_type: :implementation)

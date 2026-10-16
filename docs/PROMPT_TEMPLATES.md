@@ -9,6 +9,8 @@ substituted by `Prompts::Renderer` at execution time:
 | `{PR}` | `workflow.github_pr_url` | blank during the `implementation` stage (no PR exists yet) |
 | `{REVIEWER}` | `workflow.github_reviewer` | one or more GitHub usernames, comma-separated (`gh pr create --reviewer` accepts this form) |
 | `{SKILLS}` | `workflow.skill_list.join(", ")` | comma-separated Claude Code skill names, from the target project's own `.claude/skills/` — see `docs/ADDING_A_PROJECT.md` |
+| `{TESTER}` | `project.jira_tester` | Jira user to assign UAT tickets to (`jira_update` stages) |
+| `{SLACK}` | `workflow.slack_url` | permalink of the Slack message that mentioned the PR (`pr_review` stages only) |
 | `{IMAGES}` | `workflow.image_paths.join(", ")` | absolute paths of the reference images uploaded on the workflow (plain files under `tmp/workflow_images/<workflow id>/`, deleted with the workflow); blank if none |
 
 Exactly one `PromptTemplate` per `stage_type` should have `active: true` —
@@ -47,3 +49,7 @@ Note: `ai-worker` itself also calls `gh api .../requested_reviewers`
 directly from `Github::Client#request_review!` after this run finishes —
 the template's own re-request step is a safety net in case Claude's run
 doesn't get to it, not the only place it happens.
+
+## Runbook placeholders
+
+`{STAGE_NAME}`, `{PREV_OUTPUT}` and any workflow variable (`{VERSION}`, `{ENV}`, ...) are available too; see `docs/RUNBOOK_WORKFLOWS.md`.

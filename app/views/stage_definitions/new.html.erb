@@ -1,0 +1,7 @@
+<p class="page-header__meta"><%= link_to @project.name, @project %></p>
+
+<div class="page-header">
+  <h1>New stage</h1>
+</div>
+
+<%= render "form", project: @project, definition: @definition %>

@@ -25,8 +25,8 @@ module AiCli
       ENV["AGENT"].presence || "claude"
     end
 
-    def self.start(project_directory, prompt, log_path:)
-      new(log_tag: nil).start(project_directory, prompt, log_path: log_path)
+    def self.start(project_directory, prompt, log_path:, allowed_tools: nil)
+      new(log_tag: nil).start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools)
     end
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].
@@ -44,14 +44,18 @@ module AiCli
       @log_tag = log_tag
     end
 
-    def start(project_directory, prompt, log_path:)
+    # allowed_tools (claude only): run with exactly these tools approved
+    # (`--allowedTools`) instead of skipping every permission check, for runs
+    # that should be read-only, e.g. the Slack mention fetch. Anything not
+    # listed is denied, since headless mode can't ask. Ignored by other agents.
+    def start(project_directory, prompt, log_path:, allowed_tools: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 
       # `claude -p` stops background subagents 10 minutes after the last
       # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
       Process.spawn(
         { "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0" },
-        *command(self.class.agent, prompt),
+        *command(self.class.agent, prompt, allowed_tools),
         chdir: project_directory,
         in: File::NULL,
         out: [ log_path, "a" ],
@@ -95,9 +99,13 @@ module AiCli
     # incremental stream-json events (text_delta/tool_use/etc.) written as
     # the run progresses — set it before boot, e.g. `AI_VERBOSE=1 bin/dev`.
     # Only applies to claude.
-    def command(agent, prompt)
+    def command(agent, prompt, allowed_tools = nil)
       spec = AGENTS[agent] or raise CommandError, "unknown AGENT #{agent.inspect} (expected one of #{AGENTS.keys.join(", ")})"
-      command = [ spec[:binary], *spec[:args].map { |arg| arg == :prompt ? prompt : arg } ]
+      args = spec[:args].map { |arg| arg == :prompt ? prompt : arg }
+      if agent == "claude" && allowed_tools.present?
+        args = args.map { |arg| arg == "--dangerously-skip-permissions" ? [ "--allowedTools", *allowed_tools ] : arg }.flatten
+      end
+      command = [ spec[:binary], *args ]
       if agent == "claude" && ENV["AI_VERBOSE"].present?
         command += [ "--output-format", "stream-json", "--verbose", "--include-partial-messages" ]
       end

@@ -1,0 +1,7 @@
+<p class="page-header__meta"><%= link_to @workflow.label, project_workflow_path(@project, @workflow) %></p>
+
+<div class="page-header">
+  <h1>Add stage</h1>
+</div>
+
+<%= render "form", project: @project, workflow: @workflow, stage: @stage %>

@@ -1,5 +1,5 @@
 class ProjectsController < ApplicationController
-  before_action :set_project, only: %i[show edit update destroy]
+  before_action :set_project, only: %i[show edit update destroy sync_slack]
 
   def index
     @projects = Project.order(:name)
@@ -38,6 +38,21 @@ class ProjectsController < ApplicationController
     redirect_to projects_path, notice: "Project deleted."
   end
 
+  # Asks the agent to look for new Slack mentions with PRs right now instead of
+  # waiting for the next 30-minute fetch; SlackReviewJob imports the result.
+  def sync_slack
+    sync = Slack::ReviewSync.new(@project)
+    if sync.blockers.any?
+      redirect_to @project, alert: "Slack sync blocked: #{sync.blockers.join('; ')}"
+    elsif sync.fetcher.start
+      redirect_to @project, notice: "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing."
+    else
+      redirect_to @project, alert: "A Slack fetch is already running for this project."
+    end
+  rescue AiCli::CommandError => e
+    redirect_to @project, alert: "Slack sync failed: #{e.message}"
+  end
+
   private
 
   def set_project
@@ -46,6 +61,6 @@ class ProjectsController < ApplicationController
 
   def project_params
     params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers,
-      :jira_base_url, :jira_assignee)
+      :jira_base_url, :jira_assignee, :jira_tester, :slack_review_enabled, :slack_mention)
   end
 end

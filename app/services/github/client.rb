@@ -35,6 +35,28 @@ module Github
         raise(CommandError, "agent finished but no PR was found (branch=#{branch_name.inspect}, ticket=#{jira_ticket.inspect})")
     end
 
+    # { "state" => "OPEN", "author" => "login", "head_ref" => "branch", "cross_repository" => false }
+    def pr_info(pr_url)
+      data = JSON.parse(run!([ "gh", "pr", "view", pr_url, "--json", "state,author,headRefName,isCrossRepository" ]))
+      {
+        "state" => data["state"].to_s.upcase,
+        "author" => data.dig("author", "login").to_s,
+        "head_ref" => data["headRefName"].to_s,
+        "cross_repository" => data["isCrossRepository"] == true
+      }
+    end
+
+    # Login of the account `gh` is authenticated as.
+    def current_login
+      run!([ "gh", "api", "user", "--jq", ".login" ], scope_to_repo: false).strip
+    end
+
+    # Fetches a PR (including fork PRs) into the clone and checks it out, for
+    # the rare case it can't be done with plain git.
+    def checkout_pr!(pr_url)
+      run!([ "gh", "pr", "checkout", pr_url ])
+    end
+
     def merged?(pr_url)
       out = run!([ "gh", "pr", "view", pr_url, "--json", "state" ])
       JSON.parse(out)["state"].to_s.upcase == "MERGED"
@@ -72,6 +94,20 @@ module Github
         FAILED_CONCLUSIONS.include?(check["conclusion"].to_s.upcase) ||
           FAILED_STATES.include?(check["state"].to_s.upcase)
       end
+    end
+
+    # State of the newest run of a GitHub Actions workflow (file name or name) that started at or after `since`,
+    # in `repo` (default: the project's): { state: :none | :pending | :success | :failed, url: }.
+    # :none = no such run yet (not dispatched / not visible yet), :pending = queued or in progress.
+    def workflow_run_state(workflow, since:, repo: nil)
+      repo = repo.presence || project.repo_full_name
+      out = run!([ "gh", "run", "list", "--workflow", workflow, "--limit", "20", "--json", "status,conclusion,createdAt,url" ],
+                 repo: repo)
+      run = JSON.parse(out).select { |r| Time.zone.parse(r["createdAt"].to_s) >= since }.max_by { |r| r["createdAt"] }
+      return { state: :none } unless run
+      return { state: :pending, url: run["url"] } unless run["status"].to_s.casecmp?("completed")
+
+      { state: run["conclusion"].to_s.casecmp?("success") ? :success : :failed, url: run["url"], conclusion: run["conclusion"] }
     end
 
     def request_review!(pr_url, reviewers)
@@ -122,8 +158,8 @@ module Github
 
     # `gh api` has no `-R` flag (the repo is part of its endpoint path), so
     # callers of it pass `scope_to_repo: false`.
-    def run!(command, scope_to_repo: true)
-      command = [ *command, "-R", project.repo_full_name ] if scope_to_repo
+    def run!(command, scope_to_repo: true, repo: project.repo_full_name)
+      command = [ *command, "-R", repo ] if scope_to_repo
       out, err, status = Open3.capture3(*command, chdir: project.local_directory)
       raise CommandError, "#{command.join(' ')} failed: #{err.presence || out}" unless status.success?
 

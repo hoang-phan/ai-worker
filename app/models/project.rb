@@ -6,6 +6,8 @@ class Project < ApplicationRecord
   # branch/PR/review stages, and can optionally pull workflows from Jira.
   # personal: local-only projects where each workflow is a single task
   # description that gets implemented and committed directly, no PR involved.
+  # Runbook (deploy/release) runs are not a project kind: any project can have any
+  # number of `Workflow#kind = runbook` workflows, each with its own stages.
   enum :kind, { jira: 0, personal: 1 }
 
   validates :jira_base_url, format: { with: %r{\Ahttps://[^/\s]+\z}, message: "must look like https://your-site.atlassian.net" }, allow_blank: true

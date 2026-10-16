@@ -1,4 +1,4 @@
-<div class="card form-card">
+<div class="card form-card" data-controller="skill-insert">
   <%= form_with model: project do |f| %>
     <% if project.errors.any? %>
       <div class="error-summary">
@@ -19,7 +19,7 @@
     <div class="field">
       <%= f.label :kind %>
       <%= f.select :kind, Project.kinds.keys.map { |k| [k.titleize, k] } %>
-      <p class="field-hint">Jira: GitHub-backed, driven by Jira tickets, goes through branch/PR/review stages. Personal: local-only, each workflow is one task that gets implemented and committed directly, no PR.</p>
+      <p class="field-hint">Jira: GitHub-backed, driven by Jira tickets, goes through branch/PR/review stages. Personal: local-only, each workflow is one task that gets implemented and committed directly, no PR. Deployments/releases are runbook <em>workflows</em> on any project, not a project kind.</p>
     </div>
 
     <div class="field">
@@ -40,7 +40,10 @@
 
     <div class="field">
       <%= f.label :default_skills, "Default skills (comma-separated)" %>
-      <%= f.text_area :default_skills, rows: 3 %>
+      <% if project.persisted? %>
+        <%= render "shared/skill_hints", project: project %>
+      <% end %>
+      <%= f.text_area :default_skills, rows: 3, data: { skill_insert_target: "input" } %>
       <p class="field-hint">Jira projects only. Prefilled on new workflows; override per workflow.</p>
     </div>
 
@@ -56,6 +59,26 @@
       <div class="field">
         <%= f.label :jira_assignee, "Assignee" %>
         <%= f.text_field :jira_assignee, placeholder: "Email, full name, account ID, profile URL or currentUser()" %>
+      </div>
+
+      <div class="field">
+        <%= f.label :jira_tester, "Tester" %>
+        <%= f.text_field :jira_tester, placeholder: "Email, full name, account ID or profile URL" %>
+        <p class="field-hint">After a PR is merged, the agent moves the ticket to UAT (UI-testable change) and assigns it to this tester, setting the Developer field to the original assignee; otherwise to Releaseable.</p>
+      </div>
+    </fieldset>
+
+    <fieldset class="field">
+      <legend>Slack PR reviews (optional)</legend>
+      <p class="field-hint">Jira projects only. Every 30 minutes the agent CLI looks through your Slack mentions (via its Slack MCP connector) for PRs of this repo, in the message or its thread. Each open PR that isn't yours becomes a review workflow: the agent checks out the branch, reviews it, posts the GitHub verdict and replies in the Slack thread. Review workflows run one at a time per project, like any other workflow.</p>
+
+      <div class="field">
+        <label><%= f.check_box :slack_review_enabled %> Review PRs from Slack mentions automatically</label>
+      </div>
+
+      <div class="field">
+        <%= f.label :slack_mention, "Mention to look for" %>
+        <%= f.text_field :slack_mention, placeholder: "@hoang, a user ID or a user group such as @frontend-reviewers" %>
       </div>
     </fieldset>
 

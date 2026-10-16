@@ -14,10 +14,20 @@ class StageRun < ApplicationRecord
     no_action_pending
     checks_failing
     task_completed
+    review_completed
+    pr_not_open_skipped
+    pr_merged_detected
+    merge_check_failed
+    jira_updated
     failed
     halted
     resumed
     rolled_back_to_review
+    stage_completed
+    message_sent
+    advanced
+    waiting_for_check
+    check_passed
   ].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }

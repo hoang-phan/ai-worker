@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1><%= @project.name %></h1>
-    <p class="page-header__meta"><%= @project.local_directory %> &middot; <%= @project.repo_full_name %></p>
+    <p class="page-header__meta"><%= @project.local_directory %><%= " · #{@project.repo_full_name}".html_safe if @project.repo_full_name.present? %></p>
   </div>
   <div class="page-header__actions">
     <%= link_to "Edit project", edit_project_path(@project), class: "btn btn-secondary" %>
@@ -11,6 +11,7 @@
 <div class="page-header">
   <h2>Workflows</h2>
   <div class="page-header__actions">
+    <%= link_to "New runbook", new_project_workflow_path(@project, kind: "runbook"), class: "btn btn-secondary" %>
     <%= link_to "New workflow", new_project_workflow_path(@project), class: "btn btn-primary" %>
   </div>
 </div>
@@ -36,20 +37,20 @@
       <% @workflows.each do |workflow| %>
         <tr>
           <td class="numeric"><%= workflow.position %></td>
-          <td><%= link_to(@project.personal? ? truncate(workflow.task_description, length: 60) : workflow.jira_ticket, project_workflow_path(@project, workflow)) %></td>
+          <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(@project, workflow)) %><%= content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review? %><%= content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook? %></td>
           <% unless @project.personal? %>
             <td class="text-muted"><%= workflow.branch_name %></td>
           <% end %>
           <td>
             <% status_badge = case workflow.status
-               when "done" then "badge-success"
-               when "implementing", "reviewing" then "badge-info"
+               when "done", "merged", "jira_updated" then "badge-success"
+               when "implementing", "reviewing", "waiting" then "badge-info"
                when "errored" then "badge-danger"
                else "badge-neutral"
                end %>
             <span class="badge <%= status_badge %>"><%= workflow.status %></span>
           </td>
-          <td><%= workflow.current_stage&.stage_type || workflow.status %></td>
+          <td><%= workflow.runbook? ? (workflow.current_stage&.display_name || workflow.status) : (workflow.current_stage&.stage_type || workflow.status) %></td>
           <% unless @project.personal? %>
             <td><%= link_to "View PR", workflow.github_pr_url, target: "_blank", rel: "noopener", class: "link-action" if workflow.github_pr_url.present? %></td>
           <% end %>
@@ -106,5 +107,25 @@
     <% if @project.jira_syncs.empty? %>
       <div class="empty-state">No syncs yet. <%= link_to "Add one", new_project_jira_sync_path(@project) %> to pull assigned tickets from a Jira project or parent ticket.</div>
     <% end %>
+  </div>
+<% end %>
+
+<% if @project.jira? && (@project.slack_review_enabled? || @project.slack_mention.present?) %>
+  <div class="page-header">
+    <h2>Slack PR reviews</h2>
+    <div class="page-header__actions">
+      <%= button_to "Sync now", sync_slack_project_path(@project), class: "btn btn-secondary" %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>Mention</label>
+      <p><%= @project.slack_mention.presence || "not set" %> &middot; <%= @project.slack_review_enabled? ? "automatic every 30 minutes" : "automatic sync off" %></p>
+    </div>
+    <div class="field">
+      <label>Last synced</label>
+      <p class="text-muted"><%= @project.slack_last_synced_at ? time_ago_in_words(@project.slack_last_synced_at) + " ago" : "never" %><%= " · #{@project.slack_last_result}" if @project.slack_last_result.present? %></p>
+    </div>
   </div>
 <% end %>
