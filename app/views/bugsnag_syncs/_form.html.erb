@@ -1,0 +1,43 @@
+<div class="card form-card">
+  <%= form_with model: [project, bugsnag_sync] do |f| %>
+    <% if bugsnag_sync.errors.any? %>
+      <div class="error-summary">
+        <strong><%= pluralize(bugsnag_sync.errors.count, "error") %> prevented this sync from saving:</strong>
+        <ul>
+          <% bugsnag_sync.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :bugsnag_project, "Bugsnag project" %>
+      <%= f.text_field :bugsnag_project, placeholder: "Scout - Recruit, project id or URL" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :jira_project, "Jira project for the Bugs" %>
+      <%= f.text_field :jira_project, placeholder: "UNS, project URL or project name" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :min_events, "Minimum events" %>
+      <%= f.number_field :min_events, min: 1 %>
+    </div>
+
+    <div class="field">
+      <%= f.label :max_tickets, "Max tickets per run" %>
+      <%= f.number_field :max_tickets, min: 1 %>
+      <p class="field-hint">Top errors by event count become Jira Bugs, each investigated read-only in this project's local clone. Auto runs happen weekdays from 9 AM.</p>
+    </div>
+
+    <div class="field">
+      <label><%= f.check_box :auto_sync %> Run automatically on weekday mornings</label>
+    </div>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
+  <% end %>
+</div>

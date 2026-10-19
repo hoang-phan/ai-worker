@@ -1,14 +1,41 @@
+# Working hours are 05:00-14:00 Vietnam time (UTC+7, Asia/Ho_Chi_Minh)
+
 workflow_scheduler:
-  cron: "*/3 * * * *"
+  cron: "*/3 5-13 * * Asia/Ho_Chi_Minh"
+  class: "WorkflowSchedulerJob"
+  queue: stage_execution
+
+workflow_scheduler_off_hours:
+  cron: "*/20 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
   queue: stage_execution
 
 jira_sync:
-  cron: "*/5 * * * *"
+  cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
+  class: "JiraSyncJob"
+  queue: default
+
+jira_sync_off_hours:
+  cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "JiraSyncJob"
   queue: default
 
 slack_review:
-  cron: "*/5 * * * *"
+  cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
   class: "SlackReviewJob"
+  queue: default
+
+slack_review_off_hours:
+  cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  class: "SlackReviewJob"
+  queue: default
+
+bugsnag_sync:
+  cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
+  class: "BugsnagSyncJob"
+  queue: default
+
+bugsnag_sync_off_hours:
+  cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  class: "BugsnagSyncJob"
   queue: default

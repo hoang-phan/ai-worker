@@ -70,12 +70,15 @@
   <div class="field">
     <label>Status</label>
     <% status_badge = case @workflow.status
-       when "done", "merged", "jira_updated" then "badge-success"
-       when "implementing", "reviewing", "waiting" then "badge-info"
+       when "done", "merged", "jira_updated", "uat_tested" then "badge-success"
+       when "implementing", "reviewing", "waiting", "uat_waiting", "uat_testing", "local_testing" then "badge-info"
        when "errored" then "badge-danger"
        else "badge-neutral"
        end %>
     <span class="badge <%= status_badge %>"><%= @workflow.status %></span>
+    <% if @workflow.uat_waiting? && @workflow.uat_test_at %>
+      <span class="text-muted">agent UAT test starts <%= l @workflow.uat_test_at, format: :short %></span>
+    <% end %>
   </div>
   <% if @workflow.github_pr_url.present? %>
     <div class="field">

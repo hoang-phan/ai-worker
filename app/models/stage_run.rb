@@ -28,6 +28,12 @@ class StageRun < ApplicationRecord
     advanced
     waiting_for_check
     check_passed
+    uat_test_scheduled
+    uat_test_completed
+    local_test_completed
+    local_test_failing
+    local_test_retest_scheduled
+    local_test_rounds_exhausted
   ].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }

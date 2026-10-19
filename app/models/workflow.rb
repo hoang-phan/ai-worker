@@ -2,7 +2,8 @@ class Workflow < ApplicationRecord
   belongs_to :project
   has_many :stages, -> { order(:position, :id) }, dependent: :destroy
 
-  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4, merged: 5, jira_updated: 6, waiting: 7 }
+  enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4, merged: 5, jira_updated: 6, waiting: 7,
+                 uat_waiting: 8, uat_testing: 9, uat_tested: 10, local_testing: 11 }
 
   # development: a Jira ticket / personal task we implement ourselves.
   # pr_review: someone else's PR (found in a Slack mention) that we review.
@@ -10,10 +11,18 @@ class Workflow < ApplicationRecord
   # paused for a person (Next) after each.
   enum :kind, { development: 0, pr_review: 1, runbook: 2 }
 
+  # Accepts a Slack thread id (`1760000000.123456`) or a message link (`.../archives/C123/p1760000000123456`).
+  def slack_review_thread_ts=(value)
+    text = value.to_s.strip
+    super(text[%r{/p(\d{10})(\d{6})}] ? "#{$1}.#{$2}" : text.presence)
+  end
+
   # which stage type is currently active for each in-flight workflow status
   # (`merged` runs the post-merge Jira update; `done` and `jira_updated` are terminal-ish and
-  # don't block the next workflow, nor does `merged`.)
-  STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check", "merged" => "jira_update" }.freeze
+  # don't block the next workflow, nor does `merged`. `uat_waiting` / `uat_testing` / `uat_tested` come after the
+  # ticket reached UAT: the agent tests it in a browser once the project's delay has passed.)
+  STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check", "merged" => "jira_update", "uat_testing" => "uat_test",
+                          "local_testing" => "local_test" }.freeze
   # personal-project workflows have a single stage and skip "reviewing" entirely
   SIMPLE_STAGE_TYPE_BY_STATUS = { "implementing" => "task" }.freeze
   # PR-review workflows have a single stage, run once, and skip "reviewing"
@@ -82,6 +91,9 @@ class Workflow < ApplicationRecord
   # The in-flight status an errored workflow goes back to: reviewing once a PR
   # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
   def resume_status
+    return :uat_testing if uat_test_at.present?
+    return :local_testing if local_test_unfinished?
+
     development? && github_pr_url.present? ? :reviewing : :implementing
   end
 
@@ -172,9 +184,9 @@ class Workflow < ApplicationRecord
     stage_type = mapping[status]
     return nil unless stage_type
 
-    # The Jira-update stage isn't seeded with the workflow (older workflows
+    # The Jira-update and UAT-test stages aren't seeded with the workflow (older workflows
     # predate it), so create it the first time it's needed.
-    return stages.find_or_create_by!(stage_type: stage_type) if stage_type == "jira_update"
+    return stages.find_or_create_by!(stage_type: stage_type) if %w[jira_update uat_test local_test].include?(stage_type)
 
     stages.find_by(stage_type: stage_type)
   end
@@ -186,6 +198,13 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  # An errored workflow whose newest local test run started but never finished goes back to it, not to review
+  # (also true for a retest after a fix round: earlier completed rounds don't count).
+  def local_test_unfinished?
+    last = stages.find_by(stage_type: :local_test)&.stage_runs&.reorder(id: :desc)&.first
+    last.present? && last.action != "local_test_completed"
+  end
 
   def copy_source
     project.workflows.runbook.find_by(id: copy_stages_from_id) if copy_stages_from_id.present?

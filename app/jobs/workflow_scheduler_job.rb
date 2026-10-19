@@ -24,14 +24,15 @@ class WorkflowSchedulerJob < ApplicationJob
   def perform(run_workflow_id = nil)
     run_active_workflows(run_workflow_id)
     run_post_merge_phase
+    run_uat_phase
   end
 
   private
 
   def run_active_workflows(run_workflow_id = nil)
-    active_workflows = Workflow.where(status: [ :implementing, :reviewing ]).includes(:project).order(:position).to_a
-    # A Jira update (`merged` status) that's mid-run is polled like any other run.
-    updating = Workflow.where(status: :merged, processing: true).includes(:project).order(:position).to_a
+    active_workflows = Workflow.where(status: [ :implementing, :reviewing, :local_testing ]).includes(:project).order(:position).to_a
+    # A Jira update (`merged`) or a UAT test (`uat_testing`) that's mid-run is polled like any other run.
+    updating = Workflow.where(status: [ :merged, :uat_testing ], processing: true).includes(:project).order(:position).to_a
     workflows = active_workflows + updating
     return if workflows.empty?
 
@@ -86,8 +87,24 @@ class WorkflowSchedulerJob < ApplicationJob
     execute(workflow) if workflow
   end
 
+  # UAT tests: a ticket that reached UAT waits out its project's delay (`uat_test_at`), then the agent tests it in a
+  # browser. Unlike the post-merge phase this doesn't wait for the scheduler to be idle: a test never touches the
+  # git clone and nothing else depends on it, so it only needs a free agent slot (`max_concurrent_agents`). A
+  # `uat_testing` workflow that isn't running is a failed attempt being retried.
+  def run_uat_phase
+    slots = self.class.max_concurrent_agents - Workflow.where(processing: true).count
+    return if slots <= 0
+
+    due = Workflow.where(status: :uat_waiting).where(uat_test_at: ..Time.current)
+                  .or(Workflow.where(status: :uat_testing, processing: false))
+    due.includes(:project).order(:uat_test_at).limit(slots).each do |workflow|
+      workflow.update!(status: :uat_testing) if workflow.uat_waiting?
+      execute(workflow)
+    end
+  end
+
   def work_in_progress?
-    Workflow.implementing.exists? || Workflow.where(processing: true).exists?
+    Workflow.where(status: [ :implementing, :local_testing ]).exists? || Workflow.where(processing: true).exists?
   end
 
   def confirm_merges

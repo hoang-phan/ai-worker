@@ -46,6 +46,10 @@ module Github
       }
     end
 
+    def pr_title(pr_url)
+      JSON.parse(run!([ "gh", "pr", "view", pr_url, "--json", "title" ]))["title"].to_s
+    end
+
     # Login of the account `gh` is authenticated as.
     def current_login
       run!([ "gh", "api", "user", "--jq", ".login" ], scope_to_repo: false).strip

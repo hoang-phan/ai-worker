@@ -45,6 +45,12 @@ module Prompts
         "{TASK}" => workflow.task_description.to_s,
         "{SLACK}" => workflow.slack_url.to_s,
         "{TESTER}" => workflow.project.jira_tester.to_s,
+        "{UAT_URL}" => workflow.project.uat_url.to_s,
+        "{TEST_INSTRUCTIONS}" => workflow.project.test_instructions.to_s,
+        "{UAT_INSTRUCTIONS}" => workflow.project.uat_instructions.to_s,
+        "{LOCAL_URL}" => workflow.project.local_url.to_s,
+        "{LOCAL_INSTRUCTIONS}" => workflow.project.local_instructions.to_s,
+        "{CI_INSTRUCTIONS}" => workflow.project.ci_instructions.to_s,
         "{STARTED_ON}" => workflow.created_at.in_time_zone("Australia/Brisbane").strftime("%d/%m/%Y"),
         "{STAGE_NAME}" => workflow.current_stage&.display_name.to_s,
         "{PREV_OUTPUT}" => previous_output

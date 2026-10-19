@@ -3,7 +3,7 @@ class Stage < ApplicationRecord
   belongs_to :prompt_template, optional: true
   has_many :stage_runs, -> { order(created_at: :desc) }, dependent: :destroy
 
-  enum :stage_type, { implementation: 0, pr_check: 1, task: 2, pr_review: 3, jira_update: 4, runbook_step: 5 }
+  enum :stage_type, { implementation: 0, pr_check: 1, task: 2, pr_review: 3, jira_update: 4, runbook_step: 5, uat_test: 6, local_test: 7 }
 
   # Runbook stages only. agent: run the prompt as is. message: post the rendered prompt to Slack `channel`.
   enum :run_mode, { agent: 0, message: 1 }, prefix: :run

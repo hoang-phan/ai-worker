@@ -130,6 +130,6 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_params
-    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :task_description, :position, :variables_text, :copy_stages_from_id)
+    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :task_description, :position, :variables_text, :copy_stages_from_id, :slack_review_thread_ts)
   end
 end

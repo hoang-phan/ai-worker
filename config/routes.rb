@@ -11,6 +11,9 @@ Rails.application.routes.draw do
     resources :jira_syncs, except: %i[index show] do
       post :run, on: :member
     end
+    resources :bugsnag_syncs, except: %i[index show] do
+      post :run, on: :member
+    end
     resources :workflows, except: :index do
       member do
         post :start
@@ -26,6 +29,7 @@ Rails.application.routes.draw do
   end
 
   resources :prompt_templates
+  resource :settings, only: %i[show update]
 
   root "projects#index"
 end

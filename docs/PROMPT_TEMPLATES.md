@@ -10,6 +10,11 @@ substituted by `Prompts::Renderer` at execution time:
 | `{REVIEWER}` | `workflow.github_reviewer` | one or more GitHub usernames, comma-separated (`gh pr create --reviewer` accepts this form) |
 | `{SKILLS}` | `workflow.skill_list.join(", ")` | comma-separated Claude Code skill names, from the target project's own `.claude/skills/` — see `docs/ADDING_A_PROJECT.md` |
 | `{TESTER}` | `project.jira_tester` | Jira user to assign UAT tickets to (`jira_update` stages) |
+| `{UAT_URL}` | `project.uat_url` | The project's UAT site (`uat_test` stages). The UAT login is not a placeholder: it reaches the agent as the `UAT_USERNAME` / `UAT_PASSWORD` environment variables. |
+| `{LOCAL_URL}` / `{LOCAL_INSTRUCTIONS}` | `project.local_url` / `project.local_instructions` | Local development server URL and local-only instructions (`local_test` stages). |
+| `{CI_INSTRUCTIONS}` | `project.ci_instructions` | Project-specific pre-push checks (e.g. `bin/ci`, or `pnpm test`). Used by the Implement and Review Fix templates; empty if the project has none. |
+| `{TEST_INSTRUCTIONS}` | `project.test_instructions` | Free-text instructions valid on every environment (UAT and local): login, test data, guide to read; blank if none. |
+| `{UAT_INSTRUCTIONS}` | `project.uat_instructions` | Free-text, per-project instructions for the UAT test (login quirks, test data, a guide to read); blank if none (`uat_test` stages). |
 | `{SLACK}` | `workflow.slack_url` | permalink of the Slack message that mentioned the PR (`pr_review` stages only) |
 | `{IMAGES}` | `workflow.image_paths.join(", ")` | absolute paths of the reference images uploaded on the workflow (plain files under `tmp/workflow_images/<workflow id>/`, deleted with the workflow); blank if none |
 

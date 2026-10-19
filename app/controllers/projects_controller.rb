@@ -60,7 +60,13 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers,
-      :jira_base_url, :jira_assignee, :jira_tester, :slack_review_enabled, :slack_mention)
+    params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers, :ci_instructions,
+      :jira_base_url, :jira_assignee, :jira_tester, :slack_review_enabled, :slack_mention, :slack_review_channel, :slack_user_map,
+      :uat_test_enabled, :uat_url, :test_instructions, :uat_instructions, :uat_username, :uat_password, :uat_test_delay_minutes,
+      :local_test_enabled, :local_url, :local_instructions, :local_username, :local_password).tap do |permitted|
+      # The password field is never filled in; blank means "keep the saved one".
+      permitted.delete(:uat_password) if permitted[:uat_password].blank?
+      permitted.delete(:local_password) if permitted[:local_password].blank?
+    end
   end
 end

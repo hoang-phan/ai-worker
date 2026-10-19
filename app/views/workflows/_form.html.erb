@@ -57,6 +57,12 @@
         <%= render "shared/skill_hints", project: project %>
         <%= f.text_area :skills, rows: 3, data: { skill_insert_target: "input" } %>
       </div>
+
+      <div class="field">
+        <%= f.label :slack_review_thread_ts, "Slack review thread (optional)" %>
+        <%= f.text_field :slack_review_thread_ts, placeholder: "https://workspace.slack.com/archives/C0B5XFY2F0T/p1760000000123456" %>
+        <p class="field-hint">Paste a Slack message link to use an existing thread: review requests and re-reviews are posted as replies in it. Left empty, the first review message starts the thread and is saved here. Replies go to the project's review channel, so the thread must be in it.</p>
+      </div>
     <% end %>
 
     <% unless workflow.pr_review? || workflow.runbook? %>
