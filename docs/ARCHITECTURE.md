@@ -94,6 +94,15 @@ same per-run log file as the others and are tailed into the Rails log.
 Env vars can live in a git-ignored `.env` (see `.env.example`), loaded by `dotenv-rails`. `AI_VERBOSE`
 stream-json output only applies to `claude`.
 
+## Brainstormed workflows
+
+Personal projects can have a standing goal (`projects.brainstorm_goal`, e.g. "improve the app UI", "increase test coverage", "suggest more useful functionality") with `brainstorm_enabled` on. `BrainstormJob` (hourly, `default` queue) works like `BugsnagSyncJob`: `Brainstorm::Planner` starts one detached, read-only agent run in the project's clone that writes `tmp/brainstorms/<project id>/result.json` (`[{summary, task}]`), and a later tick imports it as workflows (`summary` = the short line, `task_description` = the full task), skipping summaries that match an existing workflow, up to `brainstorm_max_workflows`. They are created `pending` (press Start), or `implementing` with `brainstorm_auto_start`.
+
+- It only runs while the project has no `pending` development workflow (`Workflow::QUEUED_STATUSES`). Implementing workflows don't block it, but aren't in the code yet, so only they are listed to the agent to avoid duplicates (done ones are already in the code it reads); other statuses are Jira-project concerns and irrelevant here.
+- To keep the agent's context small it is given one short line per implementing workflow (`Workflow#brief`: `summary`, else the label, max 100 chars), newest 30 inline, all of them in `history.md` next to the result for grepping. Imported proposals are also deduped against those.
+- `BRAINSTORM_MODEL` (default `claude-opus-5-5`) and `BRAINSTORM_EFFORT` (default `high`) in `.env` become `--model` / `--effort` through `AiCli::Runner.start(model:, effort:)`; claude only. Tools are limited to read/search, `git log/ls-files/status/diff` and `Write`.
+- "Brainstorm now" on the project page triggers a run, under the same no-pending rule.
+
 ## PR-review workflows (Slack)
 
 ### Post-merge Jira update

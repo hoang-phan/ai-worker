@@ -17,6 +17,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 - `app/services/git/branch_service.rb` — creates/resumes a workflow's branch from `main` in the project's local clone.
 - `app/services/github/client.rb` — read-only `gh pr view` calls plus the one write op with no plain `gh pr` subcommand: re-requesting review via `gh api .../requested_reviewers`. PR *creation* is never done here — it happens inside the the agent CLI (`claude -p` or `agent -p --force`) run itself, per the implementation prompt template.
 - `app/services/ai_cli/runner.rb` — the single place that shells out to the agent CLI (`claude -p` or `agent -p --force`). Blocking by design (see `docs/RUNBOOK.md` for why, and why that's mitigated with a dedicated Sidekiq queue rather than spawn+poll).
+- `app/jobs/brainstorm_job.rb` + `app/services/brainstorm/planner.rb` — hourly goal-driven brainstorm for personal projects: detached read-only agent (`BRAINSTORM_MODEL`/`BRAINSTORM_EFFORT`), runs only while the project has no `pending` workflow (`Workflow.queued`), imports `result.json` as workflows. Same detached/poll shape as `Bugsnag::Triager`.
 - `app/services/prompts/renderer.rb` — the only place `{JIRA}`/`{PR}`/`{REVIEWER}`/`{SKILLS}` get substituted.
 
 ## Conventions

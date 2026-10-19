@@ -153,6 +153,26 @@
   </div>
 <% end %>
 
+<% if @project.personal? && (@project.brainstorm_enabled? || @project.brainstorm_goal.present?) %>
+  <div class="page-header">
+    <h2>Brainstorm</h2>
+    <div class="page-header__actions">
+      <%= button_to "Brainstorm now", brainstorm_project_path(@project), class: "btn btn-secondary" %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>Goal</label>
+      <p><%= @project.brainstorm_goal.presence || "not set" %> &middot; <%= @project.brainstorm_enabled? ? "automatic every hour while no workflow is pending" : "automatic brainstorm off" %></p>
+    </div>
+    <div class="field">
+      <label>Last run</label>
+      <p class="text-muted"><%= @project.brainstorm_last_run_at ? time_ago_in_words(@project.brainstorm_last_run_at) + " ago" : "never" %><%= " · #{@project.brainstorm_last_result}" if @project.brainstorm_last_result.present? %> &middot; <%= @project.workflows.queued.count %> pending</p>
+    </div>
+  </div>
+<% end %>
+
 <% if @project.jira? && (@project.slack_review_enabled? || @project.slack_mention.present?) %>
   <div class="page-header">
     <h2>Slack PR reviews</h2>
