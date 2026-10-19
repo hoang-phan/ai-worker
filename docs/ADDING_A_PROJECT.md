@@ -25,10 +25,12 @@ a `local_directory` that resolves (via `realpath`) to `Rails.root`.
 1. Make a sibling clone: `git clone git@github.com:hoang-phan/ai-worker.git ~/code/ai-worker-self`
    and run `bundle install` there. SQLite lives in `storage/` (gitignored),
    so the clone has its own databases — migrations there can't touch real data.
-2. Register it with `local_directory` = the clone, `repo_full_name` = `hoang-phan/ai-worker`.
-   Prompts should say: never run migrations or write to any DB other than the clone's own, and use `RAILS_ENV=test`.
-3. Promotion is manual. After a self-evolution PR merges, in the live checkout:
-   back up `storage/development.sqlite3`, `git pull`, `bin/rails db:migrate`, restart Sidekiq.
+2. Register it with `local_directory` = the clone. For a local-only setup use kind `personal`
+   (each workflow is one task committed in the clone, no PR); use `jira` + `repo_full_name`
+   `hoang-phan/ai-worker` for the PR flow. Give its stage a dedicated prompt template that says: work only in the
+   clone, use `RAILS_ENV=test`, never run migrations or write to any DB other than the clone's own.
+3. Promotion is manual. After a task finishes, in the live checkout: back up `storage/development.sqlite3`,
+   `git pull ~/code/ai-worker-self main` (or `git pull` after a PR merges), `bin/rails db:migrate`, restart Sidekiq.
    The agent never does this.
 
 ## Give the project its own narrowly-scoped skills

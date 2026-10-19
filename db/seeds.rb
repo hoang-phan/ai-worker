@@ -18,10 +18,11 @@ end
 # Example runbook workflow: the Recruit release process, as a pending "template" run on a Recruit project.
 # Each release is a new runbook workflow on the project that copies these stages ("Start with the stages of"),
 # so every deployment keeps its own stage list. Created only if absent, so edits are never overwritten.
-# Set RECRUIT_DIR to a real directory for the agent's working directory (defaults to this app's own checkout).
+# Set RECRUIT_DIR to a real directory for the agent's working directory (defaults to this app's tmp/ — never the
+# checkout itself, which Project rejects as a local_directory).
 project = Project.find_or_create_by!(name: "Recruit") do |p|
   p.kind = :personal
-  p.local_directory = ENV.fetch("RECRUIT_DIR", Rails.root.to_s)
+  p.local_directory = ENV.fetch("RECRUIT_DIR") { Rails.root.join("tmp").to_s }
 end
 if project.workflows.runbook.none?
   workflow = project.workflows.create!(
