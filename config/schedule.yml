@@ -39,3 +39,8 @@ bugsnag_sync_off_hours:
   cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "BugsnagSyncJob"
   queue: default
+
+brainstorm:
+  cron: "0 * * * *"
+  class: "BrainstormJob"
+  queue: default

@@ -17,6 +17,13 @@ class Workflow < ApplicationRecord
     super(text[%r{/p(\d{10})(\d{6})}] ? "#{$1}.#{$2}" : text.presence)
   end
 
+  # Development workflows not started yet. Brainstorming only adds more once none are left; every other status is
+  # irrelevant to it (implementing ones are shown to the agent so it doesn't repeat them, done ones are in the code).
+  QUEUED_STATUSES = %w[pending].freeze
+  SUMMARY_LENGTH = 100
+
+  scope :queued, -> { development.where(status: QUEUED_STATUSES) }
+
   # which stage type is currently active for each in-flight workflow status
   # (`merged` runs the post-merge Jira update; `done` and `jira_updated` are terminal-ish and
   # don't block the next workflow, nor does `merged`. `uat_waiting` / `uat_testing` / `uat_tested` come after the
@@ -95,6 +102,11 @@ class Workflow < ApplicationRecord
     return :local_testing if local_test_unfinished?
 
     development? && github_pr_url.present? ? :reviewing : :implementing
+  end
+
+  # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
+  def brief
+    (summary.presence || label).to_s.squish.truncate(SUMMARY_LENGTH)
   end
 
   # "org/repo#123" for PR-review workflows, otherwise the Jira ticket / task.

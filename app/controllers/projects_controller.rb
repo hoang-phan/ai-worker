@@ -1,5 +1,5 @@
 class ProjectsController < ApplicationController
-  before_action :set_project, only: %i[show edit update destroy sync_slack]
+  before_action :set_project, only: %i[show edit update destroy sync_slack brainstorm]
 
   def index
     @projects = Project.order(:name)
@@ -53,6 +53,24 @@ class ProjectsController < ApplicationController
     redirect_to @project, alert: "Slack sync failed: #{e.message}"
   end
 
+  # Runs a brainstorm now instead of waiting for the hourly one. Like the scheduled run it only happens while
+  # the project has no pending workflow; BrainstormJob imports the result as pending workflows.
+  def brainstorm
+    planner = Brainstorm::Planner.new(@project)
+    if planner.blockers.any?
+      redirect_to @project, alert: "Brainstorm blocked: #{planner.blockers.join('; ')}"
+    elsif planner.queued_count.positive?
+      redirect_to @project, alert: "Brainstorm skipped: #{planner.queued_count} workflow(s) still pending; start or delete them first."
+    elsif planner.start
+      @project.update(brainstorm_last_run_at: Time.current)
+      redirect_to @project, notice: "Agent is brainstorming workflows. They appear within the hour after it finishes."
+    else
+      redirect_to @project, alert: "A brainstorm is already running for this project."
+    end
+  rescue AiCli::CommandError => e
+    redirect_to @project, alert: "Brainstorm failed: #{e.message}"
+  end
+
   private
 
   def set_project
@@ -63,6 +81,7 @@ class ProjectsController < ApplicationController
     params.require(:project).permit(:name, :local_directory, :repo_full_name, :kind, :default_skills, :default_reviewers, :ci_instructions,
       :jira_base_url, :jira_assignee, :jira_tester, :slack_review_enabled, :slack_mention, :slack_review_channel, :slack_user_map,
       :uat_test_enabled, :uat_url, :test_instructions, :uat_instructions, :uat_username, :uat_password, :uat_test_delay_minutes,
+      :brainstorm_enabled, :brainstorm_goal, :brainstorm_auto_start, :brainstorm_max_workflows,
       :local_test_enabled, :local_url, :local_instructions, :local_username, :local_password).tap do |permitted|
       # The password field is never filled in; blank means "keep the saved one".
       permitted.delete(:uat_password) if permitted[:uat_password].blank?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_19_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_19_150000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -39,6 +39,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_140000) do
   end
 
   create_table "projects", force: :cascade do |t|
+    t.boolean "brainstorm_auto_start", default: false, null: false
+    t.boolean "brainstorm_enabled", default: false, null: false
+    t.text "brainstorm_goal"
+    t.string "brainstorm_last_result"
+    t.datetime "brainstorm_last_run_at"
+    t.integer "brainstorm_max_workflows", default: 5, null: false
     t.text "ci_instructions"
     t.datetime "created_at", null: false
     t.string "default_reviewers"
@@ -128,6 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_140000) do
     t.string "slack_review_thread_ts"
     t.string "slack_url"
     t.integer "status", default: 0, null: false
+    t.string "summary"
     t.text "task_description"
     t.datetime "uat_test_at"
     t.datetime "updated_at", null: false

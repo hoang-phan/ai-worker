@@ -44,9 +44,9 @@ module AiCli
       AGENTS.keys
     end
 
-    def self.start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [])
+    def self.start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       new(log_tag: nil).start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools,
-                              mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools)
+                              mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools, model: model, effort: effort)
     end
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].
@@ -77,13 +77,16 @@ module AiCli
     # disallowed_tools (claude only): tool rules denied for this run only (`--disallowedTools`, e.g.
     # `Bash(gh workflow run:*)`). Deny rules win even over --dangerously-skip-permissions. Other agents have no
     # equivalent, so the prompt has to say it.
-    def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [])
+    #
+    # model / effort (claude only): `--model` / `--effort` for this run instead of the CLI's defaults, e.g. a stronger
+    # model for brainstorming. Other agents ignore them.
+    def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 
       # `claude -p` stops background subagents 10 minutes after the last
       # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
       agent = self.class.agent
-      cmd = command(agent, prompt, allowed_tools, mcp_config, disallowed_tools)
+      cmd = command(agent, prompt, allowed_tools, mcp_config, disallowed_tools, model, effort)
       cmd = with_cursor_mcp_file(project_directory, mcp_config, cmd) if agent == "cursor" && mcp_config.present?
 
       Process.spawn(
@@ -132,7 +135,7 @@ module AiCli
     # incremental stream-json events (text_delta/tool_use/etc.) written as
     # the run progresses — set it before boot, e.g. `AI_VERBOSE=1 bin/dev`.
     # Only applies to claude.
-    def command(agent, prompt, allowed_tools = nil, mcp_config = nil, disallowed_tools = [])
+    def command(agent, prompt, allowed_tools = nil, mcp_config = nil, disallowed_tools = [], model = nil, effort = nil)
       spec = AGENTS[agent] or raise CommandError, "unknown AGENT #{agent.inspect} (expected one of #{AGENTS.keys.join(", ")})"
       args = spec[:args].map { |arg| arg == :prompt ? prompt : arg }
       if agent == "claude" && allowed_tools.present?
@@ -143,6 +146,8 @@ module AiCli
       command.insert(2, *codex_mcp_overrides(mcp_config)) if agent == "codex" && mcp_config.present? # before the prompt
       command << "--approve-mcps" if agent == "cursor" && mcp_config.present? && cursor_supports?("--approve-mcps")
       command += [ "--disallowedTools", *disallowed_tools ] if agent == "claude" && disallowed_tools.present?
+      command += [ "--model", model.to_s ] if agent == "claude" && model.present?
+      command += [ "--effort", effort.to_s ] if agent == "claude" && effort.present?
       if agent == "claude" && ENV["AI_VERBOSE"].present?
         command += [ "--output-format", "stream-json", "--verbose", "--include-partial-messages" ]
       end

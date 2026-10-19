@@ -8,6 +8,7 @@ Rails.application.routes.draw do
 
   resources :projects do
     post :sync_slack, on: :member
+    post :brainstorm, on: :member
     resources :jira_syncs, except: %i[index show] do
       post :run, on: :member
     end

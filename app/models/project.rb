@@ -54,6 +54,8 @@ class Project < ApplicationRecord
   validates :slack_review_channel, format: { with: /\A[CG][A-Z0-9]{8,}\z/, message: "must be a Slack channel ID like C0B5XFY2F0T" }, allow_blank: true
 
   validates :jira_base_url, format: { with: %r{\Ahttps://[^/\s]+\z}, message: "must look like https://your-site.atlassian.net" }, allow_blank: true
+  validates :brainstorm_goal, presence: true, if: :brainstorm_enabled?
+  validates :brainstorm_max_workflows, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }
   validates :name, presence: true
   validates :local_directory, presence: true
   validate :local_directory_is_not_the_running_app
