@@ -36,6 +36,8 @@ class StageExecutor
   end
 
   def call
+    raise ArgumentError, "project #{project.name} points at the live ai-worker checkout; use a separate clone" if project.runs_from_live_checkout?
+
     if workflow.processing?
       poll_ai_run
     else

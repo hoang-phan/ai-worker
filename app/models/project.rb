@@ -23,6 +23,17 @@ class Project < ApplicationRecord
   validates :local_url, format: { with: %r{\Ahttps?://[^/\s]+\S*\z}, message: "must be a full URL like http://localhost:3000" }, allow_blank: true
   validates :local_url, presence: true, if: :local_test_enabled?
 
+  # True when `local_directory` is the checkout this app is running from. Agents
+  # branch/pull/merge and may migrate in the project's clone, which would swap
+  # the live code and hit the live dev DB — self-evolving needs its own clone.
+  def runs_from_live_checkout?
+    return false if local_directory.blank?
+
+    File.realpath(File.expand_path(local_directory)) == File.realpath(Rails.root)
+  rescue Errno::ENOENT
+    false
+  end
+
   def local_test_ready?
     jira? && local_test_enabled? && local_url.present?
   end
@@ -45,5 +56,14 @@ class Project < ApplicationRecord
   validates :jira_base_url, format: { with: %r{\Ahttps://[^/\s]+\z}, message: "must look like https://your-site.atlassian.net" }, allow_blank: true
   validates :name, presence: true
   validates :local_directory, presence: true
+  validate :local_directory_is_not_the_running_app
   validates :repo_full_name, presence: true, format: { with: %r{\A[^/\s]+/[^/\s]+\z}, message: "must be in the form org/repo" }, if: :jira?
+
+  private
+
+  def local_directory_is_not_the_running_app
+    return unless runs_from_live_checkout?
+
+    errors.add(:local_directory, "is this app's own live checkout; use a separate clone (see docs/ADDING_A_PROJECT.md)")
+  end
 end
