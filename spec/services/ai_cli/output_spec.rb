@@ -1,0 +1,79 @@
+require "rails_helper"
+
+RSpec.describe AiCli::Output do
+  def output(text) = described_class.new(text)
+
+  describe "#variables" do
+    it "reads single-line variables and upcases names" do
+      expect(output("noise\n  VAR: version=2.1\nVAR: Other=  x y ").variables).to eq("VERSION" => "2.1", "OTHER" => "x y")
+    end
+
+    it "reads multi-line blocks" do
+      text = "VAR_BEGIN: notes\nline one\nline two\nVAR_END\nVAR: A=1"
+      expect(output(text).variables).to eq("NOTES" => "line one\nline two", "A" => "1")
+    end
+
+    it "does not treat VAR lines inside a block as variables" do
+      expect(output("VAR_BEGIN: x\nVAR: Y=2\nVAR_END").variables).to eq("X" => "VAR: Y=2")
+    end
+
+    it "is empty for nil or no markers" do
+      expect(output(nil).variables).to eq({})
+    end
+  end
+
+  describe "#jira_result" do
+    it("returns UAT") { expect(output("JIRA_RESULT: UAT").jira_result).to eq("UAT") }
+    it("is case-insensitive") { expect(output("jira_result: releaseable").jira_result).to eq("releaseable") }
+    it("is nil when missing") { expect(output("nothing").jira_result).to be_nil }
+    it("is nil for other values") { expect(output("JIRA_RESULT: DONE").jira_result).to be_nil }
+  end
+
+  describe "#uat_result" do
+    it("returns the verdict") { expect(output("UAT_RESULT: BLOCKED").uat_result).to eq("BLOCKED") }
+    it("is case-insensitive") { expect(output("uat_result: passed").uat_result).to eq("passed") }
+    it("is nil when missing") { expect(output("x").uat_result).to be_nil }
+  end
+
+  describe "#local_test_result" do
+    it("returns the verdict") { expect(output("LOCAL_TEST_RESULT: FAILED").local_test_result).to eq("FAILED") }
+    it("is case-insensitive") { expect(output("local_test_result: passed").local_test_result).to eq("passed") }
+    it("is nil when missing") { expect(output(nil).local_test_result).to be_nil }
+  end
+
+  describe "#retest_requested?" do
+    it("is true when absent") { expect(output("nothing").retest_requested?).to be true }
+    it("is true for YES") { expect(output("LOCAL_RETEST: YES").retest_requested?).to be true }
+    it("is false for NO") { expect(output("LOCAL_RETEST: no").retest_requested?).to be false }
+    it("uses the last line") { expect(output("LOCAL_RETEST: YES\nLOCAL_RETEST: NO").retest_requested?).to be false }
+  end
+
+  describe "#local_test_feedback_block" do
+    it "returns the last block (prompt echo first)" do
+      text = "LOCAL_TEST_FEEDBACK_BEGIN\n<example>\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_FEEDBACK_BEGIN\n real failure \nmore\nLOCAL_TEST_FEEDBACK_END"
+      expect(output(text).local_test_feedback_block).to eq("real failure \nmore")
+    end
+
+    it("is nil when missing") { expect(output("x").local_test_feedback_block).to be_nil }
+
+    it "is nil for an empty block" do
+      expect(output("LOCAL_TEST_FEEDBACK_BEGIN\n \nLOCAL_TEST_FEEDBACK_END").local_test_feedback_block).to be_nil
+    end
+  end
+
+  describe "#fixed_summary" do
+    it "returns the last block" do
+      text = "FIXED_SUMMARY_BEGIN\nexample\nFIXED_SUMMARY_END\nFIXED_SUMMARY_BEGIN\n- fixed a\n- fixed b\nFIXED_SUMMARY_END"
+      expect(output(text).fixed_summary).to eq("- fixed a\n- fixed b")
+    end
+
+    it("is nil when missing") { expect(output("x").fixed_summary).to be_nil }
+  end
+
+  describe "#posted?" do
+    it("matches a POSTED line") { expect(output("done\nPOSTED\n").posted?).to be true }
+    it("allows surrounding whitespace") { expect(output("done\n   POSTED  \n").posted?).to be true }
+    it("rejects POSTED inside a sentence") { expect(output("not POSTED yet").posted?).to be false }
+    it("is false when missing") { expect(output(nil).posted?).to be false }
+  end
+end

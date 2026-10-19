@@ -20,15 +20,6 @@ class StageExecutor
     `git commit --no-edit`. Make sure the project still builds and its tests pass. Do not push.
   PROMPT
 
-  # Single-line `VAR: NAME=value`, or a multi-line value between `VAR_BEGIN: NAME` and `VAR_END` lines.
-  def self.emitted_variables(output)
-    text = output.to_s
-    blocks = text.scan(/^[ \t]*VAR_BEGIN:[ \t]*([A-Za-z][A-Za-z0-9_]*)[ \t]*\n(.*?)\n?^[ \t]*VAR_END[ \t]*$/m)
-    lines = text.gsub(/^[ \t]*VAR_BEGIN:.*?^[ \t]*VAR_END[ \t]*$/m, "")
-                .scan(/^\s*VAR:\s*([A-Za-z][A-Za-z0-9_]*)=(.*)$/)
-    (lines + blocks).to_h { |name, value| [ name.upcase, value.strip ] }
-  end
-
   def initialize(workflow, stage)
     @workflow = workflow
     @stage = stage
@@ -307,7 +298,7 @@ class StageExecutor
       workflow.update!(ai_run_attrs.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
       log(action: "requested_changes_fixed", output: output)
       log(action: "local_test_retest_scheduled") if retest
-      notify_reviewers(again: true, fixed: fixed_summary(output)) unless retest
+      notify_reviewers(again: true, fixed: AiCli::Output.new(output).fixed_summary) unless retest
     when "task"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "task_completed", output: output)
@@ -329,12 +320,12 @@ class StageExecutor
   # `auto_advance`: then it moves straight on and the scheduler starts the next stage. Agents can hand values to later stages with lines like
   # `VAR: VERSION=2.21.1-f839742`, which become workflow variables / {VERSION}.
   def finish_runbook_step(output)
-    if stage.run_message? && output.to_s !~ /^\s*POSTED\s*$/
+    if stage.run_message? && !AiCli::Output.new(output).posted?
       raise AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)"
     end
 
     workflow.update!(ai_run_attrs.merge(status: :waiting, awaiting_next: true,
-                                         variables: workflow.variables.merge(self.class.emitted_variables(output))))
+                                         variables: workflow.variables.merge(AiCli::Output.new(output).variables)))
     log(action: "stage_completed", output: output)
     log(action: "message_sent") if stage.run_message?
     return unless stage.auto_advance?
@@ -346,7 +337,7 @@ class StageExecutor
   # The prompt makes the agent end with `JIRA_RESULT: UAT` or
   # `JIRA_RESULT: RELEASEABLE`; without it we can't tell the ticket moved.
   def finish_jira_update(output)
-    outcome = output.to_s[/JIRA_RESULT:\s*(UAT|RELEASEABLE)/i, 1]
+    outcome = AiCli::Output.new(output).jira_result
     raise AiCli::CommandError, "agent finished without a JIRA_RESULT line, treating the Jira update as failed" unless outcome
 
     # A ticket that went to UAT is tested by the agent after the project's delay, if the project opted in.
@@ -365,7 +356,7 @@ class StageExecutor
   # the three is a finished test (the verdict lives in the comment and this log); no line means we can't tell the
   # comment was posted, so the stage fails and retries like any other.
   def finish_uat_test(output)
-    result = output.to_s[/UAT_RESULT:\s*(PASSED|FAILED|BLOCKED)/i, 1]
+    result = AiCli::Output.new(output).uat_result
     raise AiCli::CommandError, "agent finished without a UAT_RESULT line, treating the UAT test as failed" unless result
 
     workflow.update!(ai_run_attrs.merge(status: :uat_tested))
@@ -383,11 +374,11 @@ class StageExecutor
     rounds = workflow.stages.find_by(stage_type: :local_test)&.stage_runs&.where(action: "local_test_completed")&.count.to_i
     return false if rounds >= MAX_LOCAL_TEST_ROUNDS
 
-    workflow.local_test_feedback.present? || output.to_s.scan(/LOCAL_RETEST:\s*(YES|NO)/i).last&.first.to_s.casecmp?("NO") == false
+    workflow.local_test_feedback.present? || AiCli::Output.new(output).retest_requested?
   end
 
   def finish_local_test(output)
-    result = output.to_s[/LOCAL_TEST_RESULT:\s*(PASSED|FAILED|BLOCKED)/i, 1]
+    result = AiCli::Output.new(output).local_test_result
     raise AiCli::CommandError, "agent finished without a LOCAL_TEST_RESULT line, treating the local test as failed" unless result
 
     failed = result.casecmp?("FAILED")
@@ -403,8 +394,8 @@ class StageExecutor
   # The block the agent printed between the markers (the last one: the log may echo the prompt's own example),
   # or a pointer to its PR comment.
   def local_test_feedback(output)
-    block = output.to_s.scan(/LOCAL_TEST_FEEDBACK_BEGIN[ \t]*\n(.*?)\n[ \t]*LOCAL_TEST_FEEDBACK_END/m).last&.first
-    block.to_s.strip.presence || "Local testing failed; see the \"Local test by agent\" comment on #{workflow.github_pr_url} for the failing steps."
+    AiCli::Output.new(output).local_test_feedback_block ||
+      "Local testing failed; see the \"Local test by agent\" comment on #{workflow.github_pr_url} for the failing steps."
   end
 
   def resolving_conflicts?
@@ -444,11 +435,6 @@ class StageExecutor
     log(action: "slack_review_notified")
   rescue Slack::NotifyError, Github::CommandError => e
     log(action: "slack_review_notify_failed", error: e.message)
-  end
-
-  # The last block the agent printed between the markers (the log may echo the prompt's own example).
-  def fixed_summary(output)
-    output.to_s.scan(/FIXED_SUMMARY_BEGIN[ \t]*\n(.*?)\n[ \t]*FIXED_SUMMARY_END/m).last&.first.to_s.strip.presence
   end
 
   def enable_auto_merge(pr_url)

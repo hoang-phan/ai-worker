@@ -118,7 +118,7 @@ class Workflow < ApplicationRecord
   # Names a stage produced at run time (`VAR: NAME=value` in its output), as opposed to inputs the user typed.
   def output_variable_names
     StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
-            .flat_map { |output| StageExecutor.emitted_variables(output).keys }.uniq
+            .flat_map { |output| AiCli::Output.new(output).variables.keys }.uniq
   end
 
   # The variables the user set up front (channel, CSS group …), without anything a stage emitted.
