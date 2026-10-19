@@ -56,7 +56,7 @@ Concretely, when onboarding a project:
    directory, a set of routes) — the same boundaries you'd use to decide
    "does this ticket touch area X."
 2. For each seam that's a plausible unattended-implementation target,
-   write a `.claude/skills/<area>/SKILL.md` in *that project's own repo*
+   write a `.agents/skills/<area>/SKILL.md` (with `.claude/skills` symlinked to `../.agents/skills` so Claude Code finds it) in *that project's own repo*
    (not in `ai-worker`) with a scoping `description` and a file map,
    following the `ff-candidate-app` example above.
 3. When creating a Workflow, put the matching skill name(s) into its
@@ -65,7 +65,7 @@ Concretely, when onboarding a project:
    `docs/PROMPT_TEMPLATES.md`) — that's what keeps an unattended run from
    reading the whole target codebase.
 
-This repo's own `.claude/skills/` (`ai-worker-domain`,
+This repo's own `.agents/skills/` (symlinked from `.claude/skills`) (`ai-worker-domain`,
 `ai-worker-orchestration`, `ai-worker-ui`, `ai-worker-review`)
 follow the identical pattern, scoped to `ai-worker`'s own subsystems —
 use them as a second worked example.

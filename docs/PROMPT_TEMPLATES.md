@@ -8,7 +8,7 @@ substituted by `Prompts::Renderer` at execution time:
 | `{JIRA}` | `workflow.jira_ticket` | e.g. `ENG-1234` |
 | `{PR}` | `workflow.github_pr_url` | blank during the `implementation` stage (no PR exists yet) |
 | `{REVIEWER}` | `workflow.github_reviewer` | one or more GitHub usernames, comma-separated (`gh pr create --reviewer` accepts this form) |
-| `{SKILLS}` | `workflow.skill_list.join(", ")` | comma-separated Claude Code skill names, from the target project's own `.claude/skills/` — see `docs/ADDING_A_PROJECT.md` |
+| `{SKILLS}` | `workflow.skill_list.join(", ")` | comma-separated Claude Code skill names, from the target project's own `.agents/skills/` — see `docs/ADDING_A_PROJECT.md` |
 | `{TESTER}` | `project.jira_tester` | Jira user to assign UAT tickets to (`jira_update` stages) |
 | `{UAT_URL}` | `project.uat_url` | The project's UAT site (`uat_test` stages). The UAT login is not a placeholder: it reaches the agent as the `UAT_USERNAME` / `UAT_PASSWORD` environment variables. |
 | `{LOCAL_URL}` / `{LOCAL_INSTRUCTIONS}` | `project.local_url` / `project.local_instructions` | Local development server URL and local-only instructions (`local_test` stages). |
