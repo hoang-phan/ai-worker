@@ -65,12 +65,9 @@ module Brainstorm
       return false if running?
 
       FileUtils.mkdir_p(dir)
-      FileUtils.rm_f(result_file)
-      history_file.write(history_lines.join("\n"))
-      pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_file.to_s, allowed_tools: ALLOWED_TOOLS,
-                                model: self.class.model, effort: self.class.effort)
-      pid_file.write(pid)
-      started_file.write(Time.current.to_f)
+      FileUtils.rm_f(retried_file)
+      log_file.write("")
+      launch
       true
     end
 
@@ -146,8 +143,51 @@ module Brainstorm
       in_flight.map { |workflow| "- #{workflow.brief}" }
     end
 
+    def launch
+      FileUtils.rm_f(result_file)
+      history_file.write(history_lines.join("\n"))
+      pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_file.to_s, allowed_tools: ALLOWED_TOOLS,
+                                model: self.class.model, effort: self.class.effort)
+      pid_file.write(pid)
+      started_file.write(Time.current.to_f)
+    end
+
+    # The agent's final `result` event in agent.log (stream-json output), or nil if there is none.
+    def final_event
+      return unless log_file.exist?
+
+      log_file.each_line.reverse_each do |line|
+        next unless line.start_with?('{"type":"result"')
+
+        return JSON.parse(line)
+      end
+      nil
+    rescue JSON::ParserError
+      nil
+    end
+
+    def failure_reason(event)
+      return "no result event in the log" unless event
+
+      [ event["subtype"], event["terminal_reason"] ].compact.join("/")
+    end
+
+    # A run that died because its API stream was cut is retried once, right away, instead of waiting for the next tick.
+    def retry_after?(event)
+      event && event["terminal_reason"] == "aborted_streaming" && !retried_file.exist?
+    end
+
     def read_result
-      raise FetchError, "agent wrote no #{result_file.basename}; see #{log_file}" unless result_file.exist?
+      unless result_file.exist?
+        event = final_event
+        if retry_after?(event)
+          FileUtils.touch(retried_file)
+          launch
+          return
+        end
+
+        raise FetchError, "agent wrote no #{result_file.basename} (#{failure_reason(event)}); see #{log_file}"
+      end
 
       data = JSON.parse(result_file.read)
       raise FetchError, "#{result_file.basename} is not a JSON array" unless data.is_a?(Array)
@@ -169,7 +209,7 @@ module Brainstorm
       backlog = recent.any? ? recent.join("\n") : "(none yet)"
       more = total > recent.size ? "\n(#{total - recent.size} older ones are in #{history_file}; grep it before proposing anything that sounds familiar.)" : ""
       <<~PROMPT
-        You are brainstorming the next pieces of work for a software project. The current directory is its code; read its CLAUDE.md / .agents skills and rules if present. This is a read-only run: NEVER change code, create branches, commits or PRs. The only file you may write is #{result_file}.
+        You are brainstorming the next pieces of work for a software project. The current directory is its code; read its CLAUDE.md / .agents skills and rules if present. Use Read, Grep and Glob to look at files; Bash is limited to simple git commands (log, ls-files, status, diff) and anything else, including compound commands with cat/ls/sed, is denied. This is a read-only run: NEVER change code, create branches, commits or PRs. The only file you may write is #{result_file}.
 
         GOAL (set by the project owner; it may be broad):
         #{project.brainstorm_goal}
@@ -203,6 +243,10 @@ module Brainstorm
 
     def log_file
       dir.join("agent.log")
+    end
+
+    def retried_file
+      dir.join("retried")
     end
   end
 end
