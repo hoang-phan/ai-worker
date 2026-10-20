@@ -90,7 +90,7 @@ module AiCli
       agent = self.class.agent
       cmd = Command.new(agent: agent, prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
                         disallowed_tools: disallowed_tools, model: model, effort: effort).to_a
-      cmd = with_cursor_mcp_file(project_directory, mcp_config, cmd) if agent == "cursor" && mcp_config.present?
+      cmd = CursorMcpFile.new(project_directory, mcp_config).wrap(cmd) if agent == "cursor" && mcp_config.present?
 
       Process.spawn(
         LEAKED_ENV.index_with(nil).merge("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0").merge(env.transform_values(&:to_s)),
@@ -133,30 +133,6 @@ module AiCli
     private
 
     attr_reader :log_tag
-
-    # cursor reads project MCP servers from <cwd>/.cursor/mcp.json. Write the run's servers there (keeping any
-    # existing file aside), keep it out of git, and have a tiny shell wrapper put things back when the run ends.
-    def with_cursor_mcp_file(project_directory, mcp_config, cmd)
-      dir = File.join(project_directory, ".cursor")
-      file = File.join(dir, "mcp.json")
-      backup = "#{file}.ai-worker-bak"
-      FileUtils.mkdir_p(dir)
-      FileUtils.mv(file, backup) if File.exist?(file) && !File.exist?(backup)
-      File.write(file, JSON.pretty_generate(mcpServers: Command.mcp_servers(mcp_config)))
-      exclude_from_git(project_directory)
-
-      [ "sh", "-c", 'trap \'rm -f "$0"; [ -f "$0.ai-worker-bak" ] && mv "$0.ai-worker-bak" "$0"\' EXIT; "$@"', file, *cmd ]
-    end
-
-    def exclude_from_git(project_directory)
-      exclude = File.join(project_directory, ".git", "info", "exclude")
-      return unless File.directory?(File.dirname(exclude))
-
-      current = File.exist?(exclude) ? File.read(exclude) : ""
-      return if current.include?(".cursor/mcp.json")
-
-      File.write(exclude, current + (current.end_with?("\n") || current.empty? ? "" : "\n") + ".cursor/mcp.json\n.cursor/mcp.json.ai-worker-bak\n")
-    end
 
     def log_line(line)
       Rails.logger.info("[ai_cli #{log_tag}] #{line.chomp}")
