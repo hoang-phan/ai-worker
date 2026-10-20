@@ -45,8 +45,7 @@ class WorkflowsController < ApplicationController
   end
 
   def start
-    if @workflow.pending?
-      @workflow.runbook? ? @workflow.start_runbook! : @workflow.update!(status: :implementing)
+    if @workflow.start!
       redirect_back_or_to project_workflow_path(@project, @workflow), notice: "Workflow started."
     else
       redirect_back_or_to project_workflow_path(@project, @workflow), alert: "Workflow has already been started."
@@ -73,8 +72,7 @@ class WorkflowsController < ApplicationController
   # The runbook's "Run stage" button: starts the current stage (also retries a failed one) and lets the
   # scheduler carry on through the following stages until one needs a person.
   def run_stage
-    if @workflow.runbook? && @workflow.implementing? && !@workflow.processing?
-      @workflow.update!(auto_run: true)
+    if @workflow.request_stage_run!
       WorkflowSchedulerJob.perform_later(@workflow.id)
       redirect_to project_workflow_path(@project, @workflow), notice: "Running stage."
     else
@@ -84,7 +82,7 @@ class WorkflowsController < ApplicationController
 
   # The runbook's Next button: only valid while a finished stage is waiting for it.
   def advance
-    if @workflow.runbook? && @workflow.awaiting_next?
+    if @workflow.can_advance?
       @workflow.advance!
       WorkflowSchedulerJob.perform_later(@workflow.id) if @workflow.auto_run?
       redirect_to project_workflow_path(@project, @workflow), notice: @workflow.done? ? "Runbook finished." : "Moved on to the next stage."
@@ -94,9 +92,7 @@ class WorkflowsController < ApplicationController
   end
 
   def resume
-    if @workflow.errored?
-      @workflow.update!(status: @workflow.resume_status)
-      @workflow.current_stage&.stage_runs&.create!(action: "resumed")
+    if @workflow.resume!
       redirect_to project_workflow_path(@project, @workflow), notice: "Workflow resumed."
     else
       redirect_to project_workflow_path(@project, @workflow), alert: "Workflow is not errored."
@@ -106,9 +102,7 @@ class WorkflowsController < ApplicationController
   # Manually sends a finished workflow back to the review stage so the next
   # scheduler tick re-inspects the PR and fixes outstanding findings/checks.
   def rollback_to_review
-    if @workflow.done? && @workflow.development? && @workflow.github_pr_url.present?
-      @workflow.update!(status: :reviewing)
-      @workflow.current_stage&.stage_runs&.create!(action: "rolled_back_to_review")
+    if @workflow.rollback_to_review!
       redirect_to project_workflow_path(@project, @workflow), notice: "Workflow rolled back to review."
     else
       redirect_to project_workflow_path(@project, @workflow), alert: "Only done workflows with a pull request can be rolled back."

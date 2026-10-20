@@ -150,6 +150,59 @@ class Workflow < ApplicationRecord
     end.to_h
   end
 
+  # Pending -> implementing (a runbook starts at its first stage). False when it was already started.
+  def start!
+    return false unless pending?
+
+    runbook? ? start_runbook! : update!(status: :implementing)
+    true
+  end
+
+  # The runbook's "Run stage" button is only valid on an implementing runbook that isn't mid-run.
+  def can_run_stage?
+    runbook? && implementing? && !processing?
+  end
+
+  # Flags the runbook so the scheduler runs its current stage and carries on. False when no stage is ready.
+  # The caller enqueues WorkflowSchedulerJob.
+  def request_stage_run!
+    return false unless can_run_stage?
+
+    update!(auto_run: true)
+    true
+  end
+
+  # The runbook's Next button is only valid while a finished stage is waiting for it.
+  def can_advance?
+    runbook? && awaiting_next?
+  end
+
+  # Errored -> the in-flight status chosen by resume_status, logging a 'resumed' StageRun. False unless errored.
+  def resume!
+    return false unless errored?
+
+    transaction do
+      update!(status: resume_status)
+      current_stage&.stage_runs&.create!(action: "resumed")
+    end
+    true
+  end
+
+  def can_rollback_to_review?
+    done? && development? && github_pr_url.present?
+  end
+
+  # Done development workflow with a PR -> reviewing, logging a 'rolled_back_to_review' StageRun.
+  def rollback_to_review!
+    return false unless can_rollback_to_review?
+
+    transaction do
+      update!(status: :reviewing)
+      current_stage&.stage_runs&.create!(action: "rolled_back_to_review")
+    end
+    true
+  end
+
   # Starts a runbook at its first stage (a runbook with no stages is just done).
   def start_runbook!
     first = stages.first
