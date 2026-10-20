@@ -5,7 +5,8 @@ module Slack
   # PRs that are no longer open or were authored by the account `gh` runs as
   # (you can't review your own PR).
   class ReviewSync
-    PR_URL = %r{\Ahttps://github\.com/([^/\s]+)/([^/\s]+)/pull/\d+\z}
+    # Kept for Slack::MentionFetcher.
+    PR_URL = ReviewCandidate::PR_URL
 
     # skipped_reasons: { "merged" => 2, ... } — why PRs in `skipped` were not imported.
     Result = Struct.new(:blockers, :created, :skipped, :failed, :skipped_reasons, keyword_init: true)
@@ -39,7 +40,7 @@ module Slack
 
       mentions.each do |mention|
         mention["pr_urls"].each do |pr_url|
-          next unless own_repo?(pr_url)
+          next unless ReviewCandidate.own_repo?(pr_url, project.repo_full_name)
 
           if existing.include?([ mention["slack_url"], pr_url ])
             skip(result, pr_url, "already imported")
@@ -48,10 +49,8 @@ module Slack
 
           info = github.pr_info(pr_url)
           me ||= github.current_login
-          if info["state"] != "OPEN"
-            skip(result, pr_url, info["state"].downcase)
-          elsif info["author"].casecmp?(me)
-            skip(result, pr_url, "own PR")
+          if (reason = ReviewCandidate.skip_reason(info: info, current_login: me))
+            skip(result, pr_url, reason)
           else
             create_workflow(mention["slack_url"], pr_url, result)
           end
@@ -70,10 +69,6 @@ module Slack
     def skip(result, pr_url, reason)
       result.skipped << pr_url
       result.skipped_reasons[reason] += 1
-    end
-
-    def own_repo?(pr_url)
-      pr_url[PR_URL, 0]&.then { "#{$1}/#{$2}".casecmp?(project.repo_full_name) }
     end
 
     def create_workflow(slack_url, pr_url, result)
