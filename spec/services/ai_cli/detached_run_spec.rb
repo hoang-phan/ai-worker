@@ -27,6 +27,17 @@ RSpec.describe AiCli::DetachedRun do
       expect(dir.join("result.json")).not_to exist
     end
 
+    it "passes model and effort through to the runner" do
+      expect(AiCli::Runner).to receive(:start)
+        .with(tmp, "go", log_path: dir.join("agent.log").to_s, allowed_tools: nil, model: "opus", effort: "high").and_return(1)
+
+      expect(run.start(cwd: tmp, prompt: "go", model: "opus", effort: "high")).to be(true)
+    end
+
+    it "exposes the log path" do
+      expect(run.log_path).to eq(dir.join("agent.log"))
+    end
+
     it "does nothing while a process is running" do
       start_run
       allow(AiCli::Runner).to receive(:poll).with(4242).and_return(:running)

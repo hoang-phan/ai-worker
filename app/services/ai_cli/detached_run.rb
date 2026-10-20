@@ -28,12 +28,13 @@ module AiCli
 
     # No-op (returns false) if the process is still alive. A stale pid file
     # from a dead process is overwritten (any unread result is discarded).
-    def start(cwd:, prompt:, allowed_tools: nil)
+    def start(cwd:, prompt:, allowed_tools: nil, model: nil, effort: nil)
       return false if running?
 
       FileUtils.mkdir_p(dir)
       FileUtils.rm_f(result_file)
-      pid = AiCli::Runner.start(cwd.to_s, prompt, log_path: log_file.to_s, allowed_tools: allowed_tools)
+      options = { model: model, effort: effort }.compact
+      pid = AiCli::Runner.start(cwd.to_s, prompt, log_path: log_file.to_s, allowed_tools: allowed_tools, **options)
       pid_file.write(pid)
       started_file.write(Time.current.to_f)
       true
@@ -55,6 +56,8 @@ module AiCli
       rows = read_rows
       block_given? ? yield(rows) : rows
     end
+
+    def log_path = log_file
 
     def read_rows
       raise error_class, "agent wrote no #{result_file.basename}; see #{log_file}" unless result_file.exist?

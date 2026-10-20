@@ -54,11 +54,11 @@ module Brainstorm
     end
 
     def running?
-      pid_file.exist? && AiCli::Runner.poll(pid_file.read.to_i) == :running
+      run.running?
     end
 
     def last_started_at
-      started_file.exist? ? Time.zone.at(started_file.read.to_f) : nil
+      run.last_started_at
     end
 
     def start
@@ -76,15 +76,12 @@ module Brainstorm
     def poll
       return unless pid_file.exist?
 
-      if AiCli::Runner.poll(pid_file.read.to_i) == :running
-        return unless stale?
-
-        clear
-        raise FetchError, "agent did not finish within #{STALE_AFTER.inspect}"
+      unless run.running? || result_file.exist?
+        FileUtils.rm_f(pid_file)
+        return handle_missing_result
       end
 
-      clear
-      read_result
+      run.poll { |rows| normalize_rows(rows) }
     end
 
     # Creates a workflow per proposal (up to the project's maximum), skipping any whose summary matches an existing
@@ -106,7 +103,7 @@ module Brainstorm
         workflow = project.workflows.new(
           summary: proposal["summary"], task_description: proposal["task"], skills: project.default_skills,
           status: project.brainstorm_auto_start? ? :implementing : :pending,
-          position: (project.workflows.maximum(:position) || 0) + 1
+          position: project.next_workflow_position
         )
         if workflow.save
           known << key
@@ -122,12 +119,8 @@ module Brainstorm
 
     attr_reader :project, :dir
 
-    def stale?
-      last_started_at.nil? || last_started_at < STALE_AFTER.ago
-    end
-
-    def clear
-      FileUtils.rm_f(pid_file)
+    def run
+      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
     def normalize(text)
@@ -144,12 +137,9 @@ module Brainstorm
     end
 
     def launch
-      FileUtils.rm_f(result_file)
       history_file.write(history_lines.join("\n"))
-      pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_file.to_s, allowed_tools: ALLOWED_TOOLS,
-                                model: self.class.model, effort: self.class.effort)
-      pid_file.write(pid)
-      started_file.write(Time.current.to_f)
+      run.start(cwd: project.local_directory, prompt: prompt, allowed_tools: ALLOWED_TOOLS,
+                model: self.class.model, effort: self.class.effort)
     end
 
     # The agent's final `result` event in agent.log (stream-json output), or nil if there is none.
@@ -177,21 +167,19 @@ module Brainstorm
       event && event["terminal_reason"] == "aborted_streaming" && !retried_file.exist?
     end
 
-    def read_result
-      unless result_file.exist?
-        event = final_event
-        if retry_after?(event)
-          FileUtils.touch(retried_file)
-          launch
-          return
-        end
-
-        raise FetchError, "agent wrote no #{result_file.basename} (#{failure_reason(event)}); see #{log_file}"
+    # The process finished without writing result.json: retry once if its API stream was cut, else fail.
+    def handle_missing_result
+      event = final_event
+      if retry_after?(event)
+        FileUtils.touch(retried_file)
+        launch
+        return
       end
 
-      data = JSON.parse(result_file.read)
-      raise FetchError, "#{result_file.basename} is not a JSON array" unless data.is_a?(Array)
+      raise FetchError, "agent wrote no #{result_file.basename} (#{failure_reason(event)}); see #{log_file}"
+    end
 
+    def normalize_rows(data)
       data.filter_map do |row|
         next unless row.is_a?(Hash)
 
@@ -199,8 +187,6 @@ module Brainstorm
         task = row["task"].to_s.strip.truncate(TASK_LENGTH)
         { "summary" => summary, "task" => task } if summary.present? && task.present?
       end
-    rescue JSON::ParserError => e
-      raise FetchError, "invalid JSON in #{result_file.basename}: #{e.message}"
     end
 
     def prompt
@@ -229,10 +215,6 @@ module Brainstorm
       dir.join("pid")
     end
 
-    def started_file
-      dir.join("started_at")
-    end
-
     def result_file
       dir.join("result.json")
     end
@@ -242,7 +224,7 @@ module Brainstorm
     end
 
     def log_file
-      dir.join("agent.log")
+      run.log_path
     end
 
     def retried_file
