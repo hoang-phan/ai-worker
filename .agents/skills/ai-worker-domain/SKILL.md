@@ -22,7 +22,6 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 - `app/models/prompt_template.rb` — a reusable prompt body for a `stage_type` (same enum as `Stage`). `PLACEHOLDERS` lists the `{TOKEN}`s the UI offers; `Prompts::Renderer` is what actually substitutes them (including per-workflow custom variables). `Prompts::Defaults` holds the built-in fallback bodies for pr_review, jira_update, uat_test and local_test stages when no template exists (`Prompts::StagePrompt` applies them). `has_many :stages, dependent: :nullify`.
 - `app/models/jira_sync.rb` — one Jira query (project and/or parent ticket) for a project, with `auto_sync` and last-run bookkeeping.
 - `app/models/bugsnag_sync.rb` — one Bugsnag-project → Jira-project triage with thresholds and a `ledger` (JSON map of already-ticketed errors → Jira keys). Both have an `auto` scope.
-- `app/models/stage_definition.rb` — legacy and orphaned: its table was dropped by `move_runbook_to_workflows`, `Project` has no association to it, and there is no route. Runbook stages now live on the workflow's own `Stage` rows. Don't build on it (removing it is a code change outside this skill's usual work).
 - `app/models/application_record.rb`, `concerns/` — Rails defaults.
 
 ## Conventions
