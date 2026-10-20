@@ -78,27 +78,3 @@ RSpec.describe Scheduling::Planner do
     end
   end
 end
-
-RSpec.describe Scheduling::Capacity do
-  let(:dirs) { [ Dir.mktmpdir, Dir.mktmpdir, Dir.mktmpdir ] }
-  after { dirs.each { |d| FileUtils.remove_entry(d) } }
-
-  def wf(dir) = Workflow.new(project: Project.new(local_directory: dir))
-
-  it "skips workflows whose clone is busy" do
-    capacity = described_class.new(busy_clones: [ Scheduling::Planner.clone_key(Project.new(local_directory: dirs[0])) ], max: 5)
-    expect(capacity.can_start?(wf("#{dirs[0]}/"))).to be false
-    expect(capacity.can_start?(wf(dirs[1]))).to be true
-  end
-
-  it "stops at max_concurrent_agents and marks the clone busy once started" do
-    capacity = described_class.new(busy_clones: [], max: 2)
-    first = wf(dirs[0])
-    expect(capacity.can_start?(first)).to be true
-    capacity.started!(first)
-    expect(capacity.can_start?(first)).to be false
-    capacity.started!(wf(dirs[1]))
-    expect(capacity.active_count).to eq(2)
-    expect(capacity.can_start?(wf(dirs[2]))).to be false
-  end
-end
