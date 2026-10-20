@@ -411,8 +411,8 @@ class StageExecutor
   # stage, or the retry would re-run the whole implementation.
   # Optional one-line Slack ping tagging the reviewers once the PR is waiting on them. Best effort: a Slack
   # problem is logged, never fails the stage (the PR and review request already happened).
-  # The first message of a workflow becomes its thread (stored, editable on the workflow); re-requests reply in it,
-  # or start the thread when there is none yet.
+  # The ping is posted by a detached agent run; its permalink becomes the workflow's thread later (SlackPingJob), so
+  # re-requests reply in it, or start the thread when there is none yet.
   def notify_reviewers(again: false, fixed: nil)
     notifier = Slack::ReviewNotifier.new(project)
     return unless notifier.enabled? && reviewers.any?
@@ -420,9 +420,9 @@ class StageExecutor
     pr_url = workflow.github_pr_url
     title = Github::Client.new(project).pr_title(pr_url).presence
     label = [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
-    thread_ts = workflow.slack_review_thread_ts.presence
-    ts = notifier.notify!(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed, thread_ts: thread_ts)
-    workflow.update!(slack_review_thread_ts: ts) if thread_ts.blank? && ts.present?
+    notifier.collect(workflow)
+    notifier.notify!(workflow: workflow, pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
+                     thread_ts: workflow.reload.slack_review_thread_ts.presence)
     log(action: "slack_review_notified")
   rescue Slack::NotifyError, Github::CommandError => e
     log(action: "slack_review_notify_failed", error: e.message)
