@@ -14,6 +14,8 @@ class StageRun < ApplicationRecord
     no_action_pending
     checks_failing
     task_completed
+    task_pushed
+    task_push_failed
     review_completed
     pr_not_open_skipped
     pr_merged_detected

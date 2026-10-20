@@ -292,6 +292,7 @@ class StageExecutor
     when "task"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "task_completed", output: output)
+      push_task_commits
     when "pr_review"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "review_completed", output: output)
@@ -425,6 +426,14 @@ class StageExecutor
     log(action: "slack_review_notified")
   rescue Slack::NotifyError, Github::CommandError => e
     log(action: "slack_review_notify_failed", error: e.message)
+  end
+
+  # The task prompt may or may not tell the agent to push, so do it here. Best effort and after the workflow is
+  # `done`: a failed push is logged, never fails the stage (a retry would re-run the whole task).
+  def push_task_commits
+    log(action: "task_pushed") if Git::BranchService.push_current!(project) == :pushed
+  rescue Git::CommandError => e
+    log(action: "task_push_failed", error: e.message)
   end
 
   def enable_auto_merge(pr_url)
