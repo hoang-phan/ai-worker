@@ -9,10 +9,6 @@ class StageExecutor
   # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
-  # A FAILED local test is fixed by the next pr_check run and then tested again, at most this many tests in total;
-  # after that the PR just goes to review with the last failure noted on it.
-  MAX_LOCAL_TEST_ROUNDS = 3
-
   def initialize(workflow, stage)
     @workflow = workflow
     @stage = stage
@@ -230,7 +226,12 @@ class StageExecutor
       handoff.notify_reviewers! unless testing_locally
     when "pr_check"
       Github::Client.new(project).request_review!(workflow.github_pr_url, reviewers)
-      retest = local_retest?(output)
+      retest = Stages::LocalTestPolicy.retest_after_fix?(
+        local_test_ready: project.local_test_ready?,
+        completed_rounds: workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i,
+        feedback_pending: workflow.local_test_feedback.present?,
+        retest_requested: AiCli::Output.new(output).retest_requested?
+      )
       workflow.update!(ai_run_attrs.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
       log(action: "requested_changes_fixed", output: output)
       log(action: "local_test_retest_scheduled") if retest
@@ -302,37 +303,20 @@ class StageExecutor
 
   # The prompt makes the agent end with `LOCAL_TEST_RESULT: PASSED|FAILED|BLOCKED` once its PR comment is posted.
   # Whatever the verdict the PR goes on to review (a person sees the comment); only PASSED turns on auto-merge.
-  # After a fix run: test again (while the reviewer looks at the new push) when a local failure was being fixed, or the
-  # agent says the changes touched behaviour (the review may have changed the flow the last test covered). A missing
-  # LOCAL_RETEST line counts as YES. Rounds are capped like any local test.
-  def local_retest?(output)
-    return false unless project.local_test_ready?
-
-    rounds = workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i
-    return false if rounds >= MAX_LOCAL_TEST_ROUNDS
-
-    workflow.local_test_feedback.present? || AiCli::Output.new(output).retest_requested?
-  end
-
   def finish_local_test(output)
     result = AiCli::Output.new(output).local_test_result
     raise AiCli::CommandError, "agent finished without a LOCAL_TEST_RESULT line, treating the local test as failed" unless result
 
-    failed = result.casecmp?("FAILED")
-    rounds = stage.completed_local_test_rounds + 1
-    retest = failed && rounds < MAX_LOCAL_TEST_ROUNDS
-    workflow.update!(ai_run_attrs.merge(status: :reviewing, local_test_feedback: retest ? local_test_feedback(output) : nil))
+    outcome = Stages::LocalTestPolicy.outcome(result: result, completed_rounds: stage.completed_local_test_rounds)
+    feedback = AiCli::Output.new(output).local_test_feedback_block
+    workflow.update!(ai_run_attrs.merge(
+      status: :reviewing,
+      local_test_feedback: outcome.retest? ? Stages::LocalTestPolicy.feedback(output_block: feedback, pr_url: workflow.github_pr_url) : nil
+    ))
     log(action: "local_test_completed", output: output)
-    log(action: "local_test_rounds_exhausted") if failed && !retest
-    handoff.enable_auto_merge!(workflow.github_pr_url) if result.casecmp?("PASSED")
+    log(action: "local_test_rounds_exhausted") if outcome.rounds_exhausted?
+    handoff.enable_auto_merge!(workflow.github_pr_url) if outcome.auto_merge?
     handoff.notify_reviewers!
-  end
-
-  # The block the agent printed between the markers (the last one: the log may echo the prompt's own example),
-  # or a pointer to its PR comment.
-  def local_test_feedback(output)
-    AiCli::Output.new(output).local_test_feedback_block ||
-      "Local testing failed; see the \"Local test by agent\" comment on #{workflow.github_pr_url} for the failing steps."
   end
 
   # The conflict-resolution run must leave the merge committed; only then does
