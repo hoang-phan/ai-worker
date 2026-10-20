@@ -159,26 +159,18 @@ class StageExecutor
       return log(action: "pr_merged_closed")
     end
 
-    decision = github.review_decision(workflow.github_pr_url, reviewers)
+    result = Stages::PrCheckDecision.new(
+      review_decision: github.review_decision(workflow.github_pr_url, reviewers),
+      local_test_failing: workflow.local_test_feedback.present?,
+      checks_failing: -> { github.checks_failing?(workflow.github_pr_url) }
+    ).call
+    result.actions.each { |action| log(action: action) }
 
-    # A failed local test waits for the review (requested changes may make its findings obsolete), then is fixed in
-    # the same run as the review feedback; an approval can't close the workflow over it.
-    if workflow.local_test_feedback.present? && %w[APPROVED CHANGES_REQUESTED].include?(decision)
-      log(action: "local_test_failing")
-      decision = "CHANGES_REQUESTED"
-    end
-
-    # An approval with failing checks is treated like a change request.
-    if decision == "APPROVED" && github.checks_failing?(workflow.github_pr_url)
-      log(action: "checks_failing")
-      decision = "CHANGES_REQUESTED"
-    end
-
-    case decision
-    when "APPROVED"
+    case result.decision
+    when :approved
       workflow.update!(status: :done)
       log(action: "approved_closed")
-    when "CHANGES_REQUESTED"
+    when :changes_requested
       if Git::BranchService.update_with_main!(project, workflow.branch_name) == :conflict
         start_ai_run(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
       else
