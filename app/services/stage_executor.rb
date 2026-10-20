@@ -101,49 +101,20 @@ class StageExecutor
   # server, its output directory and the UAT/Jira credentials are wired in per run; credentials only travel as
   # environment variables of the agent process, never in the prompt or the logs we write.
   def start_uat_test
-    raise ArgumentError, "project #{project.name} has no UAT URL" if project.uat_url.blank?
-    raise ArgumentError, "project #{project.name} has no UAT login (username/password)" if project.uat_username.blank? || project.uat_password.blank?
-
-    output_dir = Rails.root.join("tmp", "uat_runs", workflow.id.to_s, Time.current.to_i.to_s)
-    FileUtils.mkdir_p(output_dir)
-    start_ai_run(prompt.body, mcp_config: write_uat_mcp_config(output_dir), disallowed_tools: UAT_DISALLOWED_TOOLS, env: {
-      "UAT_USERNAME" => project.uat_username,
-      "UAT_PASSWORD" => project.uat_password,
-      "UAT_OUTPUT_DIR" => output_dir.to_s,
-      "JIRA_BASE_URL" => project.jira_base_url
-    })
+    run = AiCli::BrowserTestRun.new(project, workflow, kind: :uat).validate!
+    start_browser_test(run)
   end
 
   # Same browser setup as the UAT test, but against the project's own development server, on the PR's branch, after the
   # PR exists and before review. The local login travels as environment variables only, like the UAT one.
   def start_local_test
-    raise ArgumentError, "project #{project.name} has no local URL" if project.local_url.blank?
-    raise ArgumentError, "project #{project.name} has no local login (username/password)" if project.local_username.blank? || project.local_password.blank?
-
+    run = AiCli::BrowserTestRun.new(project, workflow, kind: :local).validate!
     Git::BranchService.checkout_remote_branch!(project, workflow.branch_name)
-    output_dir = Rails.root.join("tmp", "local_test_runs", workflow.id.to_s, Time.current.to_i.to_s)
-    FileUtils.mkdir_p(output_dir)
-    start_ai_run(prompt.body, mcp_config: write_uat_mcp_config(output_dir), disallowed_tools: UAT_DISALLOWED_TOOLS, env: {
-      "LOCAL_USERNAME" => project.local_username,
-      "LOCAL_PASSWORD" => project.local_password,
-      "LOCAL_URL" => project.local_url,
-      "LOCAL_OUTPUT_DIR" => output_dir.to_s
-    })
+    start_browser_test(run)
   end
 
-  # The UAT agent must not dispatch GitHub Actions itself (a project's UAT instructions can provide a guarded wrapper
-  # script for test data instead). Denied for this stage only: other stages, e.g. runbooks, may legitimately use these.
-  UAT_DISALLOWED_TOOLS = [ "Bash(gh workflow run:*)", "Bash(gh api:*)" ].freeze
-
-  # Playwright MCP, pinned: headless, throwaway profile, `devtools` capability for the video/trace tools.
-  PLAYWRIGHT_MCP_PACKAGE = "@playwright/mcp@0.0.83".freeze
-
-  def write_uat_mcp_config(output_dir)
-    path = output_dir.join("mcp.json")
-    config = { mcpServers: { playwright: { command: "npx",
-      args: [ "-y", PLAYWRIGHT_MCP_PACKAGE, "--headless", "--isolated", "--caps", "devtools", "--output-dir", output_dir.to_s ] } } }
-    File.write(path, JSON.pretty_generate(config))
-    path.to_s
+  def start_browser_test(run)
+    start_ai_run(prompt.body, mcp_config: run.mcp_config_path, env: run.env, disallowed_tools: run.disallowed_tools)
   end
 
   # Runbook stages are plain agent runs: `agent` runs the prompt as written,
