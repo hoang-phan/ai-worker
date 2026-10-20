@@ -340,15 +340,10 @@ class StageExecutor
     log(action: "task_push_failed", error: e.message)
   end
 
-  # A failure stays in the current status so the next tick retries it, until
-  # MAX_CONSECUTIVE_FAILURES in a row park the workflow in `errored`, which
-  # WorkflowSchedulerJob ignores. A person resumes it from the UI once the
-  # cause is fixed.
   def fail_stage(error)
-    Git::BranchService.abort_merge!(project) if stage.resolving_conflicts?
-    workflow.update!(ai_run_attrs.merge(auto_run: false))
-    log(action: "failed", error: error.message)
-    workflow.update!(status: :errored) if stage.consecutive_failures >= MAX_CONSECUTIVE_FAILURES
+    Stages::FailureHandler.new(
+      workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES
+    ).call
   end
 
   def ai_run_attrs
