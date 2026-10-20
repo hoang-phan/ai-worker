@@ -158,7 +158,7 @@ class StageExecutor
   # the workflow as processing so WorkflowSchedulerJob polls it instead
   # of starting new work on the next tick.
   def start_ai_run(prompt, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
-    log_path = new_log_path
+    log_path = AiCli::RunLogs.new_path(workflow.id)
     pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_path, mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools)
 
     workflow.update!(
@@ -212,10 +212,6 @@ class StageExecutor
     Stages::FailureHandler.new(
       workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES
     ).call
-  end
-
-  def new_log_path
-    Rails.root.join("log", "ai_runs", "workflow-#{workflow.id}-#{Time.current.to_i}.log").to_s
   end
 
   def log_tag

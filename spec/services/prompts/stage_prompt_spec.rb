@@ -73,7 +73,7 @@ RSpec.describe Prompts::StagePrompt do
       let(:stage_attrs) { { prompt: "Implement {TASK}" } }
       let(:runs_dir) { Dir.mktmpdir("ai-runs-spec") }
 
-      before { stub_const("Prompts::StagePrompt::AI_RUNS_DIR", runs_dir) }
+      before { stub_const("AiCli::RunLogs::DIR", runs_dir) }
 
       after { FileUtils.remove_entry(runs_dir) }
 

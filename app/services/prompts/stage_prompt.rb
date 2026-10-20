@@ -8,8 +8,6 @@ module Prompts
       `git commit --no-edit`. Make sure the project still builds and its tests pass. Do not push.
     PROMPT
 
-    AI_RUNS_DIR = Rails.root.join("log", "ai_runs").freeze
-
     def initialize(workflow, stage)
       @workflow = workflow
       @stage = stage
@@ -69,7 +67,7 @@ module Prompts
     def retry_section
       return "" unless stage.implementation? && stage.stage_runs.first&.action == "failed"
 
-      previous_log = Dir[File.join(AI_RUNS_DIR, "workflow-#{workflow.id}-*.log")].max_by { |path| File.mtime(path) }
+      previous_log = AiCli::RunLogs.latest(workflow.id)
       return "" unless previous_log
 
       <<~SECTION
