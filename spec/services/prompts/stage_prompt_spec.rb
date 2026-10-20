@@ -44,10 +44,10 @@ RSpec.describe Prompts::StagePrompt do
     end
 
     {
-      pr_review: PromptTemplate::DEFAULT_PR_REVIEW_BODY,
-      jira_update: PromptTemplate::DEFAULT_JIRA_UPDATE_BODY,
-      uat_test: PromptTemplate::DEFAULT_UAT_TEST_BODY,
-      local_test: PromptTemplate::DEFAULT_LOCAL_TEST_BODY
+      pr_review: Prompts::Defaults.for("pr_review"),
+      jira_update: Prompts::Defaults.for("jira_update"),
+      uat_test: Prompts::Defaults.for("uat_test"),
+      local_test: Prompts::Defaults.for("local_test")
     }.each do |type, default_body|
       context "with a #{type} stage and no prompt or template" do
         let(:stage_type) { type }

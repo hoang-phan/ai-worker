@@ -17,11 +17,7 @@ module Prompts
     end
 
     def body
-      text = stage.prompt.presence || stage.effective_template&.body
-      text ||= PromptTemplate::DEFAULT_PR_REVIEW_BODY if stage.pr_review?
-      text ||= PromptTemplate::DEFAULT_JIRA_UPDATE_BODY if stage.jira_update?
-      text ||= PromptTemplate::DEFAULT_UAT_TEST_BODY if stage.uat_test?
-      text ||= PromptTemplate::DEFAULT_LOCAL_TEST_BODY if stage.local_test?
+      text = stage.prompt.presence || stage.effective_template&.body || Prompts::Defaults.for(stage.stage_type)
       raise ArgumentError, "no prompt available for stage #{stage.id}" unless text
 
       Prompts::Renderer.render(text, workflow) + retry_section + local_feedback_section + fixed_summary_section + check_output_section

@@ -12,7 +12,7 @@
 # review-prs-from-slack skill). Only created if absent — edits made in the UI
 # are never overwritten.
 PromptTemplate.find_or_create_by!(name: "PR Review", stage_type: :pr_review) do |template|
-  template.body = PromptTemplate::DEFAULT_PR_REVIEW_BODY
+  template.body = Prompts::Defaults.for("pr_review")
 end
 
 # Example runbook workflow: the Recruit release process, as a pending "template" run on a Recruit project.
