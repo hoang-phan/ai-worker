@@ -37,39 +37,21 @@ class WorkflowSchedulerJob < ApplicationJob
     return if workflows.empty?
 
     running, waiting = workflows.partition(&:processing?)
-    # An earlier (lower position) workflow that's merely waiting on review still
-    # holds its project's slot, even if a later one is the one in flight.
-    # Workflows on one project run strictly one after another: only the first
-    # (by position) is eligible to start; later ones wait until it is done.
-    # Runbook workflows are exempt like PR reviews, and start on a cron tick only when `auto_run`
-    # is set; otherwise a person starts the stage with "Run stage" (`run_workflow_id`). Once it runs
-    # it is polled like any other run, then moves on (`auto_advance`) or parks in `waiting` until Next.
-    # PR-review workflows are the exception: they run once and never wait on
-    # anyone, so they neither hold the slot nor are blocked by a development
-    # workflow that is only waiting on its PR — only a *running* agent on the
-    # same clone (the busy_dirs check below) holds them back.
-    heads = active_workflows.select(&:development?).uniq { |workflow| clone_key(workflow.project) }
-    waiting = waiting.select do |workflow|
-      if workflow.runbook? then workflow.id == run_workflow_id || workflow.auto_run?
-      else workflow.pr_review? || heads.include?(workflow)
-      end
-    end
+    waiting = Scheduling::Planner.eligible_waiting(active_workflows: active_workflows, waiting: waiting, run_workflow_id: run_workflow_id)
 
     # Poll in-flight runs first so finished ones free their slot/clone this tick.
     running.each { |workflow| execute(workflow) }
 
-    busy_dirs = Workflow.where(processing: true).includes(:project).map { |w| clone_key(w.project) }
-    active = busy_dirs.size
+    capacity = Scheduling::Capacity.new(
+      busy_clones: Workflow.where(processing: true).includes(:project).map { |w| Scheduling::Planner.clone_key(w.project) },
+      max: self.class.max_concurrent_agents
+    )
 
     waiting.each do |workflow|
-      next if active >= self.class.max_concurrent_agents
-      next if busy_dirs.include?(clone_key(workflow.project))
+      next unless capacity.can_start?(workflow)
 
       execute(workflow)
-      next unless workflow.reload.processing?
-
-      busy_dirs << clone_key(workflow.project)
-      active += 1
+      capacity.started!(workflow) if workflow.reload.processing?
     end
   end
 
@@ -116,13 +98,6 @@ class WorkflowSchedulerJob < ApplicationJob
     rescue StandardError => e
       Rails.logger.error("[scheduler] merge check workflow=#{workflow.id} #{e.class}: #{e.message}")
     end
-  end
-
-  # Projects pointing at the same clone via different spellings ("~/x", "x/",
-  # symlinks) must still count as one clone, or the per-clone guard misses them.
-  def clone_key(project)
-    path = File.expand_path(project.local_directory.to_s)
-    File.exist?(path) ? File.realpath(path) : path
   end
 
   # One workflow's failure must not stop the rest of the tick.
