@@ -187,7 +187,7 @@
 
     <fieldset class="field">
       <legend>Slack review requests (optional)</legend>
-      <p class="field-hint">Jira projects only. When a PR goes up for review (and again when review is re-requested after fixes), post a one-line message in this channel tagging the reviewers. Needs a Slack bot token in the SLACK_BOT_TOKEN env var (scope chat:write, bot invited to the channel).</p>
+      <p class="field-hint">Jira projects only. When a PR goes up for review (and again when review is re-requested after fixes), post a one-line message in this channel tagging the reviewers. Posted as you through the Slack MCP connector (the agent CLI must be connected to Slack and able to post in the channel).</p>
 
       <div class="field">
         <%= f.label :slack_review_channel, "Channel ID" %>

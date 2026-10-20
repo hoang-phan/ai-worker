@@ -263,6 +263,7 @@ class StageExecutor
     when "task"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "task_completed", output: output)
+      push_task_commits
     when "pr_review"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "review_completed", output: output)
@@ -377,8 +378,8 @@ class StageExecutor
   # stage, or the retry would re-run the whole implementation.
   # Optional one-line Slack ping tagging the reviewers once the PR is waiting on them. Best effort: a Slack
   # problem is logged, never fails the stage (the PR and review request already happened).
-  # The first message of a workflow becomes its thread (stored, editable on the workflow); re-requests reply in it,
-  # or start the thread when there is none yet.
+  # The ping is posted by a detached agent run; its permalink becomes the workflow's thread later (SlackPingJob), so
+  # re-requests reply in it, or start the thread when there is none yet.
   def notify_reviewers(again: false, fixed: nil)
     notifier = Slack::ReviewNotifier.new(project)
     return unless notifier.enabled? && reviewers.any?
@@ -386,12 +387,20 @@ class StageExecutor
     pr_url = workflow.github_pr_url
     title = Github::Client.new(project).pr_title(pr_url).presence
     label = [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
-    thread_ts = workflow.slack_review_thread_ts.presence
-    ts = notifier.notify!(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed, thread_ts: thread_ts)
-    workflow.update!(slack_review_thread_ts: ts) if thread_ts.blank? && ts.present?
+    notifier.collect(workflow)
+    notifier.notify!(workflow: workflow, pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
+                     thread_ts: workflow.reload.slack_review_thread_ts.presence)
     log(action: "slack_review_notified")
   rescue Slack::NotifyError, Github::CommandError => e
     log(action: "slack_review_notify_failed", error: e.message)
+  end
+
+  # The task prompt may or may not tell the agent to push, so do it here. Best effort and after the workflow is
+  # `done`: a failed push is logged, never fails the stage (a retry would re-run the whole task).
+  def push_task_commits
+    log(action: "task_pushed") if Git::BranchService.push_current!(project) == :pushed
+  rescue Git::CommandError => e
+    log(action: "task_push_failed", error: e.message)
   end
 
   def enable_auto_merge(pr_url)

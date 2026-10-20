@@ -62,6 +62,25 @@ module Git
       end
     end
 
+    # Task flow: publish whatever the agent committed on the current branch.
+    # Returns :pushed, or :up_to_date when there is nothing ahead of origin.
+    # A rejected push (origin moved) is retried once after a rebase; never forces.
+    def self.push_current!(project)
+      new(project, nil).push_current!
+    end
+
+    def push_current!
+      branch = run!(%w[git rev-parse --abbrev-ref HEAD]).strip
+      return :up_to_date if ahead_count(branch).zero?
+
+      _out, _err, status = run([ "git", "push", "origin", "HEAD" ])
+      unless status.success?
+        run!([ "git", "pull", "--rebase", "origin", branch ])
+        run!([ "git", "push", "origin", "HEAD" ])
+      end
+      :pushed
+    end
+
     def self.merge_in_progress?(project)
       _out, _err, status = Open3.capture3(*%w[git rev-parse -q --verify MERGE_HEAD], chdir: project.local_directory)
       status.success?
@@ -73,6 +92,13 @@ module Git
     end
 
     private
+
+    # Commits not on origin/<branch> (all of them when the branch isn't on origin yet).
+    def ahead_count(branch)
+      _out, _err, status = run([ "git", "rev-parse", "--verify", "--quiet", "origin/#{branch}" ])
+      range = status.success? ? "origin/#{branch}..HEAD" : "HEAD"
+      run!([ "git", "rev-list", "--count", range ]).to_i
+    end
 
     def checkout_and_pull_main
       checkout!(%w[git checkout main])
