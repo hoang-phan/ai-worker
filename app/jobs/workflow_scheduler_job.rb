@@ -30,9 +30,9 @@ class WorkflowSchedulerJob < ApplicationJob
   private
 
   def run_active_workflows(run_workflow_id = nil)
-    active_workflows = Workflow.where(status: [ :implementing, :reviewing, :local_testing ]).includes(:project).order(:position).to_a
+    active_workflows = Scheduling::WorkflowQueries.active
     # A Jira update (`merged`) or a UAT test (`uat_testing`) that's mid-run is polled like any other run.
-    updating = Workflow.where(status: [ :merged, :uat_testing ], processing: true).includes(:project).order(:position).to_a
+    updating = Scheduling::WorkflowQueries.polling_updates
     workflows = active_workflows + updating
     return if workflows.empty?
 
@@ -43,7 +43,7 @@ class WorkflowSchedulerJob < ApplicationJob
     running.each { |workflow| execute(workflow) }
 
     capacity = Scheduling::Capacity.new(
-      busy_clones: Workflow.where(processing: true).includes(:project).map { |w| Scheduling::Planner.clone_key(w.project) },
+      busy_clones: Scheduling::WorkflowQueries.busy_clone_keys,
       max: self.class.max_concurrent_agents
     )
 
@@ -62,10 +62,10 @@ class WorkflowSchedulerJob < ApplicationJob
   # polled by `run_active_workflows` on later ticks, and holds the idle check
   # shut until it finishes).
   def run_post_merge_phase
-    return if work_in_progress?
+    return if Scheduling::WorkflowQueries.work_in_progress?
 
     confirm_merges
-    workflow = Workflow.merged.where(processing: false).includes(:project).order(:position).first
+    workflow = Scheduling::WorkflowQueries.next_merged
     execute(workflow) if workflow
   end
 
@@ -74,23 +74,17 @@ class WorkflowSchedulerJob < ApplicationJob
   # git clone and nothing else depends on it, so it only needs a free agent slot (`max_concurrent_agents`). A
   # `uat_testing` workflow that isn't running is a failed attempt being retried.
   def run_uat_phase
-    slots = self.class.max_concurrent_agents - Workflow.where(processing: true).count
+    slots = Scheduling::WorkflowQueries.free_agent_slots(max: self.class.max_concurrent_agents)
     return if slots <= 0
 
-    due = Workflow.where(status: :uat_waiting).where(uat_test_at: ..Time.current)
-                  .or(Workflow.where(status: :uat_testing, processing: false))
-    due.includes(:project).order(:uat_test_at).limit(slots).each do |workflow|
+    Scheduling::WorkflowQueries.due_uat_tests(limit: slots).each do |workflow|
       workflow.update!(status: :uat_testing) if workflow.uat_waiting?
       execute(workflow)
     end
   end
 
-  def work_in_progress?
-    Workflow.where(status: [ :implementing, :local_testing ]).exists? || Workflow.where(processing: true).exists?
-  end
-
   def confirm_merges
-    Workflow.done.development.where.not(github_pr_url: nil).includes(:project).order(:position).each do |workflow|
+    Scheduling::WorkflowQueries.merge_candidates.each do |workflow|
       next unless workflow.tracks_jira_after_merge?
 
       pr_check = workflow.stages.find_by(stage_type: :pr_check)

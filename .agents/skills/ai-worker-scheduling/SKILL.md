@@ -5,7 +5,7 @@ description: Applies ai-worker's scheduler discipline. Use for any task touching
 
 # ai-worker-scheduling
 
-Scope: `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/planner.rb` (pure decisions: eligibility, `clone_key`), `app/services/scheduling/capacity.rb` (slot/clone bookkeeping), `config/sidekiq.yml`, `config/schedule.yml`. What a started stage does is `StageExecutor` (`ai-worker-orchestration`, `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
+Scope: `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/planner.rb` (pure decisions: eligibility, `clone_key`), `app/services/scheduling/capacity.rb` (slot/clone bookkeeping), `app/services/scheduling/workflow_queries.rb` (the AR selection the job uses: status lists, ordering, due-UAT relation, free slots), `config/sidekiq.yml`, `config/schedule.yml`. What a started stage does is `StageExecutor` (`ai-worker-orchestration`, `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
 
 ## Tick
 
