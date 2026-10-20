@@ -227,7 +227,7 @@ class StageExecutor
       raise AiCli::CommandError, "#{AiCli::Runner.agent} did not finish resolving merge conflicts with main"
     end
 
-    workflow.update!(ai_run_attrs)
+    workflow.update!(Workflow::AI_RUN_RESET)
     log(action: "conflicts_resolved", output: output)
     start_ai_run(prompt.body)
   end
@@ -236,16 +236,6 @@ class StageExecutor
     Stages::FailureHandler.new(
       workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES
     ).call
-  end
-
-  def ai_run_attrs
-    {
-      processing: false,
-      ai_pid: nil,
-      ai_log_path: nil,
-      ai_started_at: nil,
-      ai_log_offset: 0
-    }
   end
 
   def new_log_path

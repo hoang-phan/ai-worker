@@ -32,7 +32,7 @@ module Stages
     def finish_implementation(output)
       pr_url = github.find_pr_url(branch_name: workflow.branch_name, jira_ticket: workflow.jira_ticket, output: output)
       testing_locally = workflow.development? && project.local_test_ready?
-      workflow.update!(ai_run_attrs.merge(github_pr_url: pr_url, status: testing_locally ? :local_testing : :reviewing))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(github_pr_url: pr_url, status: testing_locally ? :local_testing : :reviewing))
       log(action: "ran_implementation", output: output)
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
       handoff.enable_auto_merge!(pr_url) unless testing_locally
@@ -47,20 +47,20 @@ module Stages
         feedback_pending: workflow.local_test_feedback.present?,
         retest_requested: AiCli::Output.new(output).retest_requested?
       )
-      workflow.update!(ai_run_attrs.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
       log(action: "requested_changes_fixed", output: output)
       log(action: "local_test_retest_scheduled") if retest
       handoff.notify_reviewers!(again: true, fixed: AiCli::Output.new(output).fixed_summary) unless retest
     end
 
     def finish_task(output)
-      workflow.update!(ai_run_attrs.merge(status: :done))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :done))
       log(action: "task_completed", output: output)
       push_task_commits
     end
 
     def finish_pr_review(output)
-      workflow.update!(ai_run_attrs.merge(status: :done))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :done))
       log(action: "review_completed", output: output)
     end
 
@@ -72,7 +72,7 @@ module Stages
         raise AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)"
       end
 
-      workflow.update!(ai_run_attrs.merge(status: :waiting, awaiting_next: true,
+      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :waiting, awaiting_next: true,
                                            variables: workflow.variables.merge(AiCli::Output.new(output).variables)))
       log(action: "stage_completed", output: output)
       log(action: "message_sent") if stage.run_message?
@@ -91,11 +91,11 @@ module Stages
       # A ticket that went to UAT is tested by the agent after the project's delay, if the project opted in.
       if outcome.casecmp?("UAT") && project.uat_test_ready?
         run_at = project.uat_test_delay_minutes.minutes.from_now
-        workflow.update!(ai_run_attrs.merge(status: :uat_waiting, uat_test_at: run_at))
+        workflow.update!(Workflow::AI_RUN_RESET.merge(status: :uat_waiting, uat_test_at: run_at))
         log(action: "jira_updated", output: output)
         log(action: "uat_test_scheduled", output: "UAT test scheduled for #{run_at.iso8601}")
       else
-        workflow.update!(ai_run_attrs.merge(status: :jira_updated))
+        workflow.update!(Workflow::AI_RUN_RESET.merge(status: :jira_updated))
         log(action: "jira_updated", output: output)
       end
     end
@@ -107,7 +107,7 @@ module Stages
       result = AiCli::Output.new(output).uat_result
       raise AiCli::CommandError, "agent finished without a UAT_RESULT line, treating the UAT test as failed" unless result
 
-      workflow.update!(ai_run_attrs.merge(status: :uat_tested))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :uat_tested))
       log(action: "uat_test_completed", output: output)
     end
 
@@ -119,7 +119,7 @@ module Stages
 
       outcome = Stages::LocalTestPolicy.outcome(result: result, completed_rounds: stage.completed_local_test_rounds)
       feedback = AiCli::Output.new(output).local_test_feedback_block
-      workflow.update!(ai_run_attrs.merge(
+      workflow.update!(Workflow::AI_RUN_RESET.merge(
         status: :reviewing,
         local_test_feedback: outcome.retest? ? Stages::LocalTestPolicy.feedback(output_block: feedback, pr_url: workflow.github_pr_url) : nil
       ))
@@ -135,10 +135,6 @@ module Stages
       log(action: "task_pushed") if git.push_current!(project) == :pushed
     rescue Git::CommandError => e
       log(action: "task_push_failed", error: e.message)
-    end
-
-    def ai_run_attrs
-      { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0 }
     end
 
     def log(action:, output: nil, error: nil)

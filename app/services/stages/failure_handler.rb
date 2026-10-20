@@ -13,7 +13,7 @@ module Stages
 
     def call
       Git::BranchService.abort_merge!(project) if stage.resolving_conflicts?
-      workflow.update!(ai_run_attrs.merge(auto_run: false))
+      workflow.update!(Workflow::AI_RUN_RESET.merge(auto_run: false))
       stage.stage_runs.create!(action: "failed", error: error.message)
       workflow.update!(status: :errored) if stage.consecutive_failures >= threshold
     end
@@ -21,9 +21,5 @@ module Stages
     private
 
     attr_reader :workflow, :stage, :project, :error, :threshold
-
-    def ai_run_attrs
-      { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0 }
-    end
   end
 end

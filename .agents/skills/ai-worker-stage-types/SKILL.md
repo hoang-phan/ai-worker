@@ -35,7 +35,7 @@ local_test: `implementing` -> (`finalize_success` "implementation" sets `local_t
 ## Invariants
 
 - Every logged action is in `StageRun::ACTIONS` first (step 2).
-- Every finish handler's `workflow.update!` merges `ai_run_attrs` (clears `processing`, pid, log path, offset). Forget it and the workflow polls a dead run forever. `fail_stage` already does this; only the success paths are yours.
+- Every finish handler's `workflow.update!` merges `Workflow::AI_RUN_RESET` (clears `processing`, pid, log path, offset). Forget it and the workflow polls a dead run forever. `fail_stage` already does this; only the success paths are yours.
 - A finish handler leaves the workflow in a status the scheduler picks up (or terminal). Check the status appears in step 9's lists.
 - Counting rounds/retries: cap them (`MAX_LOCAL_TEST_ROUNDS`) and log an `_exhausted` action rather than looping.
 - New result markers get an `AiCli::Output` method **and** a spec; never regex agent output inline in `StageExecutor`.
@@ -46,4 +46,4 @@ local_test: `implementing` -> (`finalize_success` "implementation" sets `local_t
 - Model: `spec/models/stage_spec.rb` (helpers), `spec/models/workflow_spec.rb` (`current_stage` creating the stage, `resume_status`/`resume!` back to the new status, as in the "goes back to local_testing" example).
 - `spec/services/ai_cli/output_spec.rb`: every marker method, incl. missing marker, case, and last-match-wins.
 - `spec/services/prompts/stage_prompt_spec.rb`: the default body is used when no template is assigned.
-- StageExecutor-level: there is no `spec/services/stage_executor_spec.rb` yet. Decisions are being extracted into small testable objects (`spec/services/stages/pr_check_decision_spec.rb`, `spec/services/ai_cli/run_poller_spec.rb`); prefer extracting new finish logic the same way. If you add an executor spec, stub the agent CLI, `Github::Client` and `Git::*` and assert the resulting `status`, cleared `ai_run_attrs`, and logged actions.
+- StageExecutor-level: there is no `spec/services/stage_executor_spec.rb` yet. Decisions are being extracted into small testable objects (`spec/services/stages/pr_check_decision_spec.rb`, `spec/services/ai_cli/run_poller_spec.rb`); prefer extracting new finish logic the same way. If you add an executor spec, stub the agent CLI, `Github::Client` and `Git::*` and assert the resulting `status`, cleared `Workflow::AI_RUN_RESET`, and logged actions.

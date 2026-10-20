@@ -163,4 +163,11 @@ RSpec.describe Workflow, type: :model do
       expect(runbook.reload).to be_done
     end
   end
+
+  describe "AI_RUN_RESET" do
+    it "covers processing and every ai_* column" do
+      expected = Workflow.column_names.grep(/\Aai_/) + ["processing"]
+      expect(Workflow::AI_RUN_RESET.keys.map(&:to_s)).to match_array(expected)
+    end
+  end
 end
