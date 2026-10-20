@@ -12,6 +12,23 @@ RSpec.describe Stage, type: :model do
     actions.each { |action| target.stage_runs.create!(action: action) }
   end
 
+  describe "#removable?" do
+    let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
+    let(:current_stage) { runbook.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1) }
+
+    it "refuses the current stage after a runbook has started, but allows it while pending or when it is not current" do
+      runbook.update!(current_stage_id: current_stage.id)
+
+      expect(current_stage).not_to be_removable
+
+      runbook.update!(status: :pending)
+      expect(current_stage).to be_removable
+
+      runbook.update!(status: :implementing, current_stage_id: nil)
+      expect(current_stage).to be_removable
+    end
+  end
+
   describe "#last_action" do
     it "is nil without runs" do
       expect(stage.last_action).to be_nil

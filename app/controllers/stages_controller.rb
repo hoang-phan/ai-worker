@@ -29,7 +29,7 @@ class StagesController < ApplicationController
 
   # The stage a runbook is on (running or waiting for Next) can't be removed from under it.
   def destroy
-    if @workflow.current_stage_id == @stage.id && !@workflow.pending?
+    unless @stage.removable?
       redirect_to project_workflow_path(@project, @workflow), alert: "That is the current stage; move on first."
     else
       @stage.destroy

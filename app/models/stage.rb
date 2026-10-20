@@ -12,6 +12,11 @@ class Stage < ApplicationRecord
   validates :wait_for_workflow, format: { with: /\A[\w.\- ]+\z/, message: "must be a workflow file name or name, e.g. manual_environment_deploy.yml" }, allow_blank: true
   validates :channel, presence: true, if: -> { runbook_step? && run_message? }
 
+  # A started runbook must keep the stage it is currently executing or waiting on.
+  def removable?
+    workflow.pending? || workflow.current_stage_id != id
+  end
+
   # Action of the newest run, nil when the stage has none. Ordered by id explicitly: the association's default order
   # is created_at desc.
   def last_action
