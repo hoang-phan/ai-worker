@@ -38,69 +38,41 @@ module Slack
     end
 
     def running?
-      pid_file.exist? && AiCli::Runner.poll(pid_file.read.to_i) == :running
+      run.running?
     end
 
     def last_started_at
-      started_file.exist? ? Time.zone.at(started_file.read.to_f) : nil
+      run.last_started_at
     end
 
     # No-op (returns false) if a fetch process is still alive.
     def start
-      return false if running?
-
       since = last_started_at ? last_started_at - OVERLAP : FIRST_LOOKBACK.ago
-      FileUtils.mkdir_p(dir)
-      FileUtils.rm_f(mentions_file)
-      pid = AiCli::Runner.start(dir.to_s, prompt(since), log_path: log_file.to_s, allowed_tools: ALLOWED_TOOLS)
-      pid_file.write(pid)
-      started_file.write(Time.current.to_f)
-      true
+      run.start(cwd: dir, prompt: prompt(since), allowed_tools: ALLOWED_TOOLS)
     end
 
     # nil while still running (or nothing started); an array of
     # { "slack_url", "pr_urls" } once finished. Raises FetchError on failure.
     def poll
-      return unless pid_file.exist?
-
-      if AiCli::Runner.poll(pid_file.read.to_i) == :running
-        return unless stale?
-
-        clear
-        raise FetchError, "agent did not finish within #{STALE_AFTER.inspect}"
-      end
-
-      clear
-      read_mentions
+      run.poll { |rows| filter(rows) }
     end
 
     private
 
     attr_reader :project, :dir
 
-    def stale?
-      last_started_at.nil? || last_started_at < STALE_AFTER.ago
+    def run
+      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "mentions.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
-    def clear
-      FileUtils.rm_f(pid_file)
-    end
-
-    def read_mentions
-      raise FetchError, "agent wrote no #{mentions_file.basename}; see #{log_file}" unless mentions_file.exist?
-
-      data = JSON.parse(mentions_file.read)
-      raise FetchError, "#{mentions_file.basename} is not a JSON array" unless data.is_a?(Array)
-
-      data.filter_map do |row|
+    def filter(rows)
+      rows.filter_map do |row|
         next unless row.is_a?(Hash)
 
         slack_url = row["slack_url"].to_s.strip
         pr_urls = Array(row["pr_urls"]).map { |url| url.to_s.strip }.select { |url| url.match?(ReviewSync::PR_URL) }
         { "slack_url" => slack_url, "pr_urls" => pr_urls.uniq } if slack_url.present? && pr_urls.any?
       end
-    rescue JSON::ParserError => e
-      raise FetchError, "invalid JSON in #{mentions_file.basename}: #{e.message}"
     end
 
     # `slack_mention` is free text exactly as the user typed it (@handle, user
@@ -120,20 +92,8 @@ module Slack
       PROMPT
     end
 
-    def pid_file
-      dir.join("pid")
-    end
-
-    def started_file
-      dir.join("started_at")
-    end
-
     def mentions_file
       dir.join("mentions.json")
-    end
-
-    def log_file
-      dir.join("agent.log")
     end
   end
 end

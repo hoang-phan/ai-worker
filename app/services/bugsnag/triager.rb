@@ -56,38 +56,21 @@ module Bugsnag
     end
 
     def running?
-      pid_file.exist? && AiCli::Runner.poll(pid_file.read.to_i) == :running
+      run.running?
     end
 
     def last_started_at
-      started_file.exist? ? Time.zone.at(started_file.read.to_f) : nil
+      run.last_started_at
     end
 
     def start
-      return false if running?
-
-      FileUtils.mkdir_p(dir)
-      FileUtils.rm_f(result_file)
-      pid = AiCli::Runner.start(project.local_directory, prompt, log_path: log_file.to_s, allowed_tools: ALLOWED_TOOLS)
-      pid_file.write(pid)
-      started_file.write(Time.current.to_f)
-      true
+      run.start(cwd: project.local_directory, prompt: prompt, allowed_tools: ALLOWED_TOOLS)
     end
 
     # nil while running (or nothing started); once finished, the array of
     # { "bugsnag_id", "jira_key" } the agent ticketed. Raises FetchError on failure.
     def poll
-      return unless pid_file.exist?
-
-      if AiCli::Runner.poll(pid_file.read.to_i) == :running
-        return unless stale?
-
-        clear
-        raise FetchError, "agent did not finish within #{STALE_AFTER.inspect}"
-      end
-
-      clear
-      read_result
+      run.poll { |rows| filter(rows) }
     end
 
     # Merges a poll result into the ledger; returns the newly added keys.
@@ -107,29 +90,18 @@ module Bugsnag
 
     attr_reader :sync, :project, :dir
 
-    def stale?
-      last_started_at.nil? || last_started_at < STALE_AFTER.ago
+    def run
+      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
-    def clear
-      FileUtils.rm_f(pid_file)
-    end
-
-    def read_result
-      raise FetchError, "agent wrote no #{result_file.basename}; see #{log_file}" unless result_file.exist?
-
-      data = JSON.parse(result_file.read)
-      raise FetchError, "#{result_file.basename} is not a JSON array" unless data.is_a?(Array)
-
-      data.filter_map do |row|
+    def filter(rows)
+      rows.filter_map do |row|
         next unless row.is_a?(Hash)
 
         id = row["bugsnag_id"].to_s.strip
         key = row["jira_key"].to_s.strip
         { "bugsnag_id" => id, "jira_key" => key } if id.match?(ID) && key.match?(KEY)
       end
-    rescue JSON::ParserError => e
-      raise FetchError, "invalid JSON in #{result_file.basename}: #{e.message}"
     end
 
     def prompt
@@ -147,20 +119,8 @@ module Bugsnag
       PROMPT
     end
 
-    def pid_file
-      dir.join("pid")
-    end
-
-    def started_file
-      dir.join("started_at")
-    end
-
     def result_file
       dir.join("result.json")
-    end
-
-    def log_file
-      dir.join("agent.log")
     end
   end
 end

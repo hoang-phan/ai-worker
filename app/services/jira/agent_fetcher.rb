@@ -22,71 +22,38 @@ module Jira
       @dir = ROOT.join(jira_sync.id.to_s)
     end
 
-    # True only while the agent process is actually alive. A leftover pid
-    # file from a finished or killed process doesn't count; `poll` still
-    # picks it up to import the result.
     def running?
-      pid_file.exist? && AiCli::Runner.poll(pid_file.read.to_i) == :running
+      run.running?
     end
 
     def last_started_at
-      started_file.exist? ? Time.zone.at(started_file.read.to_f) : nil
+      run.last_started_at
     end
 
-    # No-op (returns false) if a fetch process is still alive. A stale pid
-    # file from a dead process is overwritten (any unimported result is
-    # discarded).
+    # No-op (returns false) if a fetch process is still alive.
     def start
-      return false if running?
-
-      FileUtils.mkdir_p(dir)
-      FileUtils.rm_f(tickets_file)
-      pid = AiCli::Runner.start(dir.to_s, prompt, log_path: log_file.to_s)
-      pid_file.write(pid)
-      started_file.write(Time.current.to_f)
-      true
+      run.start(cwd: dir, prompt: prompt)
     end
 
     # nil while still running (or nothing started); an array of
     # { "key", "summary" } once finished. Raises FetchError on failure.
     def poll
-      return unless pid_file.exist?
-
-      if AiCli::Runner.poll(pid_file.read.to_i) == :running
-        return unless stale?
-
-        clear
-        raise FetchError, "agent did not finish within #{STALE_AFTER.inspect}"
-      end
-
-      clear
-      read_tickets
+      run.poll { |rows| filter(rows) }
     end
 
     private
 
     attr_reader :jira_sync, :project, :dir
 
-    def stale?
-      last_started_at.nil? || last_started_at < STALE_AFTER.ago
+    def run
+      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "tickets.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
-    def clear
-      FileUtils.rm_f(pid_file)
-    end
-
-    def read_tickets
-      raise FetchError, "agent wrote no #{tickets_file.basename}; see #{log_file}" unless tickets_file.exist?
-
-      data = JSON.parse(tickets_file.read)
-      raise FetchError, "#{tickets_file.basename} is not a JSON array" unless data.is_a?(Array)
-
-      data.filter_map do |row|
+    def filter(rows)
+      rows.filter_map do |row|
         key = row.is_a?(Hash) ? row["key"].to_s.strip : nil
         { "key" => key, "summary" => row["summary"].to_s } if key&.match?(KEY)
       end
-    rescue JSON::ParserError => e
-      raise FetchError, "invalid JSON in #{tickets_file.basename}: #{e.message}"
     end
 
     # The assignee / project / parent values are free text exactly as the user
@@ -113,17 +80,8 @@ module Jira
       PROMPT
     end
 
-    def pid_file
-      dir.join("pid")
-    end
-    def started_file
-      dir.join("started_at")
-    end
     def tickets_file
       dir.join("tickets.json")
-    end
-    def log_file
-      dir.join("agent.log")
     end
   end
 end
