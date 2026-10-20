@@ -33,6 +33,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 - `app/services/slack/review_notifier.rb` — the one non-agent Slack integration: a direct Web API post (bot token) pinging reviewers. Optional and best-effort.
 - `app/services/bugsnag/triager.rb` — agent run that files Jira Bugs for new Bugsnag errors and records them in the sync's ledger. `app/jobs/bugsnag_sync_job.rb` drives it (weekday, once per day for auto-sync ones).
 - `app/services/brainstorm/planner.rb` + `app/jobs/brainstorm_job.rb` — goal-driven, read-only agent that proposes workflows for personal projects, only while the project has no pending workflow.
+- Adding or changing one of these (fetcher on `AiCli::DetachedRun`, sync wrapper, job, schedule entry, specs): see the `ai-worker-detached-agent-runs` skill.
 - Each sync job imports a finished result first, then starts a new run only if none is running and its own trigger rule holds (last fetch old enough for Jira/Slack, once per weekday after a set hour for Bugsnag, no pending workflow for brainstorm); fetch errors are logged and recorded on the sync/project as its "last result".
 - `app/jobs/application_job.rb` — Rails default base class.
 
