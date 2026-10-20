@@ -76,4 +76,16 @@ RSpec.describe AiCli::Output do
     it("rejects POSTED inside a sentence") { expect(output("not POSTED yet").posted?).to be false }
     it("is false when missing") { expect(output(nil).posted?).to be false }
   end
+
+  describe "#final_outcome" do
+    it("is :success for a non-error result event") { expect(output(%({"type":"result","is_error":false})).final_outcome).to eq(:success) }
+    it("is :error for an error result event") { expect(output(%({"type":"result","is_error":true})).final_outcome).to eq(:error) }
+    it("is nil without a result event") { expect(output(%(plain\n{"type":"assistant"})).final_outcome).to be_nil }
+    it("is nil for nil") { expect(output(nil).final_outcome).to be_nil }
+
+    it "uses the last result event and skips malformed JSON lines" do
+      text = %({"type":"result","is_error":true}\n{"type":"result","is_error":false}\n{not json\n)
+      expect(output(text).final_outcome).to eq(:success)
+    end
+  end
 end

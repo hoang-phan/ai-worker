@@ -208,33 +208,16 @@ class StageExecutor
   end
 
   def poll_ai_run
-    tail_log
-    result = AiCli::Runner.poll(workflow.ai_pid)
-
-    if result == :running
-      # Only a run that is still alive can be stale; checking first would
-      # report a run that finished while no tick fired as timed out.
-      if stale?
-        kill_stale_run
-        raise AiCli::CommandError, "#{AiCli::Runner.agent} timed out after #{STALE_AFTER.inspect} (pid=#{workflow.ai_pid})"
-      end
-      return
+    poller = AiCli::RunPoller.new(
+      pid: workflow.ai_pid, log_path: workflow.ai_log_path, log_offset: workflow.ai_log_offset,
+      started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER
+    )
+    begin
+      state, output = poller.call
+    ensure
+      workflow.update_column(:ai_log_offset, poller.log_offset) if poller.log_offset != workflow.ai_log_offset
     end
-
-    _tag, exit_status = result
-    tail_log
-    output = full_log
-
-    unless exit_status.nil? || exit_status.success?
-      raise AiCli::CommandError, "#{AiCli::Runner.agent} failed (pid=#{workflow.ai_pid}): #{output.presence || 'no output'}"
-    end
-    # No status when the process was reaped elsewhere (e.g. Sidekiq restarted
-    # mid-run); claude's final result event in the log says how it ended.
-    if exit_status.nil?
-      outcome = logged_outcome(output)
-      raise AiCli::CommandError, "#{AiCli::Runner.agent} exit status unknown (pid=#{workflow.ai_pid}), treating as failed" if outcome.nil?
-      raise AiCli::CommandError, "#{AiCli::Runner.agent} failed (pid=#{workflow.ai_pid}): #{output.presence || 'no output'}" if outcome == :error
-    end
+    return if state == :running
 
     finalize_success(output)
   end
@@ -421,35 +404,6 @@ class StageExecutor
     workflow.update!(status: :errored) if stage.consecutive_failures >= MAX_CONSECUTIVE_FAILURES
   end
 
-  def tail_log
-    return unless workflow.ai_log_path
-
-    _content, new_offset = AiCli::Runner.tail_new_lines(
-      workflow.ai_log_path, from_offset: workflow.ai_log_offset, log_tag: log_tag
-    )
-    workflow.update_column(:ai_log_offset, new_offset) if new_offset != workflow.ai_log_offset
-  end
-
-  # :success / :error from the last `{"type":"result"}` event claude writes,
-  # nil if there is none (run killed mid-way, or another agent).
-  def logged_outcome(output)
-    output.each_line.reverse_each do |line|
-      next unless line.start_with?("{")
-
-      event = JSON.parse(line)
-      return event["is_error"] ? :error : :success if event.is_a?(Hash) && event["type"] == "result"
-    rescue JSON::ParserError
-      next
-    end
-    nil
-  end
-
-  def full_log
-    return "" unless workflow.ai_log_path && File.exist?(workflow.ai_log_path)
-
-    File.read(workflow.ai_log_path)
-  end
-
   def ai_run_attrs
     {
       processing: false,
@@ -458,16 +412,6 @@ class StageExecutor
       ai_started_at: nil,
       ai_log_offset: 0
     }
-  end
-
-  def stale?
-    workflow.ai_started_at.present? && workflow.ai_started_at < STALE_AFTER.ago
-  end
-
-  def kill_stale_run
-    Process.kill("TERM", workflow.ai_pid)
-  rescue Errno::ESRCH
-    nil
   end
 
   def new_log_path
