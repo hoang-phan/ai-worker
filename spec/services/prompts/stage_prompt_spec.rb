@@ -68,6 +68,60 @@ RSpec.describe Prompts::StagePrompt do
       end
     end
 
+    context "with an implementation stage" do
+      let(:stage_type) { :implementation }
+      let(:stage_attrs) { { prompt: "Implement {TASK}" } }
+      let(:runs_dir) { Dir.mktmpdir("ai-runs-spec") }
+
+      before { stub_const("Prompts::StagePrompt::AI_RUNS_DIR", runs_dir) }
+
+      after { FileUtils.remove_entry(runs_dir) }
+
+      it "adds the check-output guidance but no retry note on the first attempt" do
+        body = stage_prompt.body
+
+        expect(body).to start_with("Implement Do the thing")
+        expect(body).to include("redirect each command's full output to a file", "do not restart the whole gate")
+        expect(body).not_to include("previous attempt")
+      end
+
+      context "when the last run failed" do
+        before { stage.stage_runs.create!(action: "failed", error: "agent finished but no PR was found") }
+
+        it "points at the previous agent log" do
+          old = File.join(runs_dir, "workflow-#{workflow.id}-100.log")
+          recent = File.join(runs_dir, "workflow-#{workflow.id}-200.log")
+          File.write(old, "")
+          File.write(recent, "")
+          File.utime(Time.at(100), Time.at(100), old)
+          File.utime(Time.at(200), Time.at(200), recent)
+
+          body = stage_prompt.body
+
+          expect(body).to start_with("Implement Do the thing")
+          expect(body).to include(recent, "no pull request was opened")
+          expect(body).not_to include(old)
+        end
+
+        it "adds nothing when no earlier log exists" do
+          expect(stage_prompt.body).not_to include("previous attempt")
+        end
+
+        it "ignores other workflows' logs" do
+          File.write(File.join(runs_dir, "workflow-#{workflow.id + 1}-100.log"), "")
+
+          expect(stage_prompt.body).not_to include("previous attempt")
+        end
+      end
+
+      it "adds nothing when the last run did not fail" do
+        stage.stage_runs.create!(action: "started")
+        File.write(File.join(runs_dir, "workflow-#{workflow.id}-100.log"), "")
+
+        expect(stage_prompt.body).not_to include("previous attempt")
+      end
+    end
+
     context "with a pr_check stage" do
       let(:stage_type) { :pr_check }
       let(:stage_attrs) { { prompt: "Fix the review" } }
@@ -88,7 +142,7 @@ RSpec.describe Prompts::StagePrompt do
         let(:slack_enabled) { false }
 
         it "does not append them" do
-          expect(stage_prompt.body).to eq("Fix the review")
+          expect(stage_prompt.body).not_to include("FIXED_SUMMARY_BEGIN")
         end
       end
 

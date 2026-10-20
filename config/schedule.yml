@@ -6,7 +6,7 @@ workflow_scheduler:
   queue: stage_execution
 
 workflow_scheduler_off_hours:
-  cron: "*/20 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  cron: "*/3 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
   queue: stage_execution
 
@@ -41,11 +41,11 @@ bugsnag_sync_off_hours:
   queue: default
 
 brainstorm:
-  cron: "10 * * * *"
+  cron: "10 */4 * * *"
   class: "BrainstormJob"
   queue: default
 
 slack_ping:
-  cron: "* * * * *"
+  cron: "*/5 * * * *"
   class: "SlackPingJob"
   queue: default

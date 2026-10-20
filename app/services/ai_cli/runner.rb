@@ -18,6 +18,16 @@ module AiCli
     # the next run without a restart. Stored in Rails.cache (shared by the web
     # and Sidekiq processes, so it needs a cross-process store such as
     # file_store); falls back to the AGENT env var, then claude.
+    # Bundler/Ruby variables describing *this* app's bundle. Left in the agent's environment they leak into whatever
+    # the agent runs in the project's own clone: e.g. BUNDLER_VERSION pins the project's `bundle` to ai-worker's
+    # Bundler instead of the one its Gemfile.lock asks for, BUNDLE_GEMFILE points at our Gemfile. Unset for every run.
+    LEAKED_ENV = %w[
+      BUNDLE_GEMFILE BUNDLE_LOCKFILE BUNDLE_BIN_PATH BUNDLER_VERSION BUNDLER_SETUP
+      BUNDLER_ORIG_BUNDLE_GEMFILE BUNDLER_ORIG_BUNDLE_LOCKFILE BUNDLER_ORIG_BUNDLE_BIN_PATH
+      BUNDLER_ORIG_RUBYOPT BUNDLER_ORIG_RUBYLIB BUNDLER_ORIG_PATH
+      RUBYOPT RUBYLIB RAILS_ENV RACK_ENV
+    ].freeze
+
     def self.agent
       cached = Rails.cache.read(AGENT_CACHE_KEY)
       return cached if AGENTS.key?(cached)
@@ -83,7 +93,7 @@ module AiCli
       cmd = with_cursor_mcp_file(project_directory, mcp_config, cmd) if agent == "cursor" && mcp_config.present?
 
       Process.spawn(
-        { "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0" }.merge(env.transform_values(&:to_s)),
+        LEAKED_ENV.index_with(nil).merge("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0").merge(env.transform_values(&:to_s)),
         *cmd,
         chdir: project_directory,
         in: File::NULL,
