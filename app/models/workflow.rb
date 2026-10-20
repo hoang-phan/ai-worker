@@ -52,42 +52,26 @@ class Workflow < ApplicationRecord
   after_create :seed_stages
   after_destroy :purge_images
 
-  IMAGE_ROOT = Rails.root.join("tmp", "workflow_images")
-  IMAGE_EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .bmp .svg].freeze
+  # Reference images are plain files on disk; see Workflows::ImageStore.
+  def image_store
+    Workflows::ImageStore.new(workflow_id: id)
+  end
 
-  # Reference images live as plain, unencoded files on disk (not Active
-  # Storage) so the agent CLI can read them straight from the path
-  # substituted into the {IMAGES} placeholder.
   def image_dir
-    IMAGE_ROOT.join(id.to_s)
+    image_store.dir
   end
 
   def image_paths
-    return [] unless image_dir.directory?
-
-    image_dir.children.select(&:file?).sort.map(&:to_s)
+    image_store.paths
   end
 
-  # `uploads` are ActionDispatch::Http::UploadedFile objects. Non-images are
-  # skipped; returns the number saved.
+  # `uploads` are ActionDispatch::Http::UploadedFile objects. Returns the number saved.
   def add_images(uploads)
-    saved = 0
-    Array(uploads).each do |upload|
-      next unless upload.respond_to?(:original_filename)
-
-      name = File.basename(upload.original_filename.to_s).gsub(/[^\w.\-]/, "_")
-      next unless IMAGE_EXTENSIONS.include?(File.extname(name).downcase)
-
-      FileUtils.mkdir_p(image_dir)
-      File.binwrite(unique_image_path(name), upload.read)
-      saved += 1
-    end
-    saved
+    image_store.add(uploads)
   end
 
   def remove_image(name)
-    path = image_dir.join(File.basename(name.to_s))
-    FileUtils.rm_f(path) if path.file?
+    image_store.remove(name)
   end
 
   # comma-separated skill names entered in the UI, rendered into the {SKILLS} placeholder
@@ -296,16 +280,8 @@ class Workflow < ApplicationRecord
     errors.add(:base, "PR reviews need a Jira (GitHub-backed) project") unless project&.jira?
   end
 
-  def unique_image_path(name)
-    path = image_dir.join(name)
-    return path unless path.exist?
-
-    ext = File.extname(name)
-    image_dir.join("#{File.basename(name, ext)}-#{SecureRandom.hex(3)}#{ext}")
-  end
-
   def purge_images
-    FileUtils.rm_rf(image_dir)
+    image_store.purge!
   end
 
   def seed_stages
