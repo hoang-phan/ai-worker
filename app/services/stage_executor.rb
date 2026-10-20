@@ -169,7 +169,7 @@ class StageExecutor
     when :failed
       raise Github::CommandError, "GitHub Actions #{stage.wait_for_workflow} finished with #{state[:conclusion]}: #{state[:url]}"
     else
-      log(action: "waiting_for_check", output: state[:url]) unless stage.stage_runs.reorder(id: :desc).first&.action == "waiting_for_check"
+      log(action: "waiting_for_check", output: state[:url]) unless stage.last_action == "waiting_for_check"
       false
     end
   end
@@ -269,7 +269,7 @@ class StageExecutor
   end
 
   def finalize_success(output)
-    return finish_conflict_resolution(output) if resolving_conflicts?
+    return finish_conflict_resolution(output) if stage.resolving_conflicts?
 
     case stage.stage_type
     when "implementation"
@@ -361,7 +361,7 @@ class StageExecutor
   def local_retest?(output)
     return false unless project.local_test_ready?
 
-    rounds = workflow.stages.find_by(stage_type: :local_test)&.stage_runs&.where(action: "local_test_completed")&.count.to_i
+    rounds = workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i
     return false if rounds >= MAX_LOCAL_TEST_ROUNDS
 
     workflow.local_test_feedback.present? || AiCli::Output.new(output).retest_requested?
@@ -372,7 +372,7 @@ class StageExecutor
     raise AiCli::CommandError, "agent finished without a LOCAL_TEST_RESULT line, treating the local test as failed" unless result
 
     failed = result.casecmp?("FAILED")
-    rounds = stage.stage_runs.where(action: "local_test_completed").count + 1
+    rounds = stage.completed_local_test_rounds + 1
     retest = failed && rounds < MAX_LOCAL_TEST_ROUNDS
     workflow.update!(ai_run_attrs.merge(status: :reviewing, local_test_feedback: retest ? local_test_feedback(output) : nil))
     log(action: "local_test_completed", output: output)
@@ -386,10 +386,6 @@ class StageExecutor
   def local_test_feedback(output)
     AiCli::Output.new(output).local_test_feedback_block ||
       "Local testing failed; see the \"Local test by agent\" comment on #{workflow.github_pr_url} for the failing steps."
-  end
-
-  def resolving_conflicts?
-    stage.stage_runs.order(:id).last&.action == "conflict_resolution_started"
   end
 
   # The conflict-resolution run must leave the merge committed; only then does
@@ -439,18 +435,10 @@ class StageExecutor
   # WorkflowSchedulerJob ignores. A person resumes it from the UI once the
   # cause is fixed.
   def fail_stage(error)
-    Git::BranchService.abort_merge!(project) if resolving_conflicts?
+    Git::BranchService.abort_merge!(project) if stage.resolving_conflicts?
     workflow.update!(ai_run_attrs.merge(auto_run: false))
     log(action: "failed", error: error.message)
-    workflow.update!(status: :errored) if consecutive_failures >= MAX_CONSECUTIVE_FAILURES
-  end
-
-  # Trailing run of failed/started rows (newest first) with no success or
-  # `resumed` in between.
-  def consecutive_failures
-    stage.stage_runs.order(id: :desc).pluck(:action)
-         .take_while { |action| %w[failed started].include?(action) }
-         .count("failed")
+    workflow.update!(status: :errored) if stage.consecutive_failures >= MAX_CONSECUTIVE_FAILURES
   end
 
   def tail_log

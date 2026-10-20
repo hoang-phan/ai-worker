@@ -251,8 +251,7 @@ class Workflow < ApplicationRecord
   # An errored workflow whose newest local test run started but never finished goes back to it, not to review
   # (also true for a retest after a fix round: earlier completed rounds don't count).
   def local_test_unfinished?
-    last = stages.find_by(stage_type: :local_test)&.stage_runs&.reorder(id: :desc)&.first
-    last.present? && last.action != "local_test_completed"
+    stages.find_by(stage_type: :local_test)&.local_test_unfinished? || false
   end
 
   def copy_source

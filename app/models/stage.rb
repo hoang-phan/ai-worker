@@ -12,6 +12,33 @@ class Stage < ApplicationRecord
   validates :wait_for_workflow, format: { with: /\A[\w.\- ]+\z/, message: "must be a workflow file name or name, e.g. manual_environment_deploy.yml" }, allow_blank: true
   validates :channel, presence: true, if: -> { runbook_step? && run_message? }
 
+  # Action of the newest run, nil when the stage has none. Ordered by id explicitly: the association's default order
+  # is created_at desc.
+  def last_action
+    stage_runs.reorder(id: :desc).first&.action
+  end
+
+  # Trailing run of failed/started rows (newest first) with no success or `resumed` in between; counts the failed ones.
+  def consecutive_failures
+    stage_runs.reorder(id: :desc).pluck(:action)
+              .take_while { |action| %w[failed started].include?(action) }
+              .count("failed")
+  end
+
+  def resolving_conflicts?
+    last_action == "conflict_resolution_started"
+  end
+
+  def completed_local_test_rounds
+    stage_runs.where(action: "local_test_completed").count
+  end
+
+  # A local test run that started but whose newest run isn't a completion (earlier completed rounds don't count).
+  def local_test_unfinished?
+    last = last_action
+    last.present? && last != "local_test_completed"
+  end
+
   def display_name
     name.presence || stage_type.humanize
   end
