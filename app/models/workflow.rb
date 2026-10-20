@@ -24,16 +24,10 @@ class Workflow < ApplicationRecord
 
   scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 
-  # which stage type is currently active for each in-flight workflow status
-  # (`merged` runs the post-merge Jira update; `done` and `jira_updated` are terminal-ish and
-  # don't block the next workflow, nor does `merged`. `uat_waiting` / `uat_testing` / `uat_tested` come after the
-  # ticket reached UAT: the agent tests it in a browser once the project's delay has passed.)
-  STAGE_TYPE_BY_STATUS = { "implementing" => "implementation", "reviewing" => "pr_check", "merged" => "jira_update", "uat_testing" => "uat_test",
-                          "local_testing" => "local_test" }.freeze
-  # personal-project workflows have a single stage and skip "reviewing" entirely
-  SIMPLE_STAGE_TYPE_BY_STATUS = { "implementing" => "task" }.freeze
-  # PR-review workflows have a single stage, run once, and skip "reviewing"
-  PR_REVIEW_STAGE_TYPE_BY_STATUS = { "implementing" => "pr_review" }.freeze
+  # Status -> stage type maps live in Workflows::StageResolver; aliased here for existing callers.
+  STAGE_TYPE_BY_STATUS = Workflows::StageResolver::STAGE_TYPE_BY_STATUS
+  SIMPLE_STAGE_TYPE_BY_STATUS = Workflows::StageResolver::SIMPLE_STAGE_TYPE_BY_STATUS
+  PR_REVIEW_STAGE_TYPE_BY_STATUS = Workflows::StageResolver::PR_REVIEW_STAGE_TYPE_BY_STATUS
 
   validates :jira_ticket, presence: true, if: :jira_development?
   validates :branch_name, presence: true, if: :jira_development?
@@ -231,16 +225,12 @@ class Workflow < ApplicationRecord
   def current_stage
     return stages.find_by(id: current_stage_id) if runbook?
 
-    mapping = if pr_review? then PR_REVIEW_STAGE_TYPE_BY_STATUS
-    elsif project.personal? then SIMPLE_STAGE_TYPE_BY_STATUS
-    else STAGE_TYPE_BY_STATUS
-    end
-    stage_type = mapping[status]
+    stage_type = Workflows::StageResolver.stage_type_for(status: status, kind: kind, personal: project.personal?)
     return nil unless stage_type
 
     # The Jira-update and UAT-test stages aren't seeded with the workflow (older workflows
     # predate it), so create it the first time it's needed.
-    return stages.find_or_create_by!(stage_type: stage_type) if %w[jira_update uat_test local_test].include?(stage_type)
+    return stages.find_or_create_by!(stage_type: stage_type) if Workflows::StageResolver::LAZY_STAGE_TYPES.include?(stage_type)
 
     stages.find_by(stage_type: stage_type)
   end
