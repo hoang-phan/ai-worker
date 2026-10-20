@@ -1,5 +1,4 @@
 require "json"
-require "open3"
 require "fileutils"
 
 module AiCli
@@ -11,14 +10,7 @@ module AiCli
   # cron tick to see whether the process has finished (see
   # docs/RUNBOOK.md).
   class Runner
-    # Non-interactive invocation per agent. stdin is /dev/null, so every
-    # agent must be told to skip permission prompts or it would hang.
-    # To support another CLI, add an entry here.
-    AGENTS = {
-      "claude" => { binary: "claude", args: [ "-p", :prompt, "--dangerously-skip-permissions" ] },
-      "cursor" => { binary: "agent", args: [ "-p", :prompt, "--force" ] },
-      "codex" => { binary: "codex", args: [ "exec", "--dangerously-bypass-approvals-and-sandbox", :prompt ] }
-    }.freeze
+    AGENTS = Command::AGENTS
 
     AGENT_CACHE_KEY = "ai_cli/agent".freeze
 
@@ -86,7 +78,8 @@ module AiCli
       # `claude -p` stops background subagents 10 minutes after the last
       # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
       agent = self.class.agent
-      cmd = command(agent, prompt, allowed_tools, mcp_config, disallowed_tools, model, effort)
+      cmd = Command.new(agent: agent, prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
+                        disallowed_tools: disallowed_tools, model: model, effort: effort).to_a
       cmd = with_cursor_mcp_file(project_directory, mcp_config, cmd) if agent == "cursor" && mcp_config.present?
 
       Process.spawn(
@@ -131,62 +124,6 @@ module AiCli
 
     attr_reader :log_tag
 
-    # AI_VERBOSE=1 switches the claude log from a single end-of-run blob to
-    # incremental stream-json events (text_delta/tool_use/etc.) written as
-    # the run progresses — set it before boot, e.g. `AI_VERBOSE=1 bin/dev`.
-    # Only applies to claude.
-    def command(agent, prompt, allowed_tools = nil, mcp_config = nil, disallowed_tools = [], model = nil, effort = nil)
-      spec = AGENTS[agent] or raise CommandError, "unknown AGENT #{agent.inspect} (expected one of #{AGENTS.keys.join(", ")})"
-      args = spec[:args].map { |arg| arg == :prompt ? prompt : arg }
-      if agent == "claude" && allowed_tools.present?
-        args = args.map { |arg| arg == "--dangerously-skip-permissions" ? [ "--allowedTools", *allowed_tools ] : arg }.flatten
-      end
-      command = [ binary_for(agent, spec), *args ]
-      command += [ "--mcp-config", mcp_config.to_s ] if agent == "claude" && mcp_config.present?
-      command.insert(2, *codex_mcp_overrides(mcp_config)) if agent == "codex" && mcp_config.present? # before the prompt
-      command << "--approve-mcps" if agent == "cursor" && mcp_config.present? && cursor_supports?("--approve-mcps")
-      command += [ "--disallowedTools", *disallowed_tools ] if agent == "claude" && disallowed_tools.present?
-      command += [ "--model", model.to_s ] if agent == "claude" && model.present?
-      command += [ "--effort", effort.to_s ] if agent == "claude" && effort.present?
-      if agent == "claude" && ENV["AI_VERBOSE"].present?
-        command += [ "--output-format", "stream-json", "--verbose", "--include-partial-messages" ]
-      end
-      command
-    end
-
-    # Cursor's CLI is installed as `agent` by newer versions and `cursor-agent` by older ones.
-    def binary_for(agent, spec)
-      return spec[:binary] unless agent == "cursor"
-
-      [ spec[:binary], "cursor-agent" ].find { |name| executable_on_path?(name) } || spec[:binary]
-    end
-
-    def executable_on_path?(name)
-      ENV["PATH"].to_s.split(File::PATH_SEPARATOR).any? { |dir| File.executable?(File.join(dir, name)) && !File.directory?(File.join(dir, name)) }
-    end
-
-    def cursor_supports?(flag)
-      out, _status = Open3.capture2e(binary_for("cursor", AGENTS["cursor"]), "--help")
-      out.include?(flag)
-    rescue SystemCallError
-      false
-    end
-
-    # codex has no per-run MCP config file; each server is set field by field with TOML values (JSON strings and
-    # arrays of strings are valid TOML).
-    def codex_mcp_overrides(mcp_config)
-      mcp_servers(mcp_config).flat_map do |name, server|
-        overrides = { "command" => server["command"].to_json, "startup_timeout_sec" => 90 }
-        overrides["args"] = Array(server["args"]).to_json if server["args"]
-        overrides["env"] = "{" + server["env"].map { |k, v| "#{k.to_json} = #{v.to_json}" }.join(", ") + "}" if server["env"].present?
-        overrides.flat_map { |key, value| [ "-c", "mcp_servers.#{name}.#{key}=#{value}" ] }
-      end
-    end
-
-    def mcp_servers(mcp_config)
-      JSON.parse(File.read(mcp_config)).fetch("mcpServers", {})
-    end
-
     # cursor reads project MCP servers from <cwd>/.cursor/mcp.json. Write the run's servers there (keeping any
     # existing file aside), keep it out of git, and have a tiny shell wrapper put things back when the run ends.
     def with_cursor_mcp_file(project_directory, mcp_config, cmd)
@@ -195,7 +132,7 @@ module AiCli
       backup = "#{file}.ai-worker-bak"
       FileUtils.mkdir_p(dir)
       FileUtils.mv(file, backup) if File.exist?(file) && !File.exist?(backup)
-      File.write(file, JSON.pretty_generate(mcpServers: mcp_servers(mcp_config)))
+      File.write(file, JSON.pretty_generate(mcpServers: Command.mcp_servers(mcp_config)))
       exclude_from_git(project_directory)
 
       [ "sh", "-c", 'trap \'rm -f "$0"; [ -f "$0.ai-worker-bak" ] && mv "$0.ai-worker-bak" "$0"\' EXIT; "$@"', file, *cmd ]
