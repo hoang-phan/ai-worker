@@ -21,7 +21,7 @@ module Slack
     ALLOWED_TOOLS = %w[mcp__claude_ai_Slack__slack_send_message].freeze
 
     def self.pending_workflow_ids
-      Dir.glob(ROOT.join("*")).map { |path| File.basename(path).to_i }
+      PingCollector.new.pending_workflow_ids
     end
 
     def initialize(project)
@@ -64,28 +64,9 @@ module Slack
       raise NotifyError, "Slack ping failed to start: #{e.message}"
     end
 
-    # Reads back finished pings of `workflow`: the first permalink found becomes its thread when it has none.
-    # Returns true while a ping is still running.
+    # Reads back finished pings of `workflow` (see PingCollector). Returns true while a ping is still running.
     def collect(workflow)
-      running = false
-      Dir.glob(ROOT.join(workflow.id.to_s, "*")).sort.each do |path|
-        dir = Pathname(path)
-        pid_file = dir.join("pid")
-        state = pid_file.exist? ? AiCli::Runner.poll(pid_file.read.to_i) : [ :completed, nil ]
-        if state == :running && Time.zone.at(dir.basename.to_s.to_i) > STALE_AFTER.ago
-          running = true
-          next
-        end
-
-        link = dir.join("agent.log").then { |log| log.exist? ? log.read[PERMALINK] : nil }
-        Rails.logger.warn("[Slack::ReviewNotifier] workflow=#{workflow.id} ping gave no permalink; see #{dir}") if link.blank?
-        workflow.update!(slack_review_thread_ts: link) if link.present? && workflow.slack_review_thread_ts.blank?
-        FileUtils.rm_rf(dir) if link.present?
-      end
-      FileUtils.rmdir(ROOT.join(workflow.id.to_s)) if !running && Dir.empty?(ROOT.join(workflow.id.to_s))
-      running
-    rescue Errno::ENOENT
-      false
+      PingCollector.new.collect(workflow)
     end
 
     private
