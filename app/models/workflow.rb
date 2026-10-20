@@ -45,7 +45,7 @@ class Workflow < ApplicationRecord
   # Create-time only: id of another runbook workflow of the project whose stages this one starts with.
   attr_accessor :copy_stages_from_id
 
-  after_create :seed_stages
+  after_create { Workflows::StageSeeder.new(self).call }
   after_destroy :purge_images
 
   # Reference images are plain files on disk; see Workflows::ImageStore.
@@ -216,16 +216,17 @@ class Workflow < ApplicationRecord
     development? && project.jira? && github_pr_url.present?
   end
 
+  # The runbook this one's stages are copied from at creation (nil when none was chosen or it isn't valid).
+  def copy_source
+    project.workflows.runbook.find_by(id: copy_stages_from_id) if copy_stages_from_id.present?
+  end
+
   private
 
   # An errored workflow whose newest local test run started but never finished goes back to it, not to review
   # (also true for a retest after a fix round: earlier completed rounds don't count).
   def local_test_unfinished?
     stages.find_by(stage_type: :local_test)&.local_test_unfinished? || false
-  end
-
-  def copy_source
-    project.workflows.runbook.find_by(id: copy_stages_from_id) if copy_stages_from_id.present?
   end
 
   def copy_source_is_a_runbook_of_this_project
@@ -251,22 +252,5 @@ class Workflow < ApplicationRecord
 
   def purge_images
     image_store.purge!
-  end
-
-  def seed_stages
-    if runbook?
-      copy_source&.stages&.each do |source|
-        stages.create!(stage_type: :runbook_step, name: source.name, position: source.position,
-                       run_mode: source.run_mode, channel: source.channel, prompt: source.prompt,
-                       auto_advance: source.auto_advance, wait_for_workflow: source.wait_for_workflow)
-      end
-    elsif pr_review?
-      stages.create!(stage_type: :pr_review)
-    elsif project.personal?
-      stages.create!(stage_type: :task)
-    else
-      stages.create!(stage_type: :implementation)
-      stages.create!(stage_type: :pr_check)
-    end
   end
 end
