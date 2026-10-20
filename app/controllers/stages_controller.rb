@@ -4,7 +4,7 @@ class StagesController < ApplicationController
   before_action :require_runbook, only: %i[new create destroy]
 
   def new
-    @stage = @workflow.stages.new(stage_type: :runbook_step, position: next_position)
+    @stage = @workflow.stages.new(stage_type: :runbook_step, position: @workflow.next_stage_position)
   end
 
   def create
@@ -50,10 +50,6 @@ class StagesController < ApplicationController
 
   def require_runbook
     redirect_to project_workflow_path(@project, @workflow), alert: "Only runbook workflows have editable stage lists." unless @workflow.runbook?
-  end
-
-  def next_position
-    (@workflow.stages.maximum(:position) || 0) + 1
   end
 
   def stage_params

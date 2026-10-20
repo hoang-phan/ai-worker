@@ -71,4 +71,21 @@ RSpec.describe Project, type: :model do
       end
     end
   end
+
+  describe "#next_workflow_position" do
+    before { project.save! }
+
+    after { project.destroy }
+
+    it "is 1 when the project has no workflows" do
+      expect(project.next_workflow_position).to eq(1)
+    end
+
+    it "is one past the highest existing position" do
+      project.workflows.create!(task_description: "a", position: 3)
+      project.workflows.create!(task_description: "b", position: 7)
+
+      expect(project.next_workflow_position).to eq(8)
+    end
+  end
 end

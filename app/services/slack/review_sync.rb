@@ -82,7 +82,7 @@ module Slack
         status: :implementing,
         slack_url: slack_url,
         github_pr_url: pr_url,
-        position: (project.workflows.maximum(:position) || 0) + 1
+        position: project.next_workflow_position
       )
       if workflow.save
         result.created << pr_url

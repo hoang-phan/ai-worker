@@ -73,7 +73,7 @@ module Jira
         branch_name: self.class.branch_name_for(url),
         github_reviewer: project.default_reviewers,
         skills: project.default_skills,
-        position: (project.workflows.maximum(:position) || 0) + 1
+        position: project.next_workflow_position
       )
       if workflow.save
         result.created << issue["key"]

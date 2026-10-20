@@ -74,6 +74,11 @@ class Workflow < ApplicationRecord
     image_store.remove(name)
   end
 
+  # Position for a stage appended after this workflow's existing ones.
+  def next_stage_position
+    (stages.maximum(:position) || 0) + 1
+  end
+
   # comma-separated skill names entered in the UI, rendered into the {SKILLS} placeholder
   def skill_list
     skills.to_s.split(",").map(&:strip).reject(&:blank?)

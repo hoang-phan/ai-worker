@@ -7,7 +7,7 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = @project.workflows.new(position: next_position, skills: @project.default_skills, github_reviewer: @project.default_reviewers,
+    @workflow = @project.workflows.new(position: @project.next_workflow_position, skills: @project.default_skills, github_reviewer: @project.default_reviewers,
                                        kind: params[:kind] == "runbook" ? :runbook : :development)
   end
 
@@ -60,7 +60,7 @@ class WorkflowsController < ApplicationController
       return redirect_to project_workflow_path(@project, @workflow), alert: "Only runbooks can be cloned."
     end
 
-    copy = @project.workflows.new(kind: :runbook, position: next_position, copy_stages_from_id: @workflow.id,
+    copy = @project.workflows.new(kind: :runbook, position: @project.next_workflow_position, copy_stages_from_id: @workflow.id,
                                   variables: @workflow.input_variables)
     if copy.save
       redirect_to edit_project_workflow_path(@project, copy), notice: "Cloned with #{copy.stages.count} stages. Check the variables, then Start."
@@ -117,10 +117,6 @@ class WorkflowsController < ApplicationController
 
   def set_workflow
     @workflow = @project.workflows.find(params[:id])
-  end
-
-  def next_position
-    (@project.workflows.maximum(:position) || 0) + 1
   end
 
   def workflow_params

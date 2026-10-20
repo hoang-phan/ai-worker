@@ -34,6 +34,11 @@ class Project < ApplicationRecord
     false
   end
 
+  # Position for a workflow appended after the project's existing ones.
+  def next_workflow_position
+    (workflows.maximum(:position) || 0) + 1
+  end
+
   def local_test_ready?
     jira? && local_test_enabled? && local_url.present?
   end
