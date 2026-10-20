@@ -21,7 +21,7 @@ module Brainstorm
     DEFAULT_MODEL = "claude-opus-5-5".freeze
     DEFAULT_EFFORT = "high".freeze
     PROMPT_HISTORY_LINES = 30
-    TASK_LENGTH = 4000
+    TASK_LENGTH = ProposalNormalizer::TASK_LENGTH
     # Read-only: the agent may look at the code and git history, and write the result file, nothing else.
     ALLOWED_TOOLS = [ "Read", "Grep", "Glob", "Write", "Bash(git log:*)", "Bash(git ls-files:*)", "Bash(git status:*)", "Bash(git diff:*)" ].freeze
 
@@ -81,7 +81,7 @@ module Brainstorm
         return handle_missing_result
       end
 
-      run.poll { |rows| normalize_rows(rows) }
+      run.poll { |rows| ProposalNormalizer.call(rows) }
     end
 
     # Creates a workflow per proposal (up to the project's maximum), skipping any whose summary matches an existing
@@ -177,16 +177,6 @@ module Brainstorm
       end
 
       raise FetchError, "agent wrote no #{result_file.basename} (#{failure_reason(event)}); see #{log_file}"
-    end
-
-    def normalize_rows(data)
-      data.filter_map do |row|
-        next unless row.is_a?(Hash)
-
-        summary = row["summary"].to_s.squish.truncate(Workflow::SUMMARY_LENGTH)
-        task = row["task"].to_s.strip.truncate(TASK_LENGTH)
-        { "summary" => summary, "task" => task } if summary.present? && task.present?
-      end
     end
 
     def prompt
