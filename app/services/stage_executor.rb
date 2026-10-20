@@ -117,33 +117,9 @@ class StageExecutor
   # `message` has the agent post the rendered text to Slack via its MCP connector.
   # Either way the workflow then waits for a person to click Next (finish_runbook_step).
   def start_runbook_step
-    return unless check_passed?
+    return unless Stages::WorkflowRunGate.new(workflow: workflow, stage: stage, github: Github::Client.new(project)).call.passed?
 
     start_ai_run(stage.run_message? ? prompt.slack_message(prompt.body) : prompt.body)
-  end
-
-  # A stage with `wait_for_workflow` doesn't start until the newest run of that GitHub Actions workflow (started
-  # after the previous stage began, so an older deploy can't satisfy it) has finished successfully — like pr_check, it
-  # is re-checked every tick and logs once. A finished-but-failed run fails the stage instead of waiting forever.
-  def check_passed?
-    return true if stage.wait_for_workflow.blank?
-
-    state = Github::Client.new(project).workflow_run_state(stage.wait_for_workflow, since: check_since, repo: workflow.variables["REPO"])
-    case state[:state]
-    when :success
-      log(action: "check_passed", output: state[:url])
-      true
-    when :failed
-      raise Github::CommandError, "GitHub Actions #{stage.wait_for_workflow} finished with #{state[:conclusion]}: #{state[:url]}"
-    else
-      log(action: "waiting_for_check", output: state[:url]) unless stage.last_action == "waiting_for_check"
-      false
-    end
-  end
-
-  def check_since
-    previous = workflow.previous_runbook_stage
-    previous&.stage_runs&.where(action: "started")&.maximum(:created_at) || workflow.created_at
   end
 
   def run_pr_check
