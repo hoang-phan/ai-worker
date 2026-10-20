@@ -6,6 +6,8 @@ class StageRun < ApplicationRecord
     ran_implementation
     auto_merge_enabled
     auto_merge_failed
+    slack_review_notified
+    slack_review_notify_failed
     approved_closed
     pr_merged_closed
     conflict_resolution_started

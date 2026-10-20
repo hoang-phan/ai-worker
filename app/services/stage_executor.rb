@@ -226,15 +226,15 @@ class StageExecutor
       workflow.update!(ai_run_attrs.merge(github_pr_url: pr_url, status: testing_locally ? :local_testing : :reviewing))
       log(action: "ran_implementation", output: output)
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
-      enable_auto_merge(pr_url) unless testing_locally
-      notify_reviewers unless testing_locally
+      handoff.enable_auto_merge!(pr_url) unless testing_locally
+      handoff.notify_reviewers! unless testing_locally
     when "pr_check"
       Github::Client.new(project).request_review!(workflow.github_pr_url, reviewers)
       retest = local_retest?(output)
       workflow.update!(ai_run_attrs.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
       log(action: "requested_changes_fixed", output: output)
       log(action: "local_test_retest_scheduled") if retest
-      notify_reviewers(again: true, fixed: AiCli::Output.new(output).fixed_summary) unless retest
+      handoff.notify_reviewers!(again: true, fixed: AiCli::Output.new(output).fixed_summary) unless retest
     when "task"
       workflow.update!(ai_run_attrs.merge(status: :done))
       log(action: "task_completed", output: output)
@@ -324,8 +324,8 @@ class StageExecutor
     workflow.update!(ai_run_attrs.merge(status: :reviewing, local_test_feedback: retest ? local_test_feedback(output) : nil))
     log(action: "local_test_completed", output: output)
     log(action: "local_test_rounds_exhausted") if failed && !retest
-    enable_auto_merge(workflow.github_pr_url) if result.casecmp?("PASSED")
-    notify_reviewers
+    handoff.enable_auto_merge!(workflow.github_pr_url) if result.casecmp?("PASSED")
+    handoff.notify_reviewers!
   end
 
   # The block the agent printed between the markers (the last one: the log may echo the prompt's own example),
@@ -348,41 +348,12 @@ class StageExecutor
     start_ai_run(prompt.body)
   end
 
-  # Best-effort, and run only after the workflow has moved to `reviewing`:
-  # a failure here (e.g. auto-merge disabled on the repo) must not fail the
-  # stage, or the retry would re-run the whole implementation.
-  # Optional one-line Slack ping tagging the reviewers once the PR is waiting on them. Best effort: a Slack
-  # problem is logged, never fails the stage (the PR and review request already happened).
-  # The ping is posted by a detached agent run; its permalink becomes the workflow's thread later (SlackPingJob), so
-  # re-requests reply in it, or start the thread when there is none yet.
-  def notify_reviewers(again: false, fixed: nil)
-    notifier = Slack::ReviewNotifier.new(project)
-    return unless notifier.enabled? && reviewers.any?
-
-    pr_url = workflow.github_pr_url
-    title = Github::Client.new(project).pr_title(pr_url).presence
-    label = [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
-    notifier.collect(workflow)
-    notifier.notify!(workflow: workflow, pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
-                     thread_ts: workflow.reload.slack_review_thread_ts.presence)
-    log(action: "slack_review_notified")
-  rescue Slack::NotifyError, Github::CommandError => e
-    log(action: "slack_review_notify_failed", error: e.message)
-  end
-
   # The task prompt may or may not tell the agent to push, so do it here. Best effort and after the workflow is
   # `done`: a failed push is logged, never fails the stage (a retry would re-run the whole task).
   def push_task_commits
     log(action: "task_pushed") if Git::BranchService.push_current!(project) == :pushed
   rescue Git::CommandError => e
     log(action: "task_push_failed", error: e.message)
-  end
-
-  def enable_auto_merge(pr_url)
-    Github::Client.new(project).enable_auto_merge!(pr_url)
-    log(action: "auto_merge_enabled")
-  rescue Github::CommandError => e
-    log(action: "auto_merge_failed", error: e.message)
   end
 
   # A failure stays in the current status so the next tick retries it, until
@@ -415,7 +386,11 @@ class StageExecutor
   end
 
   def reviewers
-    Github::Client.parse_reviewers(workflow.github_reviewer)
+    handoff.reviewers
+  end
+
+  def handoff
+    @handoff ||= Stages::ReviewHandoff.new(workflow, stage)
   end
 
   def prompt
