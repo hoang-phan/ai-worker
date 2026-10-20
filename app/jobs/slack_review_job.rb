@@ -12,33 +12,30 @@ class SlackReviewJob < ApplicationJob
       sync = Slack::ReviewSync.new(project)
       fetcher = sync.fetcher
 
-      mentions = fetcher.poll
-      record(project, sync.import(mentions)) if mentions
-
-      next if fetcher.running?
-      next if fetcher.last_started_at && fetcher.last_started_at > FETCH_EVERY.ago
-
-      blockers = sync.blockers
-      if blockers.any?
-        Rails.logger.warn("[SlackReviewJob] project=#{project.id} blocked: #{blockers.join('; ')}")
-      else
-        fetcher.start
-      end
-    rescue Slack::FetchError, AiCli::CommandError => e
-      Rails.logger.error("[SlackReviewJob] project=#{project.id} #{e.message}")
-      project.update(slack_last_result: "failed: #{e.message}".truncate(250))
+      AgentRuns::SyncCycle.call(
+        log_prefix: "[SlackReviewJob] project=#{project.id}",
+        rescue_errors: [ Slack::FetchError, AiCli::CommandError ],
+        poll: -> { fetcher.poll },
+        import: ->(mentions) { sync.import(mentions) },
+        summary: ->(result) { summarize(result) },
+        log_message: ->(result, summary) { "[SlackReviewJob] project=#{project.id} #{summary} #{result.failed.join('; ')}".strip },
+        persist: ->(_result, summary) { project.update(slack_last_synced_at: Time.current, slack_last_result: summary) },
+        # Don't wait for the scheduler's next */5 cron tick: start the new reviews now.
+        after_import: ->(result) { WorkflowSchedulerJob.perform_later if result.created.any? },
+        idle: -> { !fetcher.running? },
+        due: -> { fetcher.last_started_at.nil? || fetcher.last_started_at <= FETCH_EVERY.ago },
+        blockers: -> { sync.blockers },
+        start: -> { fetcher.start },
+        persist_failure: ->(message) { project.update(slack_last_result: message) }
+      )
     end
   end
 
   private
 
-  def record(project, result)
+  def summarize(result)
     skipped = "skipped #{result.skipped.size}"
     skipped += " (#{result.skipped_reasons.map { |reason, count| "#{count} #{reason}" }.join(", ")})" if result.skipped_reasons.any?
-    summary = "created #{result.created.size}, #{skipped}, failed #{result.failed.size}"
-    Rails.logger.info("[SlackReviewJob] project=#{project.id} #{summary} #{result.failed.join('; ')}".strip)
-    project.update(slack_last_synced_at: Time.current, slack_last_result: summary)
-    # Don't wait for the scheduler's next */5 cron tick: start the new reviews now.
-    WorkflowSchedulerJob.perform_later if result.created.any?
+    "created #{result.created.size}, #{skipped}, failed #{result.failed.size}"
   end
 end

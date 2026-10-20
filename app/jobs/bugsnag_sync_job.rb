@@ -11,20 +11,20 @@ class BugsnagSyncJob < ApplicationJob
     BugsnagSync.includes(:project).find_each do |bugsnag_sync|
       triager = Bugsnag::Triager.new(bugsnag_sync)
 
-      rows = triager.poll
-      record(bugsnag_sync, triager.import(rows)) if rows
-
-      next unless bugsnag_sync.auto_sync? && due?(triager) && !triager.running?
-
-      blockers = triager.blockers
-      if blockers.any?
-        Rails.logger.warn("[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id} blocked: #{blockers.join('; ')}")
-      else
-        triager.start
-      end
-    rescue Bugsnag::FetchError, AiCli::CommandError => e
-      Rails.logger.error("[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id} #{e.message}")
-      bugsnag_sync.update(last_result: "failed: #{e.message}".truncate(250))
+      AgentRuns::SyncCycle.call(
+        log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id}",
+        rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ],
+        poll: -> { triager.poll },
+        import: ->(rows) { triager.import(rows) },
+        summary: ->(added) { added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new" },
+        persist: ->(_added, summary) { bugsnag_sync.update(last_synced_at: Time.current, last_result: summary) },
+        eligible: -> { bugsnag_sync.auto_sync? },
+        due: -> { due?(triager) },
+        idle: -> { !triager.running? },
+        blockers: -> { triager.blockers },
+        start: -> { triager.start },
+        persist_failure: ->(message) { bugsnag_sync.update(last_result: message) }
+      )
     end
   end
 
@@ -35,11 +35,5 @@ class BugsnagSyncJob < ApplicationJob
     return false if now.saturday? || now.sunday? || now.hour < RUN_HOUR
 
     triager.last_started_at.nil? || triager.last_started_at < now.beginning_of_day
-  end
-
-  def record(bugsnag_sync, added)
-    summary = added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new"
-    Rails.logger.info("[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id} #{summary}")
-    bugsnag_sync.update(last_synced_at: Time.current, last_result: summary)
   end
 end

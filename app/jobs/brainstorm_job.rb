@@ -7,29 +7,20 @@ class BrainstormJob < ApplicationJob
     Project.personal.where(brainstorm_enabled: true).find_each do |project|
       planner = Brainstorm::Planner.new(project)
 
-      proposals = planner.poll
-      record(project, planner.import(proposals)) if proposals
-
-      next if planner.running? || planner.queued_count.positive?
-
-      blockers = planner.blockers
-      if blockers.any?
-        Rails.logger.warn("[BrainstormJob] project=#{project.id} blocked: #{blockers.join('; ')}")
-      else
-        planner.start
-        project.update(brainstorm_last_run_at: Time.current)
-      end
-    rescue Brainstorm::FetchError, AiCli::CommandError => e
-      Rails.logger.error("[BrainstormJob] project=#{project.id} #{e.message}")
-      project.update(brainstorm_last_result: "failed: #{e.message}".truncate(250))
+      AgentRuns::SyncCycle.call(
+        log_prefix: "[BrainstormJob] project=#{project.id}",
+        rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ],
+        poll: -> { planner.poll },
+        import: ->(proposals) { planner.import(proposals) },
+        summary: ->(result) { "created #{result.created.size}, skipped #{result.skipped.size}" },
+        persist: ->(_result, summary) { project.update(brainstorm_last_result: summary) },
+        idle: -> { !planner.running? },
+        due: -> { planner.queued_count.zero? },
+        blockers: -> { planner.blockers },
+        start: -> { planner.start },
+        after_start: -> { project.update(brainstorm_last_run_at: Time.current) },
+        persist_failure: ->(message) { project.update(brainstorm_last_result: message) }
+      )
     end
-  end
-
-  private
-
-  def record(project, result)
-    summary = "created #{result.created.size}, skipped #{result.skipped.size}"
-    Rails.logger.info("[BrainstormJob] project=#{project.id} #{summary}")
-    project.update(brainstorm_last_result: summary)
   end
 end

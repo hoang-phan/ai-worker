@@ -14,29 +14,21 @@ class JiraSyncJob < ApplicationJob
       sync = Jira::TicketSync.new(jira_sync)
       fetcher = sync.fetcher
 
-      issues = fetcher.poll
-      record(jira_sync, sync.import(issues)) if issues
-
-      next unless jira_sync.auto_sync? && !fetcher.running?
-      next if fetcher.last_started_at && fetcher.last_started_at > FETCH_EVERY.ago
-
-      blockers = sync.blockers
-      if blockers.any?
-        Rails.logger.warn("[JiraSyncJob] jira_sync=#{jira_sync.id} blocked: #{blockers.join('; ')}")
-      else
-        fetcher.start
-      end
-    rescue Jira::FetchError, AiCli::CommandError => e
-      Rails.logger.error("[JiraSyncJob] jira_sync=#{jira_sync.id} #{e.message}")
-      jira_sync.update(last_result: "failed: #{e.message}".truncate(250))
+      AgentRuns::SyncCycle.call(
+        log_prefix: "[JiraSyncJob] jira_sync=#{jira_sync.id}",
+        rescue_errors: [ Jira::FetchError, AiCli::CommandError ],
+        poll: -> { fetcher.poll },
+        import: ->(issues) { sync.import(issues) },
+        summary: ->(result) { "created #{result.created.size}, skipped #{result.skipped.size}, failed #{result.failed.size}" },
+        log_message: ->(result, summary) { "[JiraSyncJob] jira_sync=#{jira_sync.id} #{summary} #{result.failed.join('; ')}".strip },
+        persist: ->(_result, summary) { jira_sync.update(last_synced_at: Time.current, last_result: summary) },
+        eligible: -> { jira_sync.auto_sync? },
+        idle: -> { !fetcher.running? },
+        due: -> { fetcher.last_started_at.nil? || fetcher.last_started_at <= FETCH_EVERY.ago },
+        blockers: -> { sync.blockers },
+        start: -> { fetcher.start },
+        persist_failure: ->(message) { jira_sync.update(last_result: message) }
+      )
     end
-  end
-
-  private
-
-  def record(jira_sync, result)
-    summary = "created #{result.created.size}, skipped #{result.skipped.size}, failed #{result.failed.size}"
-    Rails.logger.info("[JiraSyncJob] jira_sync=#{jira_sync.id} #{summary} #{result.failed.join('; ')}".strip)
-    jira_sync.update(last_synced_at: Time.current, last_result: summary)
   end
 end
