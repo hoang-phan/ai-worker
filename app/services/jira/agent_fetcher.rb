@@ -56,28 +56,11 @@ module Jira
       end
     end
 
-    # The assignee / project / parent values are free text exactly as the user
-    # typed them (URL, key, email, full name, ...); the agent resolves them
-    # with the Atlassian MCP tools.
     def prompt
-      jira_project = jira_sync.jira_project.presence
-      parent = jira_sync.parent_ticket.presence
-      <<~PROMPT
-        Use the Atlassian (Jira) MCP tools to list Jira issues, then write them to a file. Do not modify anything in Jira.
-
-        Jira site: #{project.jira_base_url} (find its Cloud ID with getAccessibleAtlassianResources).
-
-        Find every issue that matches ALL of these:
-        - Assignee: #{project.jira_assignee}
-          (This may be an account ID, email address, full name, a Jira profile URL, or currentUser(). Resolve it to a Jira account with lookupJiraAccountId / atlassianUserInfo as needed.)
-        - Status category: "To Do"
-        #{jira_project ? "- In this Jira project: #{jira_project}\n  (This may be a project key such as UNS, a project URL like .../browse/UNS, or a project name. Resolve it to the project key with getVisibleJiraProjects if needed, and use `project = KEY`. This is a Jira project, not a board.)" : ""}
-        #{parent ? "- Child of this parent ticket / epic: #{parent}\n  (This may be an issue key, a browse URL, or a title. Resolve it to the issue key first.)" : ""}
-
-        Build the JQL yourself and run it with searchJiraIssuesUsingJql, requesting only the key and summary fields, ordered by created ascending, and keep paging until you have every result. If something is ambiguous or cannot be resolved, do NOT guess: skip writing the file.
-
-        Write the result to #{tickets_file} as a JSON array and nothing else, e.g. [{"key":"UIUX-3456","summary":"..."}]. Write [] if there are no matches. If the Jira lookup fails, do NOT create that file. Reply with one short line when done.
-      PROMPT
+      Jira::FetchPrompt.new(
+        jira_base_url: project.jira_base_url, assignee: project.jira_assignee,
+        jira_project: jira_sync.jira_project, parent_ticket: jira_sync.parent_ticket, tickets_file: tickets_file
+      ).to_s
     end
 
     def tickets_file
