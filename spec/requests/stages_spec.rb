@@ -32,6 +32,38 @@ RSpec.describe "Stages", type: :request do
     end
   end
 
+  describe "stage prompt form" do
+    def expect_prompt_form(template)
+      document = Nokogiri::HTML(response.body)
+
+      expect(document.at_css('[data-controller~="skill-insert"][data-controller~="template-fill"]')).to be_present
+      expect(document.at_css('[data-template-fill-placeholders-value]')).to be_present
+      expect(document.at_css('#stage_prompt_template_id[data-template-fill-target="select"][data-action="change->template-fill#fill"]')).to be_present
+      expect(document.at_css("#stage_prompt_template_id option[data-body='#{template.body}']")).to be_present
+      expect(document.at_css('#stage_prompt[data-skill-insert-target="input"][data-template-fill-target="input"]')).to be_present
+      expect(document.css("body script")).to be_empty
+    end
+
+    it "uses Stimulus controllers on the new stage page" do
+      template = PromptTemplate.create!(name: "Deploy prompt", stage_type: :runbook_step, body: "Deploy {STAGE_NAME}")
+
+      get new_project_workflow_stage_path(project, runbook)
+
+      expect(response).to have_http_status(:ok)
+      expect_prompt_form(template)
+    end
+
+    it "uses Stimulus controllers on the edit stage page" do
+      stage = development_workflow.stages.find_by!(stage_type: :implementation)
+      template = PromptTemplate.create!(name: "Implement prompt", stage_type: :implementation, body: "Implement {JIRA}")
+
+      get edit_project_workflow_stage_path(project, development_workflow, stage)
+
+      expect(response).to have_http_status(:ok)
+      expect_prompt_form(template)
+    end
+  end
+
   describe "POST create" do
     it "adds a runbook step even when another stage type is posted" do
       expect do

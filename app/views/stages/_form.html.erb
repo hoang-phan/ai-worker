@@ -1,7 +1,7 @@
 <div
   class="card form-card"
-  id="stage-prompt-context"
-  data-placeholders="<%= Prompts::Renderer.placeholders_for(workflow).to_json %>"
+  data-controller="skill-insert template-fill"
+  data-template-fill-placeholders-value="<%= Prompts::Renderer.placeholders_for(workflow).to_json %>"
 >
   <%= form_with model: [project, workflow, stage] do |f| %>
     <% if stage.errors.any? %>
@@ -51,24 +51,15 @@
               stage.candidate_templates.map { |t| [t.name, t.id, { data: { body: t.body } }] },
               stage.prompt_template_id
             ),
-            include_blank: "Use default template for #{stage.stage_type}" %>
+            { include_blank: "Use default template for #{stage.stage_type}" },
+            data: { template_fill_target: "select", action: "change->template-fill#fill" } %>
       <p class="field-hint">Selecting a template fills in the prompt below with this workflow's details &mdash; edit it freely before saving.</p>
     </div>
 
     <div class="field">
       <%= f.label :prompt %>
-      <% skill_names = project_skill_names(project) %>
-      <% if skill_names.any? %>
-        <div class="placeholder-list">
-          <% skill_names.each do |skill| %>
-            <button type="button" class="placeholder-chip skill-chip" data-skill="<%= skill %>">/<%= skill %></button>
-          <% end %>
-        </div>
-        <p class="field-hint">Click a skill to insert it at the cursor.</p>
-      <% else %>
-        <p class="field-hint">No skills found in <code><%= File.join(File.expand_path(project.local_directory.to_s), ".agents", "skills") %></code>.</p>
-      <% end %>
-      <%= f.text_area :prompt, rows: 20 %>
+      <%= render "shared/skill_hints", project: project %>
+      <%= f.text_area :prompt, rows: 20, data: { skill_insert_target: "input", template_fill_target: "input" } %>
     </div>
 
     <div class="form-actions">
@@ -76,39 +67,3 @@
     </div>
   <% end %>
 </div>
-
-<script>
-  (function () {
-    var context = document.getElementById("stage-prompt-context");
-    var select = document.getElementById("stage_prompt_template_id");
-    var textarea = document.getElementById("stage_prompt");
-    if (!context || !select || !textarea) return;
-
-    var placeholders = JSON.parse(context.dataset.placeholders || "{}");
-
-    select.addEventListener("change", function () {
-      var option = select.options[select.selectedIndex];
-      var body = option.dataset.body;
-      if (!body) return;
-
-      Object.keys(placeholders).forEach(function (token) {
-        body = body.split(token).join(placeholders[token]);
-      });
-
-      textarea.value = body;
-    });
-
-    document.querySelectorAll(".skill-chip").forEach(function (chip) {
-      // keep the textarea's selection when the button is pressed
-      chip.addEventListener("mousedown", function (event) { event.preventDefault(); });
-      chip.addEventListener("click", function () {
-        var text = "/" + chip.dataset.skill;
-        var start = textarea.selectionStart;
-        var end = textarea.selectionEnd;
-        if (typeof start !== "number") { start = end = textarea.value.length; }
-        textarea.setRangeText(text, start, end, "end");
-        textarea.focus();
-      });
-    });
-  })();
-</script>
