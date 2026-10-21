@@ -12,12 +12,6 @@ module AiCli
   class Runner
     AGENTS = Command::AGENTS
 
-    AGENT_CACHE_KEY = "ai_cli/agent".freeze
-
-    # The app-wide agent, resolved on every call so a change takes effect on
-    # the next run without a restart. Stored in Rails.cache (shared by the web
-    # and Sidekiq processes, so it needs a cross-process store such as
-    # file_store); falls back to the AGENT env var, then claude.
     # Bundler/Ruby variables describing *this* app's bundle. Left in the agent's environment they leak into whatever
     # the agent runs in the project's own clone: e.g. BUNDLER_VERSION pins the project's `bundle` to ai-worker's
     # Bundler instead of the one its Gemfile.lock asks for, BUNDLE_GEMFILE points at our Gemfile. Unset for every run.
@@ -28,23 +22,13 @@ module AiCli
       RUBYOPT RUBYLIB RAILS_ENV RACK_ENV
     ].freeze
 
-    def self.agent
-      cached = Rails.cache.read(AGENT_CACHE_KEY)
-      return cached if AGENTS.key?(cached)
-
-      ENV["AGENT"].presence || "claude"
-    end
+    def self.agent = AgentSetting.current
 
     def self.agent=(name)
-      name = name.to_s
-      raise ArgumentError, "unknown agent #{name.inspect} (expected one of #{AGENTS.keys.join(", ")})" unless AGENTS.key?(name)
-
-      Rails.cache.write(AGENT_CACHE_KEY, name)
+      AgentSetting.current = name
     end
 
-    def self.available_agents
-      AGENTS.keys
-    end
+    def self.available_agents = AgentSetting.available
 
     def self.start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       new(log_tag: nil).start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools,

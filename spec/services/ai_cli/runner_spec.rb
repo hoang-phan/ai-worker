@@ -5,6 +5,18 @@ RSpec.describe AiCli::Runner do
 
   after { FileUtils.remove_entry(tmp) }
 
+  describe "agent setting delegation" do
+    it "delegates to AiCli::AgentSetting" do
+      allow(AiCli::AgentSetting).to receive(:current).and_return("codex")
+      allow(AiCli::AgentSetting).to receive(:available).and_return(%w[codex])
+      expect(AiCli::AgentSetting).to receive(:current=).with("codex")
+
+      expect(described_class.agent).to eq("codex")
+      expect(described_class.available_agents).to eq(%w[codex])
+      described_class.agent = "codex"
+    end
+  end
+
   describe "#start" do
     def spawned_env
       captured = nil

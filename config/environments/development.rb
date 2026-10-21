@@ -26,7 +26,7 @@ Rails.application.configure do
   end
 
   # Must be shared across processes: the app-wide agent setting is written by
-  # puma and read by Sidekiq (see AiCli::Runner.agent).
+  # puma and read by Sidekiq (see AiCli::AgentSetting).
   config.cache_store = :file_store, Rails.root.join("tmp/cache").to_s
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
