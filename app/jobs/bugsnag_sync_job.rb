@@ -19,21 +19,12 @@ class BugsnagSyncJob < ApplicationJob
         summary: ->(added) { added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new" },
         persist: ->(_added, summary) { bugsnag_sync.update(last_synced_at: Time.current, last_result: summary) },
         eligible: -> { bugsnag_sync.auto_sync? },
-        due: -> { due?(triager) },
+        due: -> { AgentRuns::Cadence.daily_on_weekdays(hour: RUN_HOUR, last_started_at: triager.last_started_at) },
         idle: -> { !triager.running? },
         blockers: -> { triager.blockers },
         start: -> { triager.start },
         persist_failure: ->(message) { bugsnag_sync.update(last_result: message) }
       )
     end
-  end
-
-  private
-
-  def due?(triager)
-    now = Time.zone.now
-    return false if now.saturday? || now.sunday? || now.hour < RUN_HOUR
-
-    triager.last_started_at.nil? || triager.last_started_at < now.beginning_of_day
   end
 end

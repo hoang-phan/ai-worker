@@ -24,7 +24,7 @@ class JiraSyncJob < ApplicationJob
         persist: ->(_result, summary) { jira_sync.update(last_synced_at: Time.current, last_result: summary) },
         eligible: -> { jira_sync.auto_sync? },
         idle: -> { !fetcher.running? },
-        due: -> { fetcher.last_started_at.nil? || fetcher.last_started_at <= FETCH_EVERY.ago },
+        due: -> { AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: fetcher.last_started_at) },
         blockers: -> { sync.blockers },
         start: -> { fetcher.start },
         persist_failure: ->(message) { jira_sync.update(last_result: message) }

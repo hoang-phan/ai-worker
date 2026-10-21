@@ -23,7 +23,7 @@ class SlackReviewJob < ApplicationJob
         # Don't wait for the scheduler's next */5 cron tick: start the new reviews now.
         after_import: ->(result) { WorkflowSchedulerJob.perform_later if result.created.any? },
         idle: -> { !fetcher.running? },
-        due: -> { fetcher.last_started_at.nil? || fetcher.last_started_at <= FETCH_EVERY.ago },
+        due: -> { AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: fetcher.last_started_at) },
         blockers: -> { sync.blockers },
         start: -> { fetcher.start },
         persist_failure: ->(message) { project.update(slack_last_result: message) }
