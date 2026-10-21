@@ -1,5 +1,4 @@
 require "fileutils"
-require "json"
 
 module Brainstorm
   class FetchError < StandardError; end
@@ -111,41 +110,14 @@ module Brainstorm
                 model: self.class.model, effort: self.class.effort)
     end
 
-    # The agent's final `result` event in agent.log (stream-json output), or nil if there is none.
-    def final_event
-      return unless log_file.exist?
-
-      log_file.each_line.reverse_each do |line|
-        next unless line.start_with?('{"type":"result"')
-
-        return JSON.parse(line)
-      end
-      nil
-    rescue JSON::ParserError
-      nil
-    end
-
-    def failure_reason(event)
-      return "no result event in the log" unless event
-
-      [ event["subtype"], event["terminal_reason"] ].compact.join("/")
-    end
-
-    # A run that died because its API stream was cut is retried once, right away, instead of waiting for the next tick.
-    def retry_after?(event)
-      event && event["terminal_reason"] == "aborted_streaming" && !retried_file.exist?
-    end
-
     # The process finished without writing result.json: retry once if its API stream was cut, else fail.
     def handle_missing_result
-      event = final_event
-      if retry_after?(event)
-        FileUtils.touch(retried_file)
-        launch
-        return
-      end
+      outcome = RunOutcome.new(log_path: log_file, retried: retried_file.exist?)
+      raise FetchError, "agent wrote no #{result_file.basename} (#{outcome.failure_reason}); see #{log_file}" unless outcome.retry?
 
-      raise FetchError, "agent wrote no #{result_file.basename} (#{failure_reason(event)}); see #{log_file}"
+      FileUtils.touch(retried_file)
+      launch
+      nil
     end
 
     def prompt
