@@ -36,7 +36,11 @@
     <tbody>
       <% @workflows.each do |workflow| %>
         <tr>
-          <td class="numeric"><%= workflow.position %></td>
+          <td class="numeric">
+            <%= workflow.position %>
+            <%= button_to "↑", move_project_workflow_path(@project, workflow, direction: "up"), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == @workflows.first, form: { style: "display:inline" } %>
+            <%= button_to "↓", move_project_workflow_path(@project, workflow, direction: "down"), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == @workflows.last, form: { style: "display:inline" } %>
+          </td>
           <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(@project, workflow)) %><%= content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review? %><%= content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook? %></td>
           <% unless @project.personal? %>
             <td class="text-muted"><%= workflow.branch_name %></td>

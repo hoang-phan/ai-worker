@@ -20,6 +20,7 @@ Rails.application.routes.draw do
         post :start
         post :run_stage
         post :clone
+        post :move
         post :advance
         post :resume
         post :rollback_to_review

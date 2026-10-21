@@ -6,7 +6,7 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    @workflows = @project.workflows.order(:position)
+    @workflows = @project.workflows.order(:position, :id)
   end
 
   def new

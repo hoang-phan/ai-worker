@@ -1,6 +1,6 @@
 class WorkflowsController < ApplicationController
   before_action :set_project
-  before_action :set_workflow, only: %i[show edit update destroy start run_stage clone advance resume rollback_to_review destroy_image]
+  before_action :set_workflow, only: %i[show edit update destroy start run_stage clone move advance resume rollback_to_review destroy_image]
 
   def show
     @stage_runs = @workflow.stages.flat_map(&:stage_runs).sort_by(&:created_at).reverse
@@ -67,6 +67,15 @@ class WorkflowsController < ApplicationController
     else
       redirect_to project_workflow_path(@project, @workflow), alert: copy.errors.full_messages.to_sentence
     end
+  end
+
+  # Up/down arrows on the project page: reorders the priority list (the scheduler works through workflows by position).
+  def move
+    direction = params[:direction].to_s
+    return redirect_to @project, alert: "Unknown direction." unless %w[up down].include?(direction)
+
+    @project.move_workflow(@workflow, direction)
+    redirect_to @project
   end
 
   # The runbook's "Run stage" button: starts the current stage (also retries a failed one) and lets the
