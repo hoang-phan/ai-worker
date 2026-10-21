@@ -30,29 +30,7 @@ class WorkflowSchedulerJob < ApplicationJob
   private
 
   def run_active_workflows(run_workflow_id = nil)
-    active_workflows = Scheduling::WorkflowQueries.active
-    # A Jira update (`merged`) or a UAT test (`uat_testing`) that's mid-run is polled like any other run.
-    updating = Scheduling::WorkflowQueries.polling_updates
-    workflows = active_workflows + updating
-    return if workflows.empty?
-
-    running, waiting = workflows.partition(&:processing?)
-    waiting = Scheduling::Planner.eligible_waiting(active_workflows: active_workflows, waiting: waiting, run_workflow_id: run_workflow_id)
-
-    # Poll in-flight runs first so finished ones free their slot/clone this tick.
-    running.each { |workflow| execute(workflow) }
-
-    capacity = Scheduling::Capacity.new(
-      busy_clones: Scheduling::WorkflowQueries.busy_clone_keys,
-      max: self.class.max_concurrent_agents
-    )
-
-    waiting.each do |workflow|
-      next unless capacity.can_start?(workflow)
-
-      execute(workflow)
-      capacity.started!(workflow) if workflow.reload.processing?
-    end
+    Scheduling::ActiveWorkflowRunner.new(max_capacity: self.class.max_concurrent_agents).call(run_workflow_id)
   end
 
   # Merged PRs are only processed when the scheduler is otherwise idle: nothing

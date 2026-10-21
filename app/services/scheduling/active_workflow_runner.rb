@@ -1,0 +1,52 @@
+module Scheduling
+  # One scheduler tick's pass over in-flight workflows: polls running ones first (so finished runs free
+  # their slot/clone), then starts eligible waiting ones within Capacity. One workflow's failure is
+  # logged and never stops the rest of the tick.
+  class ActiveWorkflowRunner
+    # Default executor: runs the workflow's current stage, if any.
+    DEFAULT_EXECUTOR = lambda do |workflow|
+      stage = workflow.current_stage
+      StageExecutor.new(workflow, stage).call if stage
+    end
+
+    def initialize(queries: WorkflowQueries, executor: DEFAULT_EXECUTOR, logger: Rails.logger, max_capacity: nil)
+      @queries = queries
+      @executor = executor
+      @logger = logger
+      @max_capacity = max_capacity
+    end
+
+    def call(run_workflow_id = nil)
+      active_workflows = @queries.active
+      # A Jira update (`merged`) or a UAT test (`uat_testing`) that's mid-run is polled like any other run.
+      workflows = active_workflows + @queries.polling_updates
+      return if workflows.empty?
+
+      running, waiting = workflows.partition(&:processing?)
+      waiting = Planner.eligible_waiting(active_workflows: active_workflows, waiting: waiting, run_workflow_id: run_workflow_id)
+
+      running.each { |workflow| execute(workflow) }
+
+      capacity = Capacity.new(busy_clones: @queries.busy_clone_keys, max: max_capacity)
+
+      waiting.each do |workflow|
+        next unless capacity.can_start?(workflow)
+
+        execute(workflow)
+        capacity.started!(workflow) if workflow.reload.processing?
+      end
+    end
+
+    private
+
+    def max_capacity
+      @max_capacity || WorkflowSchedulerJob.max_concurrent_agents
+    end
+
+    def execute(workflow)
+      @executor.call(workflow)
+    rescue StandardError => e
+      @logger.error("[scheduler] workflow=#{workflow.id} #{e.class}: #{e.message}")
+    end
+  end
+end

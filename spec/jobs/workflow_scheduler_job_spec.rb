@@ -51,6 +51,15 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
     project.workflows.create!(status: status, kind: kind, position: position, **attributes)
   end
 
+  it "delegates the active-workflow phase to ActiveWorkflowRunner" do
+    runner = instance_double(Scheduling::ActiveWorkflowRunner, call: nil)
+    allow(Scheduling::ActiveWorkflowRunner).to receive(:new).with(max_capacity: max_agents).and_return(runner)
+
+    described_class.perform_now(42)
+
+    expect(runner).to have_received(:call).with(42)
+  end
+
   it "polls processing workflows before starting waiting workflows" do
     running = workflow(project: project, position: 1, processing: true)
     waiting = workflow(project: project, position: 2)
