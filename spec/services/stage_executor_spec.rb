@@ -65,6 +65,38 @@ RSpec.describe StageExecutor, type: :service do
       allow_any_instance_of(Stages::ReviewHandoff).to receive(:reviewers).and_return([ "octocat" ]) # rubocop:disable RSpec/AnyInstance
     end
 
+    it "builds a launcher and injects it into the start handler" do
+      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation")
+      launcher = instance_double(Stages::AiRunLauncher)
+      start_handler = instance_double(Stages::StartHandler, call: nil)
+      allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
+      allow(Stages::StartHandler).to receive(:new).and_return(start_handler)
+
+      described_class.new(workflow, stage).call
+
+      expect(Stages::AiRunLauncher).to have_received(:new).with(workflow: workflow, stage: stage, project: project)
+      expect(Stages::StartHandler).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher))
+      expect(start_handler).to have_received(:call)
+    end
+
+    it "passes its launcher to conflict resolution finishing" do
+      stage = workflow.stages.create!(stage_type: :pr_check, name: "pr_check")
+      workflow.update!(processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
+      launcher = instance_double(Stages::AiRunLauncher)
+      finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
+      allow(stage).to receive(:resolving_conflicts?).and_return(true)
+      allow(AiCli::RunPoller).to receive(:new).and_return(instance_double(AiCli::RunPoller, call: [ :finished, "merged" ], log_offset: 0))
+      allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
+      allow(Stages::ConflictResolutionFinish).to receive(:new).and_return(finish)
+
+      described_class.new(workflow, stage).call
+
+      expect(Stages::ConflictResolutionFinish).to have_received(:new).with(
+        hash_including(workflow: workflow, stage: stage, project: project, start_ai_run: launcher)
+      )
+      expect(finish).to have_received(:call).with("merged")
+    end
+
     %w[implementation task pr_review jira_update uat_test local_test runbook_step pr_check].each do |type|
       it "starts a #{type} stage through the start handler" do
         stage = workflow.stages.create!(stage_type: type, name: type)

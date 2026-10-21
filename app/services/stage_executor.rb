@@ -34,7 +34,7 @@ class StageExecutor
   def start_handler
     @start_handler ||= Stages::StartHandler.new(
       workflow: workflow, stage: stage, project: project,
-      github: Github::Client.new(project), git: Git::BranchService, prompt: prompt, handoff: handoff
+      github: Github::Client.new(project), git: Git::BranchService, prompt: prompt, handoff: handoff, launcher: launcher
     )
   end
 
@@ -65,7 +65,7 @@ class StageExecutor
   def conflict_resolution_finish
     Stages::ConflictResolutionFinish.new(
       workflow: workflow, stage: stage, project: project,
-      git: Git::BranchService, prompt: prompt, start_ai_run: start_handler.method(:start_ai_run)
+      git: Git::BranchService, prompt: prompt, start_ai_run: launcher
     )
   end
 
@@ -85,5 +85,9 @@ class StageExecutor
 
   def prompt
     @prompt ||= Prompts::StagePrompt.new(workflow, stage)
+  end
+
+  def launcher
+    @launcher ||= Stages::AiRunLauncher.new(workflow: workflow, stage: stage, project: project)
   end
 end

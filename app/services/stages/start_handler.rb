@@ -1,9 +1,9 @@
 module Stages
-  # The start path of a stage: per stage type, the branch/checkout setup, the PR-check decision and the detached agent
-  # run kick-off. StageExecutor still owns the live-checkout guard, polling and error rescue; the Git/Github/AiCli
-  # errors raised here propagate to its rescue.
+  # The start path of a stage: per stage type, the branch/checkout setup and the PR-check decision. Its injected
+  # launcher owns detached agent run kick-off. StageExecutor still owns the live-checkout guard, polling and error
+  # rescue; the Git/Github/AiCli errors raised here propagate to its rescue.
   class StartHandler
-    def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:)
+    def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:, launcher:)
       @workflow = workflow
       @stage = stage
       @project = project
@@ -11,6 +11,7 @@ module Stages
       @git = git
       @prompt = prompt
       @handoff = handoff
+      @launcher = launcher
     end
 
     def call
@@ -26,31 +27,13 @@ module Stages
       end
     end
 
-    # Kicks off the agent CLI in the background and returns immediately —
-    # the run itself can take longer than Sidekiq's job timeout. Marks
-    # the workflow as processing so WorkflowSchedulerJob polls it instead
-    # of starting new work on the next tick.
-    def start_ai_run(prompt_text, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
-      log_path = AiCli::RunLogs.new_path(workflow.id)
-      pid = AiCli::Runner.start(project.local_directory, prompt_text, log_path: log_path, mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools)
-
-      workflow.update!(
-        processing: true,
-        ai_pid: pid,
-        ai_log_path: log_path,
-        ai_started_at: Time.current,
-        ai_log_offset: 0
-      )
-      stage.log_run!(action)
-    end
-
     private
 
-    attr_reader :workflow, :stage, :project, :github, :git, :prompt, :handoff
+    attr_reader :workflow, :stage, :project, :github, :git, :prompt, :handoff, :launcher
 
     def start_implementation
       git.create_branch!(project, workflow.branch_name)
-      start_ai_run(prompt.body)
+      launcher.call(prompt.body)
     end
 
     # Personal-project workflows: no branch, no PR — just run the agent CLI
@@ -59,7 +42,7 @@ module Stages
     # commit its own work, the same way implementation-stage prompts
     # instruct it to run `gh pr create` itself.
     def start_task
-      start_ai_run(prompt.body)
+      launcher.call(prompt.body)
     end
 
     # Someone else's PR (found in a Slack mention): put the clone on its head
@@ -78,13 +61,13 @@ module Stages
       else
         git.checkout_remote_branch!(project, info["head_ref"])
       end
-      start_ai_run(prompt.body)
+      launcher.call(prompt.body)
     end
 
     # Moves the ticket to UAT / Releaseable via the agent's Atlassian MCP
     # connector (it decides which, from the PR). Runs detached like any agent run.
     def start_jira_update
-      start_ai_run(prompt.body)
+      launcher.call(prompt.body)
     end
 
     # The agent tests the ticket in a headless browser (Playwright MCP) on the project's UAT site, records
@@ -105,7 +88,7 @@ module Stages
     end
 
     def start_browser_test(run)
-      start_ai_run(prompt.body, mcp_config: run.mcp_config_path, env: run.env, disallowed_tools: run.disallowed_tools)
+      launcher.call(prompt.body, mcp_config: run.mcp_config_path, env: run.env, disallowed_tools: run.disallowed_tools)
     end
 
     # Runbook stages are plain agent runs: `agent` runs the prompt as written,
@@ -114,13 +97,13 @@ module Stages
     def start_runbook_step
       return unless Stages::WorkflowRunGate.new(workflow: workflow, stage: stage, github: github).call.passed?
 
-      start_ai_run(stage.run_message? ? prompt.slack_message(prompt.body) : prompt.body)
+      launcher.call(stage.run_message? ? prompt.slack_message(prompt.body) : prompt.body)
     end
 
     def run_pr_check
       Stages::PrCheckRun.new(
         workflow: workflow, stage: stage, project: project, github: github, git: git,
-        handoff: handoff, prompt: prompt, start_ai_run: method(:start_ai_run)
+        handoff: handoff, prompt: prompt, start_ai_run: launcher
       ).call
     end
   end
