@@ -1,6 +1,7 @@
 class Workflow < ApplicationRecord
   belongs_to :project
   has_many :stages, -> { order(:position, :id) }, dependent: :destroy
+  has_many :time_logs, dependent: :destroy
 
   enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4, merged: 5, jira_updated: 6, waiting: 7,
                  uat_waiting: 8, uat_testing: 9, uat_tested: 10, local_testing: 11 }

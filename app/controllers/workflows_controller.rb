@@ -39,6 +39,34 @@ class WorkflowsController < ApplicationController
     redirect_to @project, notice: "Workflow deleted."
   end
 
+  # Batch "Log time" buttons (project page) and the single-workflow buttons (workflow page): each selected
+  # workflow gets one worklog of `hours`, placed on the next available weekday (see Jira::TimeSlotPlanner).
+  def log_time
+    hours = params[:hours].to_f
+    return redirect_back_or_to(@project, alert: "Pick one of #{Jira::TimeLogger::PRESET_HOURS.join(', ')} hours.") unless Jira::TimeLogger::PRESET_HOURS.include?(hours)
+
+    workflows = @project.workflows.where(id: Array(params[:workflow_ids])).order(:position, :id)
+    return redirect_back_or_to(@project, alert: "Select at least one workflow.") if workflows.empty?
+
+    logger = Jira::TimeLogger.new
+    logged = []
+    failure = nil
+    workflows.each do |workflow|
+      logged << logger.log(workflow, hours)
+    rescue Jira::WorklogError => e
+      failure = e.message
+      break
+    end
+
+    summary = logged.map { |log| "#{log.ticket_key} #{l(log.started_at, format: :short)}" }.to_sentence
+    if failure
+      message = "#{failure}.#{" Logged before that: #{summary}." if logged.any?}"
+      redirect_back_or_to @project, alert: message
+    else
+      redirect_back_or_to @project, notice: "Logged #{hours} h on #{summary}."
+    end
+  end
+
   def destroy_image
     @workflow.remove_image(params[:name])
     redirect_back_or_to edit_project_workflow_path(@project, @workflow), notice: "Image removed."

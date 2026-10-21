@@ -432,3 +432,10 @@ button.skill-chip:hover {
 .text-muted {
   color: var(--color-text-muted);
 }
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}

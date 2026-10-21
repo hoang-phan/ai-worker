@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_19_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -112,6 +112,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_150000) do
     t.index ["workflow_id"], name: "index_stages_on_workflow_id"
   end
 
+  create_table "time_logs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "jira_worklog_id"
+    t.integer "seconds", null: false
+    t.datetime "started_at", null: false
+    t.string "ticket_key", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workflow_id", null: false
+    t.index ["started_at"], name: "index_time_logs_on_started_at"
+    t.index ["workflow_id"], name: "index_time_logs_on_workflow_id"
+  end
+
   create_table "workflows", force: :cascade do |t|
     t.integer "ai_log_offset", default: 0, null: false
     t.string "ai_log_path"
@@ -147,5 +159,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_19_150000) do
   add_foreign_key "stage_runs", "stages"
   add_foreign_key "stages", "prompt_templates"
   add_foreign_key "stages", "workflows"
+  add_foreign_key "time_logs", "workflows"
   add_foreign_key "workflows", "projects"
 end

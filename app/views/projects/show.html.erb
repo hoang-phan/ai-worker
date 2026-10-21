@@ -16,10 +16,22 @@
   </div>
 </div>
 
-<div class="table-wrap">
+<% if @project.jira? %>
+  <%= form_with url: log_time_project_workflows_path(@project), method: :post, id: "time-log-form", class: "batch-bar" do %>
+    <span class="text-muted">Log time on selected:</span>
+    <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
+      <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary" data-turbo-confirm="Log <%= hours %> h on each selected workflow's Jira ticket?"><%= hours %> h</button>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div class="table-wrap" data-controller="select-all">
   <table>
     <thead>
       <tr>
+        <% if @project.jira? %>
+          <th><input type="checkbox" aria-label="Select all" data-action="change->select-all#toggle" form="time-log-form"></th>
+        <% end %>
         <th>Position</th>
         <th><%= @project.personal? ? "Task" : "Jira" %></th>
         <% unless @project.personal? %>
@@ -36,6 +48,9 @@
     <tbody>
       <% @workflows.each do |workflow| %>
         <tr>
+          <% if @project.jira? %>
+            <td><% if workflow.development? %><input type="checkbox" name="workflow_ids[]" value="<%= workflow.id %>" form="time-log-form" data-select-all-target="row" aria-label="Select <%= workflow.label %>"><% end %></td>
+          <% end %>
           <td class="numeric">
             <%= workflow.position %>
             <%= button_to "↑", move_project_workflow_path(@project, workflow, direction: "up"), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == @workflows.first, form: { style: "display:inline" } %>
