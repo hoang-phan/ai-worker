@@ -39,19 +39,6 @@ class Project < ApplicationRecord
     (workflows.maximum(:position) || 0) + 1
   end
 
-  # Swaps `workflow` with its neighbour in the position order (`:up` = earlier = higher priority). Renumbers the
-  # whole list 1..n so duplicate positions can't make the move a no-op. Returns false when already at that end.
-  def move_workflow(workflow, direction)
-    ordered = workflows.order(:position, :id).to_a
-    index = ordered.index(workflow)
-    target = direction.to_s == "up" ? index - 1 : index + 1
-    return false if index.nil? || target.negative? || target >= ordered.size
-
-    ordered[index], ordered[target] = ordered[target], ordered[index]
-    transaction { ordered.each.with_index(1) { |w, position| w.update_columns(position: position) unless w.position == position } }
-    true
-  end
-
   def local_test_ready?
     jira? && local_test_enabled? && local_url.present?
   end

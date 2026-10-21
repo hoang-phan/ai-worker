@@ -102,7 +102,7 @@ class WorkflowsController < ApplicationController
     direction = params[:direction].to_s
     return redirect_to @project, alert: "Unknown direction." unless %w[up down].include?(direction)
 
-    @project.move_workflow(@workflow, direction)
+    Projects::WorkflowReorder.new(@project).move(@workflow, direction)
     redirect_to @project
   end
 
