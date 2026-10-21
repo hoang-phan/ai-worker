@@ -131,18 +131,14 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "local_test" do
     let(:stage_type) { :local_test }
+    let(:local_test_finish) { instance_double(Stages::LocalTestFinish, call: nil) }
 
-    it "moves to reviewing, enables auto-merge on PASSED and notifies reviewers" do
-      handle("LOCAL_TEST_RESULT: PASSED")
+    it "delegates to LocalTestFinish" do
+      allow(Stages::LocalTestFinish).to receive(:new).and_return(local_test_finish)
+      handle
 
-      expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil)
-      expect(actions).to match_array(%w[local_test_completed])
-      expect(handoff).to have_received(:enable_auto_merge!).with(workflow.github_pr_url)
-      expect(handoff).to have_received(:notify_reviewers!)
-    end
-
-    it "raises without a LOCAL_TEST_RESULT line" do
-      expect { handle }.to raise_error(AiCli::CommandError, /LOCAL_TEST_RESULT/)
+      expect(Stages::LocalTestFinish).to have_received(:new).with(workflow: workflow, stage: stage, handoff: handoff)
+      expect(local_test_finish).to have_received(:call).with(output)
     end
   end
 

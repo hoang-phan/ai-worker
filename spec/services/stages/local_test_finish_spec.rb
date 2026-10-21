@@ -1,0 +1,63 @@
+require "rails_helper"
+
+RSpec.describe Stages::LocalTestFinish, type: :service do
+  let(:local_directory) { Dir.mktmpdir("local-test-finish-spec") }
+  let(:project) do
+    Project.create!(name: "Local test finish #{SecureRandom.hex(4)}", kind: :jira,
+                    repo_full_name: "acme/widgets", local_directory: local_directory)
+  end
+  let(:workflow) do
+    project.workflows.create!(jira_ticket: "DONE-1", branch_name: "local-test-finish", github_reviewer: "octocat",
+                              github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing,
+                              processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
+                              ai_started_at: Time.current, ai_log_offset: 42)
+  end
+  let(:stage) { workflow.stages.create!(stage_type: :local_test, name: "local_test") }
+  let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
+
+  def finish(output)
+    described_class.new(workflow: workflow, stage: stage, handoff: handoff).call(output)
+  end
+
+  def actions = stage.stage_runs.reorder(:id).pluck(:action)
+
+  after do
+    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
+  end
+
+  it "moves to reviewing, enables auto-merge on PASSED and notifies reviewers" do
+    finish("LOCAL_TEST_RESULT: PASSED")
+
+    expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil,
+                                                processing: false, ai_pid: nil, ai_log_path: nil,
+                                                ai_started_at: nil, ai_log_offset: 0)
+    expect(actions).to eq(%w[local_test_completed])
+    expect(handoff).to have_received(:enable_auto_merge!).with(workflow.github_pr_url)
+    expect(handoff).to have_received(:notify_reviewers!).with(no_args)
+  end
+
+  it "stores feedback for a FAILED result while rounds remain" do
+    finish("LOCAL_TEST_FEEDBACK_BEGIN\nThe login button is broken\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_RESULT: FAILED")
+
+    expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: "The login button is broken")
+    expect(actions).to eq(%w[local_test_completed])
+    expect(handoff).not_to have_received(:enable_auto_merge!)
+    expect(handoff).to have_received(:notify_reviewers!).with(no_args)
+  end
+
+  it "logs exhausted rounds and leaves no feedback when FAILED after the final round" do
+    2.times { stage.log_run!("local_test_completed") }
+
+    finish("LOCAL_TEST_FEEDBACK_BEGIN\nThe login button is broken\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_RESULT: FAILED")
+
+    expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil)
+    expect(actions).to eq(%w[local_test_completed local_test_completed local_test_completed local_test_rounds_exhausted])
+    expect(handoff).not_to have_received(:enable_auto_merge!)
+    expect(handoff).to have_received(:notify_reviewers!).with(no_args)
+  end
+
+  it "raises without a LOCAL_TEST_RESULT line" do
+    expect { finish("agent output") }
+      .to raise_error(AiCli::CommandError, "agent finished without a LOCAL_TEST_RESULT line, treating the local test as failed")
+  end
+end
