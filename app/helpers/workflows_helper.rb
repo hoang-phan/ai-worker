@@ -21,4 +21,14 @@ module WorkflowsHelper
   def workflow_status_badge(workflow)
     content_tag(:span, workflow.status, class: "badge #{workflow_status_badge_class(workflow)}")
   end
+
+  def stage_runnable?(workflow, stage, current_stage = workflow.current_stage)
+    workflow.runbook? && workflow.implementing? && !workflow.processing? && current_stage == stage
+  end
+
+  def current_stage_badge(workflow, stage, current_stage = workflow.current_stage)
+    return unless current_stage == stage
+
+    workflow.waiting? ? "waiting for Next" : "current"
+  end
 end

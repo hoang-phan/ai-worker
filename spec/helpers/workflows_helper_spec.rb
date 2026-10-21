@@ -39,4 +39,37 @@ RSpec.describe WorkflowsHelper, type: :helper do
       expect(html).to eq('<span class="badge badge-danger">errored</span>')
     end
   end
+
+  describe "#stage_runnable?" do
+    let(:stage) { Object.new }
+    let(:workflow) { instance_double(Workflow, runbook?: true, implementing?: true, processing?: false) }
+
+    it "allows the current stage of an idle implementing runbook" do
+      expect(helper.stage_runnable?(workflow, stage, stage)).to be(true)
+    end
+
+    it "rejects another stage or a workflow that is processing" do
+      expect(helper.stage_runnable?(workflow, Object.new, stage)).to be(false)
+
+      allow(workflow).to receive(:processing?).and_return(true)
+      expect(helper.stage_runnable?(workflow, stage, stage)).to be(false)
+    end
+  end
+
+  describe "#current_stage_badge" do
+    let(:stage) { Object.new }
+
+    it "labels a waiting current stage" do
+      workflow = instance_double(Workflow, waiting?: true)
+
+      expect(helper.current_stage_badge(workflow, stage, stage)).to eq("waiting for Next")
+    end
+
+    it "labels a non-waiting current stage and leaves other stages blank" do
+      workflow = instance_double(Workflow, waiting?: false)
+
+      expect(helper.current_stage_badge(workflow, stage, stage)).to eq("current")
+      expect(helper.current_stage_badge(workflow, Object.new, stage)).to be_nil
+    end
+  end
 end

@@ -1,0 +1,67 @@
+<div class="card">
+  <% if workflow.pr_review? %>
+    <% if workflow.slack_url.present? %>
+      <div class="field">
+        <label>Slack message</label>
+        <p><%= link_to workflow.slack_url, workflow.slack_url, target: "_blank", rel: "noopener" %></p>
+      </div>
+    <% end %>
+  <% elsif workflow.runbook? %>
+    <% workflow.variables.each do |name, value| %>
+      <div class="field">
+        <label><%= name %></label>
+        <p><%= value %></p>
+      </div>
+    <% end %>
+  <% elsif project.personal? %>
+    <div class="field">
+      <label>Task</label>
+      <p><%= workflow.task_description %></p>
+    </div>
+  <% else %>
+    <div class="field">
+      <label>Branch</label>
+      <p><%= workflow.branch_name %></p>
+    </div>
+    <div class="field">
+      <label>Reviewer</label>
+      <p><%= workflow.github_reviewer %></p>
+    </div>
+    <div class="field">
+      <label>Skills</label>
+      <p><%= workflow.skill_list.join(", ") %></p>
+    </div>
+  <% end %>
+  <% if workflow.image_paths.any? %>
+    <div class="field">
+      <label>Reference images</label>
+      <% workflow.image_paths.each do |path| %>
+        <p class="text-muted"><%= path %></p>
+      <% end %>
+    </div>
+  <% end %>
+  <div class="field">
+    <label>Status</label>
+    <%= workflow_status_badge(workflow) %>
+    <% if workflow.uat_waiting? && workflow.uat_test_at %>
+      <span class="text-muted">agent UAT test starts <%= l workflow.uat_test_at, format: :short %></span>
+    <% end %>
+  </div>
+  <% if project.jira? && workflow.development? %>
+    <div class="field">
+      <label>Log time (<%= number_with_precision(workflow.time_logs.sum(:seconds) / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h logged)</label>
+      <%= form_with url: log_time_project_workflows_path(project), method: :post, class: "batch-bar" do %>
+        <%= hidden_field_tag "workflow_ids[]", workflow.id %>
+        <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
+          <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary"><%= hours %> h</button>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+  <% if workflow.github_pr_url.present? %>
+    <div class="field">
+      <label>Pull request</label>
+      <p><%= link_to workflow.github_pr_url, workflow.github_pr_url, target: "_blank", rel: "noopener" %></p>
+    </div>
+  <% end %>
+</div>

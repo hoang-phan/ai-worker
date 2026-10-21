@@ -1,0 +1,27 @@
+<h2>Stage run history</h2>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Action</th>
+        <th>Output</th>
+        <th>Error</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% stage_runs.each do |run| %>
+        <tr>
+          <td class="text-muted"><%= run.created_at %></td>
+          <td><%= run.action %></td>
+          <td class="text-muted"><%= truncate(run.output, length: 200) %></td>
+          <td><%= content_tag(:span, run.error, class: "text-muted") if run.error.present? %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if stage_runs.empty? %>
+    <div class="empty-state">No stage runs yet.</div>
+  <% end %>
+</div>

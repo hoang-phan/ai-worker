@@ -20,6 +20,17 @@ RSpec.describe "Workflows", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
+  describe "GET show" do
+    it "renders the stages table and stage run history" do
+      workflow.stages.first.stage_runs.create!(action: "started", output: "Started the implementation")
+
+      get project_workflow_path(project, workflow)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("<h2>Stages</h2>", "<h2>Stage run history</h2>", "Started the implementation")
+    end
+  end
+
   describe "POST clone" do
     it "refuses a non-runbook" do
       post clone_project_workflow_path(project, workflow)
