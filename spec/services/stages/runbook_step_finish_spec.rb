@@ -1,0 +1,85 @@
+require "rails_helper"
+
+RSpec.describe Stages::RunbookStepFinish, type: :service do
+  let(:local_directory) { Dir.mktmpdir("runbook-step-finish-spec") }
+  let(:project) do
+    Project.create!(name: "Runbook step finish #{SecureRandom.hex(4)}", kind: :jira,
+                    repo_full_name: "acme/widgets", local_directory: local_directory)
+  end
+  let(:workflow) do
+    project.workflows.create!(kind: :runbook, status: :implementing, processing: true, ai_pid: 123,
+                              ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+  end
+  let(:stage) do
+    workflow.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1, run_mode: run_mode,
+                            channel: channel, auto_advance: auto_advance)
+  end
+  let(:run_mode) { :agent }
+  let(:channel) { nil }
+  let(:auto_advance) { false }
+  let(:enqueue) { spy("enqueue") }
+
+  def finish(output)
+    described_class.new(workflow: workflow, stage: stage, enqueue: enqueue).call(output)
+  end
+
+  def actions = stage.stage_runs.reorder(:id).pluck(:action)
+
+  after do
+    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
+  end
+
+  it "finishes a non-message step and waits for Next" do
+    finish("agent output")
+
+    expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true,
+                                                processing: false, ai_pid: nil, ai_log_path: nil,
+                                                ai_started_at: nil, ai_log_offset: 0)
+    expect(actions).to eq(%w[stage_completed])
+    expect(enqueue).not_to have_received(:call)
+  end
+
+  context "for a message step" do
+    let(:run_mode) { :message }
+    let(:channel) { "#deploys" }
+
+    it "finishes after the agent confirms the message was posted" do
+      finish("POSTED")
+
+      expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true)
+      expect(actions).to eq(%w[stage_completed message_sent])
+    end
+
+    it "fails without a POSTED marker" do
+      expect { finish("agent output") }
+        .to raise_error(AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)")
+
+      expect(workflow.reload).to have_attributes(status: "implementing", processing: true)
+      expect(actions).to be_empty
+    end
+  end
+
+  it "merges output variables into the workflow" do
+    workflow.update!(variables: { "REGION" => "us-east-1" })
+
+    finish("VAR: VERSION=1.2.3\nVAR: REGION=eu-west-1")
+
+    expect(workflow.reload.variables).to eq("REGION" => "eu-west-1", "VERSION" => "1.2.3")
+  end
+
+  context "when auto-advancing" do
+    let(:auto_advance) { true }
+    let!(:next_stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Verify", position: 2) }
+
+    before { workflow.update!(current_stage_id: stage.id) }
+
+    it "advances to the next stage and enqueues the scheduler" do
+      finish("agent output")
+
+      expect(workflow.reload).to have_attributes(status: "implementing", current_stage_id: next_stage.id,
+                                                  awaiting_next: false, auto_run: true)
+      expect(actions).to eq(%w[stage_completed advanced])
+      expect(enqueue).to have_received(:call).with(workflow.id)
+    end
+  end
+end

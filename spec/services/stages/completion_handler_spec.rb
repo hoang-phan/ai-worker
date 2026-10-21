@@ -121,13 +121,14 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "runbook_step" do
     let(:stage_type) { :runbook_step }
+    let(:runbook_step_finish) { instance_double(Stages::RunbookStepFinish, call: nil) }
 
-    it "parks the workflow waiting for Next and merges agent variables" do
-      handle("VAR: VERSION=1.2.3")
+    it "delegates to RunbookStepFinish" do
+      allow(Stages::RunbookStepFinish).to receive(:new).and_return(runbook_step_finish)
+      handle
 
-      expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true)
-      expect(workflow.variables).to include("VERSION" => "1.2.3")
-      expect(actions).to match_array(%w[stage_completed])
+      expect(Stages::RunbookStepFinish).to have_received(:new).with(workflow: workflow, stage: stage)
+      expect(runbook_step_finish).to have_received(:call).with(output)
     end
   end
 end

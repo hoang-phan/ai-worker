@@ -21,7 +21,7 @@ module Stages
       when "jira_update" then finish_jira_update(output)
       when "uat_test" then finish_uat_test(output)
       when "local_test" then Stages::LocalTestFinish.new(workflow: workflow, stage: stage, handoff: handoff).call(output)
-      when "runbook_step" then finish_runbook_step(output)
+      when "runbook_step" then Stages::RunbookStepFinish.new(workflow: workflow, stage: stage).call(output)
       end
     end
 
@@ -38,24 +38,6 @@ module Stages
     def finish_pr_review(output)
       workflow.update!(Workflow::AI_RUN_RESET.merge(status: :done))
       stage.log_run!("review_completed", output: output)
-    end
-
-    # The workflow parks in `waiting` until someone clicks Next (Workflow#advance!), unless the stage is
-    # `auto_advance`: then it moves straight on and the scheduler starts the next stage. Agents can hand values to later stages with lines like
-    # `VAR: VERSION=2.21.1-f839742`, which become workflow variables / {VERSION}.
-    def finish_runbook_step(output)
-      if stage.run_message? && !AiCli::Output.new(output).posted?
-        raise AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)"
-      end
-
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :waiting, awaiting_next: true,
-                                           variables: workflow.variables.merge(AiCli::Output.new(output).variables)))
-      stage.log_run!("stage_completed", output: output)
-      stage.log_run!("message_sent") if stage.run_message?
-      return unless stage.auto_advance?
-
-      workflow.advance!
-      WorkflowSchedulerJob.perform_later(workflow.id) if workflow.auto_run?
     end
 
     # The prompt makes the agent end with `JIRA_RESULT: UAT` or
