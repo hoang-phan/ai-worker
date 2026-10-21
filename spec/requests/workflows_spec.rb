@@ -20,6 +20,26 @@ RSpec.describe "Workflows", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
+  describe "POST clone" do
+    it "refuses a non-runbook" do
+      post clone_project_workflow_path(project, workflow)
+
+      expect(response).to redirect_to(project_workflow_path(project, workflow))
+      expect(flash[:alert]).to eq("Only runbooks can be cloned.")
+    end
+
+    it "clones a runbook and opens the copy for editing" do
+      runbook = project.workflows.create!(kind: :runbook)
+      runbook.stages.create!(stage_type: :runbook_step, name: "Build", position: 1)
+
+      expect { post clone_project_workflow_path(project, runbook) }.to change { project.workflows.count }.by(1)
+
+      copy = project.workflows.order(:id).last
+      expect(response).to redirect_to(edit_project_workflow_path(project, copy))
+      expect(flash[:notice]).to eq("Cloned with 1 stages. Check the variables, then Start.")
+    end
+  end
+
   describe "POST move" do
     let!(:first) { project.workflows.create!(jira_ticket: "A-1", branch_name: "a-1", github_reviewer: "x", position: 1) }
     let!(:second) { project.workflows.create!(jira_ticket: "A-2", branch_name: "a-2", github_reviewer: "x", position: 1) }

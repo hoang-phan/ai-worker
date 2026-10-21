@@ -74,20 +74,16 @@ class WorkflowsController < ApplicationController
     end
   end
 
-  # The runbook's Clone button: a fresh pending runbook with the same stages and the variables the user
-  # set up front (channel etc.). Variables a stage emitted (version, work list, tag …) are dropped so
-  # last run's results can't leak into this one. Opened for editing.
+  # The runbook's Clone button: a fresh pending runbook (see Workflows::RunbookClone), opened for editing.
   def clone
-    unless @workflow.runbook?
-      return redirect_to project_workflow_path(@project, @workflow), alert: "Only runbooks can be cloned."
-    end
-
-    copy = @project.workflows.new(kind: :runbook, position: @project.next_workflow_position, copy_stages_from_id: @workflow.id,
-                                  variables: @workflow.input_variables)
-    if copy.save
-      redirect_to edit_project_workflow_path(@project, copy), notice: "Cloned with #{copy.stages.count} stages. Check the variables, then Start."
+    result = Workflows::RunbookClone.new(@workflow).call
+    case result.status
+    when :not_runbook
+      redirect_to project_workflow_path(@project, @workflow), alert: "Only runbooks can be cloned."
+    when :created
+      redirect_to edit_project_workflow_path(@project, result.copy), notice: "Cloned with #{result.copy.stages.count} stages. Check the variables, then Start."
     else
-      redirect_to project_workflow_path(@project, @workflow), alert: copy.errors.full_messages.to_sentence
+      redirect_to project_workflow_path(@project, @workflow), alert: result.error
     end
   end
 
