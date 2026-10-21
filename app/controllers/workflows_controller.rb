@@ -48,15 +48,9 @@ class WorkflowsController < ApplicationController
     workflows = @project.workflows.where(id: Array(params[:workflow_ids])).order(:position, :id)
     return redirect_back_or_to(@project, alert: "Select at least one workflow.") if workflows.empty?
 
-    logger = Jira::TimeLogger.new
-    logged = []
-    failure = nil
-    workflows.each do |workflow|
-      logged << logger.log(workflow, hours)
-    rescue Jira::WorklogError => e
-      failure = e.message
-      break
-    end
+    result = Jira::TimeLogBatch.new.call(workflows, hours)
+    logged = result.logged
+    failure = result.failure
 
     summary = logged.map { |log| "#{log.ticket_key} #{l(log.started_at, format: :short)}" }.to_sentence
     if failure
