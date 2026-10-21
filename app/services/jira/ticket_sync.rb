@@ -66,6 +66,7 @@ module Jira
         branch_name: TicketRef.branch_name_for(url),
         github_reviewer: project.default_reviewers,
         skills: project.default_skills,
+        pr_skills: project.default_pr_skills,
         position: project.next_workflow_position
       )
       if workflow.save

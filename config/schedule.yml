@@ -1,7 +1,7 @@
 # Working hours are 05:00-14:00 Vietnam time (UTC+7, Asia/Ho_Chi_Minh)
 
 workflow_scheduler:
-  cron: "*/3 5-13 * * Asia/Ho_Chi_Minh"
+  cron: "*/2 5-13 * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
   queue: stage_execution
 
@@ -41,7 +41,7 @@ bugsnag_sync_off_hours:
   queue: default
 
 brainstorm:
-  cron: "0 */2 * * *"
+  cron: "*/30 * * * *"
   class: "BrainstormJob"
   queue: default
 

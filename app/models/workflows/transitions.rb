@@ -29,6 +29,8 @@ module Workflows
     # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
     def resume_status
       return :uat_testing if @workflow.uat_test_at.present?
+      ci_status = Workflows::CiLoopResume.new(@workflow).status
+      return ci_status if ci_status
       return :local_testing if local_test_unfinished?
 
       @workflow.development? && @workflow.github_pr_url.present? ? :reviewing : :implementing

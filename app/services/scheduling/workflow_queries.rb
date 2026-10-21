@@ -6,7 +6,7 @@ module Scheduling
 
     # In-flight workflows that are started (or waiting to be) by the cron tick. `reviewing` is
     # included so a head workflow waiting on review keeps its clone slot (see Planner).
-    ACTIVE_STATUSES = %i[implementing reviewing local_testing].freeze
+    ACTIVE_STATUSES = %i[implementing reviewing local_testing ci_checking ci_verifying opening_pr].freeze
 
     # Statuses that are only "in flight" while an agent run is processing: a Jira update after
     # merge (`merged`) or a UAT browser test (`uat_testing`). Mid-run they're polled like any other run.
@@ -14,7 +14,7 @@ module Scheduling
 
     # Statuses that hold the post-merge phase shut even when nothing is processing: code is being
     # written or tested in the clone, so merged PRs must wait. `reviewing` is deliberately absent.
-    BUSY_STATUSES = %i[implementing local_testing].freeze
+    BUSY_STATUSES = %i[implementing local_testing ci_checking ci_verifying opening_pr].freeze
 
     def active
       Workflow.where(status: ACTIVE_STATUSES).includes(:project).order(:position).to_a

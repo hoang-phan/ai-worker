@@ -44,6 +44,13 @@
       </div>
     <% end %>
 
+    <% if stage.ci_check? %>
+      <div class="field">
+        <%= f.label :command, "Check command" %>
+        <%= f.text_area :command, rows: 3, placeholder: workflow.project.ci_command.presence || "bin/ci" %>
+        <p class="field-hint">Plain code, no agent. Run with <code>bash -lc</code> in the project's clone; its output is what the verify stage reads. Blank uses the project's check command.</p>
+      </div>
+    <% else %>
     <div class="field">
       <%= f.label :prompt_template_id, "Prompt template" %>
       <%= f.select :prompt_template_id,
@@ -61,6 +68,7 @@
       <%= render "shared/skill_hints", project: project %>
       <%= f.text_area :prompt, rows: 20, data: { skill_insert_target: "input", template_fill_target: "input" } %>
     </div>
+    <% end %>
 
     <div class="form-actions">
       <%= f.submit %>

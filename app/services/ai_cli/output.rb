@@ -28,6 +28,11 @@ module AiCli
       text[/LOCAL_TEST_RESULT:\s*(PASSED|FAILED|BLOCKED)/i, 1]
     end
 
+    # "PASSED" / "FAILED" (upcased) from the last CI_VERDICT line (the log echoes the prompt's own example), or nil.
+    def ci_verdict
+      text.scan(/CI_VERDICT:\s*(PASSED|FAILED)/i).last&.first&.upcase
+    end
+
     # The last LOCAL_RETEST line wins; a missing one counts as YES.
     def retest_requested?
       !text.scan(/LOCAL_RETEST:\s*(YES|NO)/i).last&.first.to_s.casecmp?("NO")

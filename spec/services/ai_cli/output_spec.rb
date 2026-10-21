@@ -89,3 +89,13 @@ RSpec.describe AiCli::Output do
     end
   end
 end
+
+RSpec.describe AiCli::Output, "#ci_verdict" do
+  it "takes the last verdict, upcased" do
+    expect(described_class.new("CI_VERDICT: PASSED\n...\nci_verdict: failed").ci_verdict).to eq "FAILED"
+  end
+
+  it "is nil without one" do
+    expect(described_class.new("nothing").ci_verdict).to be_nil
+  end
+end

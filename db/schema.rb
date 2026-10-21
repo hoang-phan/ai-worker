@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -45,10 +45,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
     t.string "brainstorm_last_result"
     t.datetime "brainstorm_last_run_at"
     t.integer "brainstorm_max_workflows", default: 5, null: false
+    t.string "ci_command"
     t.text "ci_instructions"
+    t.integer "ci_max_rounds", default: 5, null: false
+    t.text "ci_verify_instructions"
     t.datetime "created_at", null: false
+    t.text "default_pr_skills"
     t.string "default_reviewers"
     t.text "default_skills"
+    t.integer "flow", default: 0, null: false
     t.string "jira_assignee"
     t.string "jira_base_url"
     t.string "jira_tester"
@@ -60,6 +65,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
     t.string "local_url"
     t.string "local_username"
     t.string "name"
+    t.text "pr_instructions"
+    t.boolean "pr_stage_enabled", default: false, null: false
     t.string "repo_full_name"
     t.string "slack_last_result"
     t.datetime "slack_last_synced_at"
@@ -98,6 +105,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
   create_table "stages", force: :cascade do |t|
     t.boolean "auto_advance", default: false, null: false
     t.string "channel"
+    t.text "command"
     t.datetime "created_at", null: false
     t.string "name"
     t.integer "position"
@@ -132,6 +140,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
     t.boolean "auto_run", default: false, null: false
     t.boolean "awaiting_next", default: false, null: false
     t.string "branch_name"
+    t.integer "ci_exit_status"
+    t.string "ci_output_path"
     t.datetime "created_at", null: false
     t.integer "current_stage_id"
     t.string "github_pr_url"
@@ -140,6 +150,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_000000) do
     t.integer "kind", default: 0, null: false
     t.text "local_test_feedback"
     t.integer "position", default: 0, null: false
+    t.text "pr_skills"
     t.boolean "processing", default: false, null: false
     t.integer "project_id", null: false
     t.text "skills"

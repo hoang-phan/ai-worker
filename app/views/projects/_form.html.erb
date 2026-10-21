@@ -38,6 +38,15 @@
       <p class="field-hint">Jira projects only. Prefilled on new workflows; override per workflow.</p>
     </div>
 
+    <div class="field" data-controller="skill-insert">
+      <%= f.label :default_pr_skills, "Default PR skills (comma-separated)" %>
+      <% if project.persisted? %>
+        <%= render "shared/skill_hints", project: project %>
+      <% end %>
+      <%= f.text_area :default_pr_skills, rows: 2, data: { skill_insert_target: "input" } %>
+      <p class="field-hint">Check / verify loop flow only. Used as <code>{PR_SKILLS}</code> in the PR stage's prompt only, e.g. a PR description skill; <code>{SKILLS}</code> stays for implementation. Prefilled on new workflows; override per workflow.</p>
+    </div>
+
     <div class="field">
       <%= f.label :ci_instructions, "Local CI instructions (optional)" %>
       <%= f.text_area :ci_instructions, rows: 6, placeholder: "e.g. Run pnpm type-check and pnpm test before every push; only push when both pass." %>
@@ -52,6 +61,7 @@
 
     <%= render "projects/form/jira", f: f %>
     <%= render "projects/form/uat_test", f: f %>
+    <%= render "projects/form/ci_loop", f: f %>
     <%= render "projects/form/local_test", f: f %>
     <%= render "projects/form/brainstorm", f: f %>
     <%= render "projects/form/slack", f: f %>

@@ -8,11 +8,13 @@ substituted by `Prompts::Renderer` at execution time:
 | `{JIRA}` | `workflow.jira_ticket` | e.g. `ENG-1234` |
 | `{PR}` | `workflow.github_pr_url` | blank during the `implementation` stage (no PR exists yet) |
 | `{REVIEWER}` | `workflow.github_reviewer` | one or more GitHub usernames, comma-separated (`gh pr create --reviewer` accepts this form) |
+| `{PR_SKILLS}` | `workflow.pr_skill_list.join(", ")` | Same format, from `project.default_pr_skills`: the skills only the `pr_create` stage's prompt uses. `{SKILLS}` stays for implementation. |
 | `{SKILLS}` | `workflow.skill_list.join(", ")` | comma-separated Claude Code skill names, from the target project's own `.agents/skills/` — see `docs/ADDING_A_PROJECT.md` |
 | `{TESTER}` | `project.jira_tester` | Jira user to assign UAT tickets to (`jira_update` stages) |
 | `{UAT_URL}` | `project.uat_url` | The project's UAT site (`uat_test` stages). The UAT login is not a placeholder: it reaches the agent as the `UAT_USERNAME` / `UAT_PASSWORD` environment variables. |
 | `{LOCAL_URL}` / `{LOCAL_INSTRUCTIONS}` | `project.local_url` / `project.local_instructions` | Local development server URL and local-only instructions (`local_test` stages). |
 | `{CI_INSTRUCTIONS}` | `project.ci_instructions` | Project-specific pre-push checks (e.g. `bin/ci`, or `pnpm test`). Used by the Implement and Review Fix templates; empty if the project has none. |
+| `{PR_INSTRUCTIONS}` (`project.pr_instructions`, the `pr_create` stage) / `{CI_COMMAND}` / `{CI_OUTPUT}` / `{CI_STATUS}` / `{CI_VERIFY_INSTRUCTIONS}` | `project.ci_command` / the last check's log path / its exit status / `project.ci_verify_instructions` | The check/verify loop (`ci_verify` stages). |
 | `{TEST_INSTRUCTIONS}` | `project.test_instructions` | Free-text instructions valid on every environment (UAT and local): login, test data, guide to read; blank if none. |
 | `{UAT_INSTRUCTIONS}` | `project.uat_instructions` | Free-text, per-project instructions for the UAT test (login quirks, test data, a guide to read); blank if none (`uat_test` stages). |
 | `{SLACK}` | `workflow.slack_url` | permalink of the Slack message that mentioned the PR (`pr_review` stages only) |

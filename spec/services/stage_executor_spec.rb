@@ -74,7 +74,7 @@ RSpec.describe StageExecutor, type: :service do
 
       described_class.new(workflow, stage).call
 
-      expect(Stages::AiRunLauncher).to have_received(:new).with(workflow: workflow, stage: stage, project: project)
+      expect(Stages::AiRunLauncher).to have_received(:new).with(workflow: workflow, stage: stage, project: project, runner: AiCli::Runner)
       expect(Stages::StartHandler).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher))
       expect(start_handler).to have_received(:call)
     end

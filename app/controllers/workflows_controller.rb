@@ -7,7 +7,7 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = @project.workflows.new(position: @project.next_workflow_position, skills: @project.default_skills, github_reviewer: @project.default_reviewers,
+    @workflow = @project.workflows.new(position: @project.next_workflow_position, skills: @project.default_skills, pr_skills: @project.default_pr_skills, github_reviewer: @project.default_reviewers,
                                        kind: params[:kind] == "runbook" ? :runbook : :development)
   end
 
@@ -138,6 +138,6 @@ class WorkflowsController < ApplicationController
   end
 
   def workflow_params
-    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :task_description, :position, :variables_text, :copy_stages_from_id, :slack_review_thread_ts)
+    params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :pr_skills, :task_description, :position, :variables_text, :copy_stages_from_id, :slack_review_thread_ts)
   end
 end

@@ -1,0 +1,36 @@
+<fieldset class="field">
+  <legend>Workflow flow (Jira projects)</legend>
+  <p class="field-hint">
+    <strong>Standard</strong>: one implementation run does everything (checks, PR), then review.
+    <strong>Check / verify loop</strong>: for gates that take many minutes (e.g. <code>bin/ci</code>). Implementation only commits (no checks, no PR); a <strong>check</strong> stage runs the command as plain code and saves its output to a log; a <strong>verify</strong> stage has the agent read that log and fix what failed (running only the failing tests, never the whole gate); the two repeat until the verdict is PASSED; then a <strong>PR</strong> stage pushes and opens the PR, and review goes on as usual. New workflows (including ones imported from Jira) get these stages with their default prompts; the flow applies to workflows created after you change it.
+  </p>
+
+  <div class="field">
+    <%= f.label :flow %>
+    <%= f.select :flow, [ [ "Standard", "standard" ], [ "Check / verify loop", "ci_loop" ] ] %>
+  </div>
+
+  <div class="field">
+    <%= f.label :ci_command, "Check command" %>
+    <%= f.text_field :ci_command, placeholder: "bin/ci" %>
+    <p class="field-hint">Required for the loop. Run with <code>bash -lc</code> in the project's clone, on the committed branch. Each workflow's check stage can override it.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :ci_max_rounds, "Max checks" %>
+    <%= f.number_field :ci_max_rounds, min: 1, max: 20 %>
+    <p class="field-hint">After this many failed checks the workflow stops as errored until you resume it.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :ci_verify_instructions, "Verify instructions (optional)" %>
+    <%= f.text_area :ci_verify_instructions, rows: 6, placeholder: "e.g. Single Jest files: yarn jest <file> --ci --runInBand. Single specs: bin/worktree-env rspec <file:line>." %>
+    <p class="field-hint">Substituted for <code>{CI_VERIFY_INSTRUCTIONS}</code>: how to run one failing test or linter on its own.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :pr_instructions, "PR instructions (optional)" %>
+    <%= f.text_area :pr_instructions, rows: 6, placeholder: "e.g. The PR description must also state how to verify in production and how to recover." %>
+    <p class="field-hint">Substituted for <code>{PR_INSTRUCTIONS}</code> in the PR stage's prompt.</p>
+  </div>
+</fieldset>

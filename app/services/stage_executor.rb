@@ -39,7 +39,7 @@ class StageExecutor
   end
 
   def poll_ai_run
-    poller = AiCli::RunPoller.new(
+    poller = poller_class.new(
       pid: workflow.ai_pid, log_path: workflow.ai_log_path, log_offset: workflow.ai_log_offset,
       started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER
     )
@@ -51,6 +51,11 @@ class StageExecutor
     return if state == :running
 
     finalize_success(output)
+  end
+
+  # The CI check is a plain command: its exit status is the result, not a verdict on an agent run.
+  def poller_class
+    stage.ci_check? ? Ci::CheckPoller : AiCli::RunPoller
   end
 
   def finalize_success(output)
@@ -88,6 +93,8 @@ class StageExecutor
   end
 
   def launcher
-    @launcher ||= Stages::AiRunLauncher.new(workflow: workflow, stage: stage, project: project)
+    @launcher ||= Stages::AiRunLauncher.new(
+      workflow: workflow, stage: stage, project: project, runner: stage.ci_check? ? Ci::CommandRunner : AiCli::Runner
+    )
   end
 end

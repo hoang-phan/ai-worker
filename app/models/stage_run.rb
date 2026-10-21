@@ -38,6 +38,11 @@ class StageRun < ApplicationRecord
     local_test_failing
     local_test_retest_scheduled
     local_test_rounds_exhausted
+    ci_check_completed
+    ci_verify_passed
+    ci_verify_failed
+    ci_rounds_exhausted
+    pr_created
   ].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }

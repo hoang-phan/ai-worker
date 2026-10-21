@@ -21,6 +21,10 @@ module Stages
       when "jira_update" then Stages::JiraLifecycleFinish.new(workflow: workflow, stage: stage, project: project).call(output)
       when "uat_test" then Stages::JiraLifecycleFinish.new(workflow: workflow, stage: stage, project: project).call(output)
       when "local_test" then Stages::LocalTestFinish.new(workflow: workflow, stage: stage, handoff: handoff).call(output)
+      when "ci_check" then Stages::CiCheckFinish.new(workflow: workflow, stage: stage).call(output)
+      when "simple_implementation" then Stages::SimpleImplementationFinish.new(workflow: workflow, stage: stage).call(output)
+      when "ci_verify" then Stages::CiVerifyFinish.new(workflow: workflow, stage: stage, project: project).call(output)
+      when "pr_create" then Stages::PrOpenedFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output, action: "pr_created")
       when "runbook_step" then Stages::RunbookStepFinish.new(workflow: workflow, stage: stage).call(output)
       end
     end

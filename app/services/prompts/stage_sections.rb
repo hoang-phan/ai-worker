@@ -45,7 +45,7 @@ module Prompts
       end
 
       def to_s
-        return "" unless stage_type == "implementation" && last_action == "failed"
+        return "" unless %w[implementation simple_implementation].include?(stage_type) && last_action == "failed"
         return "" unless previous_log
 
         <<~SECTION

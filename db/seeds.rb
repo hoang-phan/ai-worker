@@ -15,6 +15,14 @@ PromptTemplate.find_or_create_by!(name: "PR Review", stage_type: :pr_review) do 
   template.body = Prompts::Defaults.for("pr_review")
 end
 
+# Default prompts for the ci_loop flow's agent stages (the check stage takes a command, not a prompt), so they can be
+# edited in the UI. Same bodies as the built-in fallbacks. Only created if absent — edits are never overwritten.
+{ "Simple Implement" => :simple_implementation, "CI Verify" => :ci_verify, "PR Create" => :pr_create }.each do |name, stage_type|
+  PromptTemplate.find_or_create_by!(name: name, stage_type: stage_type) do |template|
+    template.body = Prompts::Defaults.for(stage_type)
+  end
+end
+
 # Example runbook workflow: the Recruit release process, as a pending "template" run on a Recruit project.
 # Each release is a new runbook workflow on the project that copies these stages ("Start with the stages of"),
 # so every deployment keeps its own stage list. Created only if absent, so edits are never overwritten.

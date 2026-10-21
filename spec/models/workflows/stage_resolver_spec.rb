@@ -6,7 +6,8 @@ RSpec.describe Workflows::StageResolver do
   {
     "development/jira" => [ { kind: "development", personal: false },
                             { "implementing" => "implementation", "reviewing" => "pr_check", "merged" => "jira_update",
-                              "uat_testing" => "uat_test", "local_testing" => "local_test" } ],
+                              "uat_testing" => "uat_test", "local_testing" => "local_test", "ci_checking" => "ci_check",
+                              "ci_verifying" => "ci_verify", "opening_pr" => "pr_create" } ],
     "development/personal" => [ { kind: "development", personal: true }, { "implementing" => "task" } ],
     "pr_review" => [ { kind: "pr_review", personal: false }, { "implementing" => "pr_review" } ]
   }.each do |label, (args, expected)|
@@ -28,6 +29,6 @@ RSpec.describe Workflows::StageResolver do
   end
 
   it "lists the lazily created stage types" do
-    expect(described_class::LAZY_STAGE_TYPES).to contain_exactly("jira_update", "uat_test", "local_test")
+    expect(described_class::LAZY_STAGE_TYPES).to contain_exactly("jira_update", "uat_test", "local_test", "ci_check", "ci_verify", "pr_create", "simple_implementation")
   end
 end

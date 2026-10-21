@@ -13,7 +13,10 @@ RSpec.describe WorkflowsHelper, type: :helper do
     "uat_waiting" => "badge-info",
     "uat_tested" => "badge-success",
     "uat_testing" => "badge-info",
-    "local_testing" => "badge-info"
+    "local_testing" => "badge-info",
+    "ci_checking" => "badge-info",
+    "ci_verifying" => "badge-info",
+    "opening_pr" => "badge-info"
   }
 
   describe "#workflow_status_badge_class" do

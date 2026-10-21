@@ -10,6 +10,9 @@ module WorkflowsHelper
     "uat_waiting" => "badge-info",
     "uat_testing" => "badge-info",
     "local_testing" => "badge-info",
+    "ci_checking" => "badge-info",
+    "ci_verifying" => "badge-info",
+    "opening_pr" => "badge-info",
     "errored" => "badge-danger"
   }.freeze
 

@@ -25,6 +25,11 @@ module Stages
       @actions.count("local_test_completed")
     end
 
+    # `ci_check_completed` rounds since the last `resumed` (a person resuming an exhausted loop grants a fresh budget).
+    def completed_ci_rounds
+      @actions.take_while { |action| action != "resumed" }.count("ci_check_completed")
+    end
+
     # A local test run that started but whose newest run isn't a completion (earlier completed rounds don't count).
     def local_test_unfinished?
       last = last_action

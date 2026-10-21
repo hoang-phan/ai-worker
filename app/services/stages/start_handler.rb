@@ -16,13 +16,15 @@ module Stages
 
     def call
       case stage.stage_type
-      when "implementation" then start_implementation
+      when "implementation", "simple_implementation" then start_implementation
       when "pr_check" then run_pr_check
       when "task" then start_task
       when "pr_review" then start_pr_review
       when "jira_update" then start_jira_update
       when "uat_test" then start_uat_test
       when "local_test" then start_local_test
+      when "ci_check" then start_ci_check
+      when "ci_verify", "pr_create" then launcher.call(prompt.body)
       when "runbook_step" then start_runbook_step
       end
     end
@@ -86,6 +88,15 @@ module Stages
       Stages::BrowserTestStart.new(
         workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
       ).call
+    end
+
+    # Plain code, no agent: the stage's own command, else the project's. The launcher the executor hands over runs the project's CI command detached, in the clone
+    # (still on the branch the implementation committed to), with the output in a log the verify stage reads.
+    def start_ci_check
+      command = stage.command.presence || project.ci_command
+      raise ArgumentError, "project #{project.name} has no CI command for the check stage" if command.blank?
+
+      launcher.call(command)
     end
 
     # Runbook stages are plain agent runs: `agent` runs the prompt as written,

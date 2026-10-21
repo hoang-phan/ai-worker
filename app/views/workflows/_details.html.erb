@@ -31,6 +31,12 @@
       <label>Skills</label>
       <p><%= workflow.skill_list.join(", ") %></p>
     </div>
+    <% if workflow.pr_skill_list.any? %>
+      <div class="field">
+        <label>PR skills</label>
+        <p><%= workflow.pr_skill_list.join(", ") %></p>
+      </div>
+    <% end %>
   <% end %>
   <% if workflow.image_paths.any? %>
     <div class="field">

@@ -4,7 +4,8 @@ class Workflow < ApplicationRecord
   has_many :time_logs, dependent: :destroy
 
   enum :status, { pending: 0, implementing: 1, reviewing: 2, done: 3, errored: 4, merged: 5, jira_updated: 6, waiting: 7,
-                 uat_waiting: 8, uat_testing: 9, uat_tested: 10, local_testing: 11 }
+                 uat_waiting: 8, uat_testing: 9, uat_tested: 10, local_testing: 11, ci_checking: 12, ci_verifying: 13,
+                 opening_pr: 14 }
 
   # development: a Jira ticket / personal task we implement ourselves.
   # pr_review: someone else's PR (found in a Slack mention) that we review.
@@ -81,6 +82,11 @@ class Workflow < ApplicationRecord
     skills.to_s.split(",").map(&:strip).reject(&:blank?)
   end
 
+  # Same format as `skills`, rendered into {PR_SKILLS}: the skills only the PR stage uses (e.g. PR description writing).
+  def pr_skill_list
+    pr_skills.to_s.split(",").map(&:strip).reject(&:blank?)
+  end
+
   # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
   def brief
     Workflows::Label.new(self).brief
@@ -148,7 +154,9 @@ class Workflow < ApplicationRecord
   def current_stage
     return stages.find_by(id: current_stage_id) if runbook?
 
-    stage_type = Workflows::StageResolver.stage_type_for(status: status, kind: kind, personal: project.personal?)
+    stage_type = Workflows::StageResolver.stage_type_for(
+      status: status, kind: kind, personal: project.personal?, ci_loop: development? && project.ci_loop_ready?
+    )
     return nil unless stage_type
 
     # The Jira-update and UAT-test stages aren't seeded with the workflow (older workflows

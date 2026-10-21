@@ -3,6 +3,11 @@ class Project < ApplicationRecord
   has_many :jira_syncs, dependent: :destroy
   has_many :bugsnag_syncs, dependent: :destroy
 
+  # How a Jira project's development workflows run. standard: implementation (checks and PR included) then review.
+  # ci_loop: implementation without checks or PR, then a check/verify loop on the project's `ci_command`, then the PR
+  # stage, then review. A flow, not a kind: a ci_loop project is still a Jira project in every other respect.
+  enum :flow, { standard: 0, ci_loop: 1 }, prefix: :flow
+
   # jira: GitHub-backed projects driven by Jira tickets; they go through
   # branch/PR/review stages, and can optionally pull workflows from Jira.
   # personal: local-only projects where each workflow is a single task
@@ -19,6 +24,9 @@ class Project < ApplicationRecord
   validates :uat_url, format: { with: %r{\Ahttps?://[^/\s]+\S*\z}, message: "must be a full URL like https://uat.example.com" }, allow_blank: true
   validates :uat_test_delay_minutes, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :uat_url, presence: true, if: :uat_test_enabled?
+  validates :ci_command, presence: { message: "is required for the ci_loop flow" }, if: :flow_ci_loop?
+  validates :flow, inclusion: { in: %w[standard], message: "ci_loop needs a Jira project" }, unless: :jira?
+  validates :ci_max_rounds, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }
 
   validates :local_url, format: { with: %r{\Ahttps?://[^/\s]+\S*\z}, message: "must be a full URL like http://localhost:3000" }, allow_blank: true
   validates :local_url, presence: true, if: :local_test_enabled?
@@ -37,6 +45,12 @@ class Project < ApplicationRecord
   # Position for a workflow appended after the project's existing ones.
   def next_workflow_position
     (workflows.maximum(:position) || 0) + 1
+  end
+
+  # Jira projects on the ci_loop flow run simple_implementation -> (ci_check -> ci_verify)* -> pr_create before review
+  # (see docs/RUNBOOK.md).
+  def ci_loop_ready?
+    jira? && flow_ci_loop?
   end
 
   def local_test_ready?

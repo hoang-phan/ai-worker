@@ -41,7 +41,7 @@ module Prompts
 
     def sections
       stage_type = stage.stage_type
-      retrying = stage.implementation? && stage.stage_runs.first&.action == "failed"
+      retrying = (stage.implementation? || stage.simple_implementation?) && stage.stage_runs.first&.action == "failed"
 
       [
         Prompts::StageSections::Retry.new(
