@@ -83,125 +83,17 @@
 </div>
 
 <% if @project.jira? %>
-  <div class="page-header">
-    <h2>Jira syncs</h2>
-    <div class="page-header__actions">
-      <%= link_to "New sync", new_project_jira_sync_path(@project), class: "btn btn-primary" %>
-    </div>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Scope</th>
-          <th>Auto</th>
-          <th>Last synced</th>
-          <th>Last result</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @project.jira_syncs.order(:id).each do |sync| %>
-          <tr>
-            <td><%= sync.label %></td>
-            <td><%= sync.auto_sync? ? "Yes" : "No" %></td>
-            <td class="text-muted"><%= sync.last_synced_at ? time_ago_in_words(sync.last_synced_at) + " ago" : "never" %></td>
-            <td class="text-muted"><%= sync.last_result %></td>
-            <td>
-              <%= button_to "Sync now", run_project_jira_sync_path(@project, sync), class: "link-action", form: { style: "display:inline" } %>
-              <%= link_to "Edit", edit_project_jira_sync_path(@project, sync), class: "link-action" %>
-              <%= link_to "Delete", project_jira_sync_path(@project, sync), class: "link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this sync?" } %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-    <% if @project.jira_syncs.empty? %>
-      <div class="empty-state">No syncs yet. <%= link_to "Add one", new_project_jira_sync_path(@project) %> to pull assigned tickets from a Jira project or parent ticket.</div>
-    <% end %>
-  </div>
+  <%= render "projects/jira_syncs", project: @project %>
 <% end %>
 
 <% if @project.jira? %>
-  <div class="page-header">
-    <h2>Bugsnag triage</h2>
-    <div class="page-header__actions">
-      <%= link_to "New sync", new_project_bugsnag_sync_path(@project), class: "btn btn-primary" %>
-    </div>
-  </div>
-
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Bugsnag → Jira</th>
-          <th>Auto</th>
-          <th>Ticketed</th>
-          <th>Last run</th>
-          <th>Last result</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @project.bugsnag_syncs.order(:id).each do |sync| %>
-          <tr>
-            <td><%= sync.label %></td>
-            <td><%= sync.auto_sync? ? "Weekdays 9 AM" : "No" %></td>
-            <td class="text-muted"><%= sync.ledger.size %></td>
-            <td class="text-muted"><%= sync.last_synced_at ? time_ago_in_words(sync.last_synced_at) + " ago" : "never" %></td>
-            <td class="text-muted"><%= sync.last_result %></td>
-            <td>
-              <%= button_to "Run now", run_project_bugsnag_sync_path(@project, sync), class: "link-action", form: { style: "display:inline" } %>
-              <%= link_to "Edit", edit_project_bugsnag_sync_path(@project, sync), class: "link-action" %>
-              <%= link_to "Delete", project_bugsnag_sync_path(@project, sync), class: "link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this sync?" } %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-    <% if @project.bugsnag_syncs.empty? %>
-      <div class="empty-state">No Bugsnag syncs yet. <%= link_to "Add one", new_project_bugsnag_sync_path(@project) %> to turn open Bugsnag errors into Jira Bugs.</div>
-    <% end %>
-  </div>
+  <%= render "projects/bugsnag_syncs", project: @project %>
 <% end %>
 
 <% if @project.personal? && (@project.brainstorm_enabled? || @project.brainstorm_goal.present?) %>
-  <div class="page-header">
-    <h2>Brainstorm</h2>
-    <div class="page-header__actions">
-      <%= button_to "Brainstorm now", brainstorm_project_path(@project), class: "btn btn-secondary" %>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="field">
-      <label>Goal</label>
-      <p><%= @project.brainstorm_goal.presence || "not set" %> &middot; <%= @project.brainstorm_enabled? ? "automatic every hour while no workflow is pending" : "automatic brainstorm off" %></p>
-    </div>
-    <div class="field">
-      <label>Last run</label>
-      <p class="text-muted"><%= @project.brainstorm_last_run_at ? time_ago_in_words(@project.brainstorm_last_run_at) + " ago" : "never" %><%= " · #{@project.brainstorm_last_result}" if @project.brainstorm_last_result.present? %> &middot; <%= @project.workflows.queued.count %> pending</p>
-    </div>
-  </div>
+  <%= render "projects/brainstorm", project: @project %>
 <% end %>
 
 <% if @project.jira? && (@project.slack_review_enabled? || @project.slack_mention.present?) %>
-  <div class="page-header">
-    <h2>Slack PR reviews</h2>
-    <div class="page-header__actions">
-      <%= button_to "Sync now", sync_slack_project_path(@project), class: "btn btn-secondary" %>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="field">
-      <label>Mention</label>
-      <p><%= @project.slack_mention.presence || "not set" %> &middot; <%= @project.slack_review_enabled? ? "automatic every 30 minutes" : "automatic sync off" %></p>
-    </div>
-    <div class="field">
-      <label>Last synced</label>
-      <p class="text-muted"><%= @project.slack_last_synced_at ? time_ago_in_words(@project.slack_last_synced_at) + " ago" : "never" %><%= " · #{@project.slack_last_result}" if @project.slack_last_result.present? %></p>
-    </div>
-  </div>
+  <%= render "projects/slack_reviews", project: @project %>
 <% end %>

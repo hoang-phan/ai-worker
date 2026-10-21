@@ -1,0 +1,17 @@
+<div class="page-header">
+  <h2>Slack PR reviews</h2>
+  <div class="page-header__actions">
+    <%= button_to "Sync now", sync_slack_project_path(project), class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="card">
+  <div class="field">
+    <label>Mention</label>
+    <p><%= project.slack_mention.presence || "not set" %> &middot; <%= project.slack_review_enabled? ? "automatic every 30 minutes" : "automatic sync off" %></p>
+  </div>
+  <div class="field">
+    <label>Last synced</label>
+    <p class="text-muted"><%= time_ago_or_never(project.slack_last_synced_at) %><%= " · #{project.slack_last_result}" if project.slack_last_result.present? %></p>
+  </div>
+</div>

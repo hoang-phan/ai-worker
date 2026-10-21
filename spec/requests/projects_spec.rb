@@ -95,4 +95,32 @@ RSpec.describe "Projects", type: :request do
       expect(flash[:alert]).to eq("Brainstorm failed: claude exploded")
     end
   end
+
+  describe "GET show" do
+    it "renders the Jira and Bugsnag sync sections for a jira project" do
+      project.jira_syncs.create!(jira_project: "SPEC")
+      project.bugsnag_syncs.create!(bugsnag_project: "spec-app", jira_project: "SPEC", last_synced_at: 2.hours.ago)
+
+      get project_path(project)
+
+      expect(response.body).to include("Jira syncs", "Bugsnag triage", "never", "about 2 hours ago")
+    end
+
+    it "renders the brainstorm section for a personal project" do
+      personal = Project.create!(name: "Personal spec", kind: :personal, local_directory: local_directory, brainstorm_enabled: true, brainstorm_goal: "Ship it", brainstorm_last_run_at: 3.days.ago)
+
+      get project_path(personal)
+
+      expect(response.body).to include("Brainstorm", "3 days ago")
+      expect(response.body).not_to include("Jira syncs")
+    end
+
+    it "says never for a brainstorm that has not run" do
+      personal = Project.create!(name: "Personal spec", kind: :personal, local_directory: local_directory, brainstorm_enabled: true, brainstorm_goal: "Ship it")
+
+      get project_path(personal)
+
+      expect(response.body).to include("Brainstorm", "never")
+    end
+  end
 end

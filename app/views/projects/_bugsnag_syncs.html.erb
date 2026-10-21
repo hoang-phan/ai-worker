@@ -1,0 +1,40 @@
+<div class="page-header">
+  <h2>Bugsnag triage</h2>
+  <div class="page-header__actions">
+    <%= link_to "New sync", new_project_bugsnag_sync_path(project), class: "btn btn-primary" %>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Bugsnag → Jira</th>
+        <th>Auto</th>
+        <th>Ticketed</th>
+        <th>Last run</th>
+        <th>Last result</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% project.bugsnag_syncs.order(:id).each do |sync| %>
+        <tr>
+          <td><%= sync.label %></td>
+          <td><%= sync.auto_sync? ? "Weekdays 9 AM" : "No" %></td>
+          <td class="text-muted"><%= sync.ledger.size %></td>
+          <td class="text-muted"><%= time_ago_or_never(sync.last_synced_at) %></td>
+          <td class="text-muted"><%= sync.last_result %></td>
+          <td>
+            <%= button_to "Run now", run_project_bugsnag_sync_path(project, sync), class: "link-action", form: { style: "display:inline" } %>
+            <%= link_to "Edit", edit_project_bugsnag_sync_path(project, sync), class: "link-action" %>
+            <%= link_to "Delete", project_bugsnag_sync_path(project, sync), class: "link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this sync?" } %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <% if project.bugsnag_syncs.empty? %>
+    <div class="empty-state">No Bugsnag syncs yet. <%= link_to "Add one", new_project_bugsnag_sync_path(project) %> to turn open Bugsnag errors into Jira Bugs.</div>
+  <% end %>
+</div>
