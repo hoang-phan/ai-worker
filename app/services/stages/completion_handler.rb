@@ -14,7 +14,7 @@ module Stages
 
     def call(output)
       case stage.stage_type
-      when "implementation" then finish_implementation(output)
+      when "implementation" then Stages::ImplementationFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output)
       when "pr_check" then Stages::PrCheckFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output)
       when "task" then finish_task(output)
       when "pr_review" then finish_pr_review(output)
@@ -28,16 +28,6 @@ module Stages
     private
 
     attr_reader :workflow, :stage, :project, :github, :git, :handoff
-
-    def finish_implementation(output)
-      pr_url = github.find_pr_url(branch_name: workflow.branch_name, jira_ticket: workflow.jira_ticket, output: output)
-      testing_locally = workflow.development? && project.local_test_ready?
-      workflow.update!(Workflow::AI_RUN_RESET.merge(github_pr_url: pr_url, status: testing_locally ? :local_testing : :reviewing))
-      stage.log_run!("ran_implementation", output: output)
-      # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
-      handoff.enable_auto_merge!(pr_url) unless testing_locally
-      handoff.notify_reviewers! unless testing_locally
-    end
 
     def finish_task(output)
       workflow.update!(Workflow::AI_RUN_RESET.merge(status: :done))

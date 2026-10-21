@@ -29,31 +29,17 @@ RSpec.describe Stages::CompletionHandler, type: :service do
     FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
-  it "clears the AI-run fields on completion" do
-    handle
-    expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0)
-  end
-
   describe "implementation" do
-    it "records the discovered PR, moves to reviewing, enables auto-merge and notifies reviewers" do
-      allow(project).to receive(:local_test_ready?).and_return(false)
+    let(:implementation_finish) { instance_double(Stages::ImplementationFinish, call: nil) }
+
+    it "delegates to ImplementationFinish" do
+      allow(Stages::ImplementationFinish).to receive(:new).and_return(implementation_finish)
       handle
 
-      expect(github).to have_received(:find_pr_url).with(branch_name: "completion-handler", jira_ticket: "DONE-1", output: output)
-      expect(workflow.reload).to have_attributes(github_pr_url: "https://github.com/acme/widgets/pull/9", status: "reviewing")
-      expect(actions).to match_array(%w[ran_implementation])
-      expect(handoff).to have_received(:enable_auto_merge!).with("https://github.com/acme/widgets/pull/9")
-      expect(handoff).to have_received(:notify_reviewers!).with(no_args)
-    end
-
-    it "waits for the local test before auto-merge or notification on development workflows" do
-      allow(project).to receive(:local_test_ready?).and_return(true)
-      allow(workflow).to receive(:development?).and_return(true)
-      handle
-
-      expect(workflow.reload.status).to eq "local_testing"
-      expect(handoff).not_to have_received(:enable_auto_merge!)
-      expect(handoff).not_to have_received(:notify_reviewers!)
+      expect(Stages::ImplementationFinish).to have_received(:new).with(
+        workflow: workflow, stage: stage, project: project, github: github, handoff: handoff
+      )
+      expect(implementation_finish).to have_received(:call).with(output)
     end
   end
 
