@@ -83,21 +83,17 @@ class Workflow < ApplicationRecord
 
   # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
   def brief
-    (summary.presence || label).to_s.squish.truncate(SUMMARY_LENGTH)
+    Workflows::Label.new(self).brief
   end
 
   # "org/repo#123" for PR-review workflows, otherwise the Jira ticket / task.
   def label
-    if runbook?
-      summary = variables.values.compact_blank.join(" · ").squish.truncate(60)
-      summary.presence || "Run ##{id}"
-    elsif pr_review?
-      github_pr_url.to_s[%r{github\.com/([^/]+/[^/]+)/pull/(\d+)}] && "#{$1}##{$2}"
-    elsif project.personal?
-      task_description.to_s
-    else
-      jira_ticket.to_s
-    end
+    Workflows::Label.new(self).value
+  end
+
+  # The page heading on the workflow show screen.
+  def heading
+    Workflows::Label.new(self).heading
   end
 
   def variables

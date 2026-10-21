@@ -2,7 +2,7 @@
 
 <div class="page-header">
   <div>
-    <h1><%= @workflow.runbook? ? @workflow.label : @workflow.pr_review? ? "Review #{@workflow.label}" : (@project.personal? ? "Task ##{@workflow.id}" : @workflow.jira_ticket) %></h1>
+    <h1><%= @workflow.heading %></h1>
   </div>
   <div class="page-header__actions">
     <% if @workflow.pending? %>
