@@ -97,6 +97,15 @@ RSpec.describe "Projects", type: :request do
   end
 
   describe "GET show" do
+    it "keeps workflow rows compact and uses accessible icon controls for PRs and editing" do
+      workflow = project.workflows.create!(jira_ticket: "COMPACT-1", branch_name: "hidden-branch", github_reviewer: "someone", github_pr_url: "https://github.com/org/repo/pull/1")
+
+      get project_path(project)
+
+      expect(response.body).to include('class="workflow-table"', 'aria-label="Open pull request for COMPACT-1"', 'aria-label="Edit COMPACT-1"')
+      expect(response.body).not_to include("Current stage", "<th>Branch</th>", "hidden-branch", ">View PR<", ">Edit<")
+    end
+
     it "shows time-log status and makes only unlogged tickets selectable by the header checkbox" do
       logged = project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone")
       unlogged = project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "spec-2", github_reviewer: "someone")

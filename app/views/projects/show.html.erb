@@ -26,7 +26,7 @@
 <% end %>
 
 <div class="table-wrap" data-controller="select-all">
-  <table>
+  <table class="workflow-table">
     <thead>
       <tr>
         <% if @project.jira? %>
@@ -37,11 +37,7 @@
         <% if @project.jira? %>
           <th>Time</th>
         <% end %>
-        <% unless @project.personal? %>
-          <th>Branch</th>
-        <% end %>
         <th>Status</th>
-        <th>Current stage</th>
         <% unless @project.personal? %>
           <th>PR</th>
         <% end %>
@@ -69,21 +65,25 @@
               <% end %>
             </td>
           <% end %>
-          <% unless @project.personal? %>
-            <td class="text-muted"><%= workflow.branch_name %></td>
-          <% end %>
           <td>
             <%= workflow_status_badge(workflow) %>
           </td>
-          <td><%= workflow.runbook? ? (workflow.current_stage&.display_name || workflow.status) : (workflow.current_stage&.stage_type || workflow.status) %></td>
           <% unless @project.personal? %>
-            <td><%= link_to "View PR", workflow.github_pr_url, target: "_blank", rel: "noopener", class: "link-action" if workflow.github_pr_url.present? %></td>
+            <td>
+              <% if workflow.github_pr_url.present? %>
+                <%= link_to workflow.github_pr_url, target: "_blank", rel: "noopener", class: "icon-button", aria: { label: "Open pull request for #{workflow.label}" }, title: "Open pull request" do %>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42L17.59 5H14V3Zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7Z"/></svg>
+                <% end %>
+              <% end %>
+            </td>
           <% end %>
-          <td>
+          <td class="actions-cell">
             <% if workflow.pending? %>
               <%= button_to "Start", start_project_workflow_path(@project, workflow), method: :post, class: "link-action", form: { style: "display:inline" } %>
             <% end %>
-            <%= link_to "Edit", edit_project_workflow_path(@project, workflow), class: "link-action" %>
+            <%= link_to edit_project_workflow_path(@project, workflow), class: "icon-button", aria: { label: "Edit #{workflow.label}" }, title: "Edit workflow" do %>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>
+            <% end %>
           </td>
         </tr>
       <% end %>
