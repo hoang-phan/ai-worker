@@ -60,35 +60,27 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "task" do
     let(:stage_type) { :task }
+    let(:task_finish) { instance_double(Stages::TaskFinish, call: nil) }
 
-    it "completes the workflow and logs a push" do
+    it "delegates to TaskFinish" do
+      allow(Stages::TaskFinish).to receive(:new).and_return(task_finish)
       handle
-      expect(workflow.reload.status).to eq "done"
-      expect(actions).to match_array(%w[task_completed task_pushed])
-      expect(git).to have_received(:push_current!).with(project)
-    end
 
-    it "does not log a push when nothing was pushed" do
-      allow(git).to receive(:push_current!).and_return(:nothing)
-      handle
-      expect(actions).to match_array(%w[task_completed])
-    end
-
-    it "logs a failed push without failing" do
-      allow(git).to receive(:push_current!).and_raise(Git::CommandError, "rejected")
-      expect { handle }.not_to raise_error
-      expect(workflow.reload.status).to eq "done"
-      expect(stage.stage_runs.find_by(action: "task_push_failed").error).to eq "rejected"
+      expect(Stages::TaskFinish).to have_received(:new).with(workflow: workflow, stage: stage, project: project, git: git)
+      expect(task_finish).to have_received(:call).with(output)
     end
   end
 
   describe "pr_review" do
     let(:stage_type) { :pr_review }
+    let(:pr_review_finish) { instance_double(Stages::PrReviewFinish, call: nil) }
 
-    it "marks the workflow done and logs review_completed" do
+    it "delegates to PrReviewFinish" do
+      allow(Stages::PrReviewFinish).to receive(:new).and_return(pr_review_finish)
       handle
-      expect(workflow.reload.status).to eq "done"
-      expect(actions).to match_array(%w[review_completed])
+
+      expect(Stages::PrReviewFinish).to have_received(:new).with(workflow: workflow, stage: stage)
+      expect(pr_review_finish).to have_received(:call).with(output)
     end
   end
 
