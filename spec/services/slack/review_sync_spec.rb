@@ -45,66 +45,24 @@ RSpec.describe Slack::ReviewSync do
       expect(Github::Client).not_to have_received(:new)
     end
 
-    it "creates a pr_review workflow for an open PR by someone else" do
+    it "delegates to ReviewImporter with a fresh result and the GitHub client" do
+      importer = instance_double(Slack::ReviewImporter)
+      allow(Slack::ReviewImporter).to receive(:new).with(project, github: github).and_return(importer)
+      allow(importer).to receive(:import) { |_mentions, result| result }
+
+      result = sync.import([ mention ])
+
+      expect(importer).to have_received(:import).with([ mention ], result)
+      expect(result).to have_attributes(blockers: [], created: [], skipped: [], failed: [], skipped_reasons: {})
+    end
+
+    it "imports end to end" do
       stub_pr(pr_url)
 
       result = sync.import([ mention ])
 
       expect(result.created).to eq([ pr_url ])
-      workflow = project.workflows.pr_review.last
-      expect([ workflow.slack_url, workflow.github_pr_url, workflow.status, workflow.position ]).to eq([ slack_url, pr_url, "implementing", 1 ])
-    end
-
-    it "ignores PRs from other repos" do
-      other = "https://github.com/other/repo/pull/3"
-
-      result = sync.import([ { "slack_url" => slack_url, "pr_urls" => [ other ] } ])
-
-      expect(result.created).to be_empty
-      expect(result.skipped).to be_empty
-      expect(github).not_to have_received(:pr_info)
-    end
-
-    it "skips already-imported (slack_url, pr_url) pairs but imports the same PR from another message" do
-      project.workflows.create!(kind: :pr_review, slack_url: slack_url, github_pr_url: pr_url, position: 1)
-      stub_pr(pr_url)
-
-      same = sync.import([ mention ])
-      other = sync.import([ { "slack_url" => "#{slack_url}9", "pr_urls" => [ pr_url ] } ])
-
-      expect(same.skipped).to eq([ pr_url ])
-      expect(same.skipped_reasons).to eq("already imported" => 1)
-      expect(other.created).to eq([ pr_url ])
-    end
-
-    it "skips non-OPEN PRs with the state as the reason" do
-      stub_pr(pr_url, state: "MERGED")
-
-      result = sync.import([ mention ])
-
-      expect(result.skipped).to eq([ pr_url ])
-      expect(result.skipped_reasons).to eq("merged" => 1)
-      expect(project.workflows.count).to eq(0)
-    end
-
-    it "skips the user's own PRs case-insensitively" do
-      stub_pr(pr_url, author: "ME")
-
-      result = sync.import([ mention ])
-
-      expect(result.skipped).to eq([ pr_url ])
-      expect(result.skipped_reasons).to eq("own PR" => 1)
-    end
-
-    it "records Github::CommandError in failed and carries on" do
-      second = "https://github.com/acme/widgets/pull/13"
-      allow(github).to receive(:pr_info).with(pr_url).and_raise(Github::CommandError, "gh exploded")
-      stub_pr(second)
-
-      result = sync.import([ { "slack_url" => slack_url, "pr_urls" => [ pr_url, second ] } ])
-
-      expect(result.failed).to eq([ "#{pr_url}: gh exploded" ])
-      expect(result.created).to eq([ second ])
+      expect(result.summary).to eq("created 1, skipped 0, failed 0")
     end
   end
 
