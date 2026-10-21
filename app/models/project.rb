@@ -45,11 +45,7 @@ class Project < ApplicationRecord
 
   # `slack_user_map` is one `github-login=SlackUserID` per line (commas work too), used to tag reviewers in Slack.
   def slack_user_id_for(github_login)
-    slack_user_map.to_s.split(/[\n,]+/).each do |entry|
-      login, id = entry.split(/[=:]/, 2).map(&:strip)
-      return id if id.present? && login.to_s.casecmp?(github_login.to_s.delete_prefix("@"))
-    end
-    nil
+    Projects::SlackUserMap.new(slack_user_map).slack_id_for(github_login)
   end
 
   def uat_test_ready?

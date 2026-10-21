@@ -88,4 +88,11 @@ RSpec.describe Project, type: :model do
       expect(project.next_workflow_position).to eq(8)
     end
   end
+
+  describe "#slack_user_id_for" do
+    it "delegates to Projects::SlackUserMap" do
+      project = Project.new(slack_user_map: "octocat=U1")
+      expect(project.slack_user_id_for("@Octocat")).to eq("U1")
+    end
+  end
 end
