@@ -4,18 +4,7 @@ module Jira
   # Idempotent: a ticket that already has a workflow in this project (in any
   # status) is skipped.
   class TicketSync
-    KEY_PATTERN = /[A-Z][A-Z0-9]+-\d+/
-
     Result = Struct.new(:blockers, :created, :skipped, :failed, keyword_init: true)
-
-    # "https://x.atlassian.net/browse/UIUX-3456" -> "UIUX-3456"
-    def self.branch_name_for(url)
-      url.to_s.split("browse/").last.to_s.split(%r{[/?#]}).first
-    end
-
-    def self.ticket_key(value)
-      value.to_s[KEY_PATTERN]
-    end
 
     def initialize(jira_sync)
       @jira_sync = jira_sync
@@ -62,15 +51,15 @@ module Jira
     attr_reader :jira_sync, :project
 
     def existing_keys
-      keys = project.workflows.pluck(:jira_ticket).filter_map { |t| self.class.ticket_key(self.class.branch_name_for(t)) }
+      keys = project.workflows.pluck(:jira_ticket).filter_map { |t| TicketRef.key_for(t) }
       Set.new(keys)
     end
 
     def create_workflow(issue, result)
-      url = "#{project.jira_base_url.chomp("/")}/browse/#{issue["key"]}"
+      url = TicketRef.url_for(project.jira_base_url, issue["key"])
       workflow = project.workflows.new(
         jira_ticket: url,
-        branch_name: self.class.branch_name_for(url),
+        branch_name: TicketRef.branch_name_for(url),
         github_reviewer: project.default_reviewers,
         skills: project.default_skills,
         position: project.next_workflow_position

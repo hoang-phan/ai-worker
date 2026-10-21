@@ -15,7 +15,7 @@ module Jira
       raise WorklogError, "#{workflow.label}: only Jira development workflows can log time" unless project.jira? && workflow.development?
       raise WorklogError, "#{workflow.label}: Jira site URL is not set on the project" if project.jira_base_url.blank?
 
-      key = TicketSync.ticket_key(TicketSync.branch_name_for(workflow.jira_ticket))
+      key = TicketRef.key_for(workflow.jira_ticket)
       raise WorklogError, "#{workflow.label}: no Jira ticket key found" if key.blank?
 
       seconds = (hours.to_f * 3600).round
