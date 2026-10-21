@@ -1,5 +1,3 @@
-require "fileutils"
-
 module Brainstorm
   class FetchError < StandardError; end
 
@@ -52,34 +50,21 @@ module Brainstorm
     end
 
     def running?
-      run.running?
+      lifecycle.running?
     end
 
     def last_started_at
-      run.last_started_at
+      lifecycle.last_started_at
     end
 
     def start
-      return false if running?
-
-      FileUtils.mkdir_p(dir)
-      FileUtils.rm_f(retried_file)
-      log_file.write("")
-      launch
-      true
+      lifecycle.start(prepare: method(:write_history), **launch_inputs)
     end
 
     # nil while running (or nothing started); once finished, the array of { "summary", "task" } the agent proposed.
     # Raises FetchError on failure.
     def poll
-      return unless pid_file.exist?
-
-      unless run.running? || result_file.exist?
-        FileUtils.rm_f(pid_file)
-        return handle_missing_result
-      end
-
-      run.poll { |rows| ProposalNormalizer.call(rows) }
+      lifecycle.poll(prepare: method(:write_history), **launch_inputs) { |rows| ProposalNormalizer.call(rows) }
     end
 
     # Creates a workflow per proposal; see ProposalImporter for the rules.
@@ -91,8 +76,8 @@ module Brainstorm
 
     attr_reader :project, :dir
 
-    def run
-      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
+    def lifecycle
+      @lifecycle ||= RunLifecycle.new(dir: dir, stale_after: STALE_AFTER)
     end
 
     # Workflows that are not in the code yet (the only ones the agent can't see by reading it).
@@ -104,20 +89,18 @@ module Brainstorm
       in_flight.map { |workflow| "- #{workflow.brief}" }
     end
 
-    def launch
-      history_file.write(history_lines.join("\n"))
-      run.start(cwd: project.local_directory, prompt: prompt, allowed_tools: ALLOWED_TOOLS,
-                model: self.class.model, effort: self.class.effort)
+    def launch_inputs
+      {
+        cwd: project.local_directory,
+        prompt: prompt,
+        allowed_tools: ALLOWED_TOOLS,
+        model: self.class.model,
+        effort: self.class.effort
+      }
     end
 
-    # The process finished without writing result.json: retry once if its API stream was cut, else fail.
-    def handle_missing_result
-      outcome = RunOutcome.new(log_path: log_file, retried: retried_file.exist?)
-      raise FetchError, "agent wrote no #{result_file.basename} (#{outcome.failure_reason}); see #{log_file}" unless outcome.retry?
-
-      FileUtils.touch(retried_file)
-      launch
-      nil
+    def write_history
+      history_file.write(history_lines.join("\n"))
     end
 
     def prompt
@@ -128,10 +111,6 @@ module Brainstorm
       ).to_s
     end
 
-    def pid_file
-      dir.join("pid")
-    end
-
     def result_file
       dir.join("result.json")
     end
@@ -140,12 +119,5 @@ module Brainstorm
       dir.join("history.md")
     end
 
-    def log_file
-      run.log_path
-    end
-
-    def retried_file
-      dir.join("retried")
-    end
   end
 end
