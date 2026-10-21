@@ -24,7 +24,7 @@ module Brainstorm
     # Read-only: the agent may look at the code and git history, and write the result file, nothing else.
     ALLOWED_TOOLS = [ "Read", "Grep", "Glob", "Write", "Bash(git log:*)", "Bash(git ls-files:*)", "Bash(git status:*)", "Bash(git diff:*)" ].freeze
 
-    Result = Struct.new(:created, :skipped, keyword_init: true)
+    Result = ProposalImporter::Result
 
     def self.model
       ENV["BRAINSTORM_MODEL"].presence || DEFAULT_MODEL
@@ -83,35 +83,9 @@ module Brainstorm
       run.poll { |rows| ProposalNormalizer.call(rows) }
     end
 
-    # Creates a workflow per proposal (up to the project's maximum), skipping any whose summary matches an existing
-    # workflow. Only while the queue is still empty, so a manual workflow added meanwhile isn't buried.
+    # Creates a workflow per proposal; see ProposalImporter for the rules.
     def import(proposals)
-      result = Result.new(created: [], skipped: [])
-      return result if queued_count.positive?
-
-      known = in_flight.map { |workflow| normalize(workflow.brief) }.to_set
-      proposals.each do |proposal|
-        break if result.created.size >= project.brainstorm_max_workflows
-
-        key = normalize(proposal["summary"])
-        if known.include?(key)
-          result.skipped << proposal["summary"]
-          next
-        end
-
-        workflow = project.workflows.new(
-          summary: proposal["summary"], task_description: proposal["task"], skills: project.default_skills,
-          status: project.brainstorm_auto_start? ? :implementing : :pending,
-          position: project.next_workflow_position
-        )
-        if workflow.save
-          known << key
-          result.created << workflow.summary
-        else
-          result.skipped << "#{proposal['summary']} (#{workflow.errors.full_messages.to_sentence})"
-        end
-      end
-      result
+      ProposalImporter.new(project, in_flight: in_flight).call(proposals)
     end
 
     private
@@ -120,10 +94,6 @@ module Brainstorm
 
     def run
       @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
-
-    def normalize(text)
-      text.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip
     end
 
     # Workflows that are not in the code yet (the only ones the agent can't see by reading it).
