@@ -9,7 +9,7 @@ RSpec.describe Slack::ReviewNotifier do
   after { FileUtils.rm_rf(dir) }
 
   describe "#message" do
-    it "tags mapped reviewers and links the PR in markdown" do
+    it "delegates to Slack::ReviewMessage with the project's Slack id lookup" do
       allow(project).to receive(:slack_user_id_for).with("bob").and_return("U1")
       text = notifier.message(pr_url: "https://github.com/o/r/pull/1", label: "ENG-1 [x]", reviewers: %w[bob amy])
       expect(text).to eq(":eyes: <@U1> @amy please review [ENG-1 (x)](https://github.com/o/r/pull/1)")
