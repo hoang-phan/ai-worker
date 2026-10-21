@@ -112,6 +112,16 @@ RSpec.describe Stages::StartHandler, type: :service do
       expect_run_started(mcp_config: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
     end
 
+    it "delegates to BrowserTestStart for the uat kind" do
+      starter = instance_double(Stages::BrowserTestStart, call: nil)
+      allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
+      handler.call
+
+      expect(Stages::BrowserTestStart).to have_received(:new)
+        .with(workflow: workflow, project: project, kind: :uat, prompt: prompt, git: git, launcher: launcher)
+      expect(starter).to have_received(:call)
+    end
+
     it "propagates a validation error" do
       invalid = double("AiCli::BrowserTestRun")
       allow(invalid).to receive(:validate!).and_raise(ArgumentError, "no uat")
@@ -131,6 +141,20 @@ RSpec.describe Stages::StartHandler, type: :service do
 
       expect(git).to have_received(:checkout_remote_branch!).with(project, "start-handler")
       expect_run_started(mcp_config: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
+    end
+  end
+
+  describe "local_test delegation" do
+    let(:stage_type) { :local_test }
+
+    it "delegates to BrowserTestStart for the local kind" do
+      starter = instance_double(Stages::BrowserTestStart, call: nil)
+      allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
+      handler.call
+
+      expect(Stages::BrowserTestStart).to have_received(:new)
+        .with(workflow: workflow, project: project, kind: :local, prompt: prompt, git: git, launcher: launcher)
+      expect(starter).to have_received(:call)
     end
   end
 

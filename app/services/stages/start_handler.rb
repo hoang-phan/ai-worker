@@ -71,24 +71,21 @@ module Stages
     end
 
     # The agent tests the ticket in a headless browser (Playwright MCP) on the project's UAT site, records
-    # video + trace, attaches them to the ticket and comments with the result (the prompt tells it to). The browser
-    # server, its output directory and the UAT/Jira credentials are wired in per run; credentials only travel as
-    # environment variables of the agent process, never in the prompt or the logs we write.
+    # video + trace, attaches them to the ticket and comments with the result (the prompt tells it to).
     def start_uat_test
-      run = AiCli::BrowserTestRun.new(project, workflow, kind: :uat).validate!
-      start_browser_test(run)
+      start_browser_test(:uat)
     end
 
     # Same browser setup as the UAT test, but against the project's own development server, on the PR's branch, after the
-    # PR exists and before review. The local login travels as environment variables only, like the UAT one.
+    # PR exists and before review.
     def start_local_test
-      run = AiCli::BrowserTestRun.new(project, workflow, kind: :local).validate!
-      git.checkout_remote_branch!(project, workflow.branch_name)
-      start_browser_test(run)
+      start_browser_test(:local)
     end
 
-    def start_browser_test(run)
-      launcher.call(prompt.body, mcp_config: run.mcp_config_path, env: run.env, disallowed_tools: run.disallowed_tools)
+    def start_browser_test(kind)
+      Stages::BrowserTestStart.new(
+        workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
+      ).call
     end
 
     # Runbook stages are plain agent runs: `agent` runs the prompt as written,
