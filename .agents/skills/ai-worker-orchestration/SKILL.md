@@ -25,6 +25,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 
 **Git / GitHub**
 - `app/services/git/branch_service.rb` — all git operations in the project's clone: create/resume a workflow's branch from fresh `main`, merge `main` into it (reporting conflicts), check out a remote branch, detect/abort an in-progress merge.
+- `app/services/git/shell.rb` runs every `git` subprocess for `Git::BranchService` (argv + `chdir:`, `run`/`run!`/`success?`, auto-stashing `checkout!`, raises `Git::CommandError`).
 - `app/services/github/client.rb` — facade (`Github::Client.new(project)`) delegating to `github/reader.rb` (query-only: finding a PR, PR info, merged/review-decision/checks state, Actions run state) and `github/writer.rb` (requesting review, enabling auto-merge, checking out fork PRs). `github/runner.rb` builds the `gh` argv in the project's clone and raises `Github::CommandError`; Reader and Writer share it. PR *creation* is never done here — the agent does it during the implementation run, per its prompt.
 
 **Detached-agent sync services** (same shape: a state directory under `tmp/` holding pid, start time, result file and log; `start` spawns an agent via `AiCli::Runner`; `running?`/`poll` read back the result file once the process ends and raise the module's own `FetchError` on a bad or missing result; `import` creates records idempotently; `blockers` lists why it can't run, on the fetcher or on its sync wrapper)
