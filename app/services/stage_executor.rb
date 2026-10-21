@@ -27,18 +27,6 @@ class StageExecutor
     fail_stage(e)
   end
 
-  # A `done` workflow whose PR has since been merged becomes `merged`. Called
-  # by the scheduler only on idle ticks. A failed lookup is logged and retried
-  # next idle tick — it never fails the workflow.
-  def check_merged
-    return unless Github::Client.new(project).merged?(workflow.github_pr_url)
-
-    workflow.update!(status: :merged)
-    stage.log_run!("pr_merged_detected")
-  rescue Github::CommandError => e
-    stage.log_run!("merge_check_failed", error: e.message)
-  end
-
   private
 
   attr_reader :workflow, :stage, :project

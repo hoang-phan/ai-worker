@@ -88,7 +88,9 @@ class WorkflowSchedulerJob < ApplicationJob
       next unless workflow.tracks_jira_after_merge?
 
       pr_check = workflow.stages.find_by(stage_type: :pr_check)
-      StageExecutor.new(workflow, pr_check).check_merged if pr_check
+      next unless pr_check
+
+      Stages::MergeCheck.new(workflow: workflow, stage: pr_check, github: Github::Client.new(workflow.project)).call
     rescue StandardError => e
       Rails.logger.error("[scheduler] merge check workflow=#{workflow.id} #{e.class}: #{e.message}")
     end

@@ -26,8 +26,11 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
 
         workflow.update!(processing: true) if starting_workflow_ids.include?(workflow.id)
       end
-      allow(executor).to receive(:check_merged) { merge_checks << workflow.id }
       executor
+    end
+    allow(Github::Client).to receive(:new)
+    allow(Stages::MergeCheck).to receive(:new) do |workflow:, **|
+      instance_double(Stages::MergeCheck, call: merge_checks << workflow.id)
     end
   end
 
