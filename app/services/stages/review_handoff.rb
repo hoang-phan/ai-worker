@@ -21,16 +21,16 @@ module Stages
         thread_ts: thread_ts
       )
       store_thread_ts(returned_thread_ts) if thread_ts.blank?
-      log(action: "slack_review_notified")
+      stage.log_run!("slack_review_notified")
     rescue Slack::NotifyError, Github::CommandError => e
-      log(action: "slack_review_notify_failed", error: e.message)
+      stage.log_run!("slack_review_notify_failed", error: e.message)
     end
 
     def enable_auto_merge!(pr_url)
       Github::Client.new(project).enable_auto_merge!(pr_url)
-      log(action: "auto_merge_enabled")
+      stage.log_run!("auto_merge_enabled")
     rescue Github::CommandError => e
-      log(action: "auto_merge_failed", error: e.message)
+      stage.log_run!("auto_merge_failed", error: e.message)
     end
 
     def reviewers
@@ -50,10 +50,6 @@ module Stages
       return if workflow.slack_review_thread_ts.present?
 
       workflow.update!(slack_review_thread_ts: value)
-    end
-
-    def log(action:, output: nil, error: nil)
-      stage.stage_runs.create!(action: action, output: output, error: error)
     end
   end
 end

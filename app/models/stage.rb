@@ -44,6 +44,11 @@ class Stage < ApplicationRecord
     last.present? && last != "local_test_completed"
   end
 
+  # Records one audit-log row for this stage; `action` must be in StageRun::ACTIONS (raises RecordInvalid otherwise).
+  def log_run!(action, output: nil, error: nil)
+    stage_runs.create!(action: action, output: output, error: error)
+  end
+
   def display_name
     name.presence || stage_type.humanize
   end

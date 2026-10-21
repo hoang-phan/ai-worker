@@ -117,4 +117,24 @@ RSpec.describe Stage, type: :model do
       expect(stage).not_to be_local_test_unfinished
     end
   end
+
+  describe "#log_run!" do
+    it "persists the action, output and error and returns the run" do
+      run = stage.log_run!("failed", output: "some output", error: "boom")
+
+      expect(run).to be_persisted
+      expect(run.reload).to have_attributes(stage: stage, action: "failed", output: "some output", error: "boom")
+    end
+
+    it "leaves output and error nil by default" do
+      run = stage.log_run!("started")
+
+      expect(run).to have_attributes(action: "started", output: nil, error: nil)
+    end
+
+    it "raises RecordInvalid for an action outside StageRun::ACTIONS" do
+      expect { stage.log_run!("not_a_real_action") }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(stage.stage_runs.count).to eq(0)
+    end
+  end
 end

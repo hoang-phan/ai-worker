@@ -34,9 +34,9 @@ class StageExecutor
     return unless Github::Client.new(project).merged?(workflow.github_pr_url)
 
     workflow.update!(status: :merged)
-    log(action: "pr_merged_detected")
+    stage.log_run!("pr_merged_detected")
   rescue Github::CommandError => e
-    log(action: "merge_check_failed", error: e.message)
+    stage.log_run!("merge_check_failed", error: e.message)
   end
 
   private
@@ -83,7 +83,7 @@ class StageExecutor
     end
 
     workflow.update!(Workflow::AI_RUN_RESET)
-    log(action: "conflicts_resolved", output: output)
+    stage.log_run!("conflicts_resolved", output: output)
     start_handler.start_ai_run(prompt.body)
   end
 
@@ -103,9 +103,5 @@ class StageExecutor
 
   def prompt
     @prompt ||= Prompts::StagePrompt.new(workflow, stage)
-  end
-
-  def log(action:, output: nil, error: nil)
-    stage.stage_runs.create!(action: action, output: output, error: error)
   end
 end

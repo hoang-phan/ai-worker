@@ -20,12 +20,12 @@ module Stages
       state = github.workflow_run_state(stage.wait_for_workflow, since: since, repo: workflow.variables["REPO"])
       case state[:state]
       when :success
-        stage.stage_runs.create!(action: "check_passed", output: state[:url])
+        stage.log_run!("check_passed", output: state[:url])
         Result.new(passed: true)
       when :failed
         raise Github::CommandError, "GitHub Actions #{stage.wait_for_workflow} finished with #{state[:conclusion]}: #{state[:url]}"
       else
-        stage.stage_runs.create!(action: "waiting_for_check", output: state[:url]) unless stage.last_action == "waiting_for_check"
+        stage.log_run!("waiting_for_check", output: state[:url]) unless stage.last_action == "waiting_for_check"
         Result.new(passed: false)
       end
     end

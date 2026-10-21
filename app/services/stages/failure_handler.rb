@@ -14,7 +14,7 @@ module Stages
     def call
       Git::BranchService.abort_merge!(project) if stage.resolving_conflicts?
       workflow.update!(Workflow::AI_RUN_RESET.merge(auto_run: false))
-      stage.stage_runs.create!(action: "failed", error: error.message)
+      stage.log_run!("failed", error: error.message)
       workflow.update!(status: :errored) if stage.consecutive_failures >= threshold
     end
 

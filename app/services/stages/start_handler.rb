@@ -41,7 +41,7 @@ module Stages
         ai_started_at: Time.current,
         ai_log_offset: 0
       )
-      log(action: action)
+      stage.log_run!(action)
     end
 
     private
@@ -70,7 +70,7 @@ module Stages
 
       unless info["state"] == "OPEN"
         workflow.update!(status: :done)
-        return log(action: "pr_not_open_skipped")
+        return stage.log_run!("pr_not_open_skipped")
       end
 
       if info["cross_repository"]
@@ -121,7 +121,7 @@ module Stages
       # A merged PR is done — skip review/check inspection entirely.
       if github.merged?(workflow.github_pr_url)
         workflow.update!(status: :merged)
-        return log(action: "pr_merged_closed")
+        return stage.log_run!("pr_merged_closed")
       end
 
       result = Stages::PrCheckDecision.new(
@@ -129,12 +129,12 @@ module Stages
         local_test_failing: workflow.local_test_feedback.present?,
         checks_failing: -> { github.checks_failing?(workflow.github_pr_url) }
       ).call
-      result.actions.each { |action| log(action: action) }
+      result.actions.each { |action| stage.log_run!(action) }
 
       case result.decision
       when :approved
         workflow.update!(status: :done)
-        log(action: "approved_closed")
+        stage.log_run!("approved_closed")
       when :changes_requested
         if git.update_with_main!(project, workflow.branch_name) == :conflict
           start_ai_run(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
@@ -142,12 +142,8 @@ module Stages
           start_ai_run(prompt.body)
         end
       else
-        log(action: "no_action_pending")
+        stage.log_run!("no_action_pending")
       end
-    end
-
-    def log(action:, output: nil, error: nil)
-      stage.stage_runs.create!(action: action, output: output, error: error)
     end
   end
 end
