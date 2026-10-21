@@ -31,23 +31,13 @@ module AiCli
     def self.available_agents = AgentSetting.available
 
     def self.start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
-      new(log_tag: nil).start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools,
-                              mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools, model: model, effort: effort)
+      new.start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools,
+                    mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools, model: model, effort: effort)
     end
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].
     def self.poll(pid)
-      new(log_tag: nil).poll(pid)
-    end
-
-    # Logs (and returns) any log file content written since from_offset.
-    # Returns the new offset to pass in next time.
-    def self.tail_new_lines(log_path, from_offset:, log_tag: nil)
-      new(log_tag: log_tag).tail_new_lines(log_path, from_offset: from_offset)
-    end
-
-    def initialize(log_tag:)
-      @log_tag = log_tag
+      new.poll(pid)
     end
 
     # allowed_tools (claude only): run with exactly these tools approved
@@ -100,26 +90,6 @@ module AiCli
       end
     rescue Errno::ESRCH
       [ :completed, nil ]
-    end
-
-    def tail_new_lines(log_path, from_offset:)
-      return [ "", from_offset ] unless File.exist?(log_path)
-
-      content = File.open(log_path, "rb") do |f|
-        f.seek(from_offset)
-        f.read
-      end.to_s
-
-      content.each_line { |line| log_line(line) }
-      [ content, from_offset + content.bytesize ]
-    end
-
-    private
-
-    attr_reader :log_tag
-
-    def log_line(line)
-      Rails.logger.info("[ai_cli #{log_tag}] #{line.chomp}")
     end
   end
 end

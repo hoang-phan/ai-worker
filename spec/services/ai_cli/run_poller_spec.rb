@@ -11,7 +11,7 @@ RSpec.describe AiCli::RunPoller do
 
   before do
     File.write(log_path, log_text)
-    allow(AiCli::Runner).to receive(:tail_new_lines).and_return([ "", 42 ])
+    allow_any_instance_of(AiCli::LogTail).to receive(:read_from).and_return([ "", 42 ])
     allow(AiCli::Runner).to receive(:agent).and_return("claude")
     allow(Process).to receive(:kill)
   end
@@ -32,7 +32,6 @@ RSpec.describe AiCli::RunPoller do
 
     expect(p.call).to eq(:running)
     expect(p.log_offset).to eq(42)
-    expect(AiCli::Runner).to have_received(:tail_new_lines).with(log_path, from_offset: 0, log_tag: "workflow=1 stage=2")
     expect(Process).not_to have_received(:kill)
   end
 

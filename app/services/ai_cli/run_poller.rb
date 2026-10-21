@@ -6,10 +6,9 @@ module AiCli
 
     def initialize(pid:, log_path:, log_offset:, started_at:, log_tag:, stale_after:)
       @pid = pid
-      @log_path = log_path
       @log_offset = log_offset
       @started_at = started_at
-      @log_tag = log_tag
+      @log_tail = AiCli::LogTail.new(log_path: log_path, log_tag: log_tag) if log_path
       @stale_after = stale_after
     end
 
@@ -48,18 +47,16 @@ module AiCli
 
     private
 
-    attr_reader :pid, :log_path, :started_at, :log_tag, :stale_after
+    attr_reader :pid, :log_tail, :started_at, :stale_after
 
     def tail_log
-      return unless log_path
+      return unless log_tail
 
-      _content, @log_offset = AiCli::Runner.tail_new_lines(log_path, from_offset: log_offset, log_tag: log_tag)
+      _content, @log_offset = log_tail.read_from(log_offset)
     end
 
     def full_log
-      return "" unless log_path && File.exist?(log_path)
-
-      File.read(log_path)
+      log_tail ? log_tail.full : ""
     end
 
     def stale?
