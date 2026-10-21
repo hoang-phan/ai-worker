@@ -29,18 +29,9 @@ module AiCli
 
       _tag, exit_status = result
       tail_log
-      output = full_log
-
-      unless exit_status.nil? || exit_status.success?
-        raise AiCli::CommandError, "#{AiCli::Runner.agent} failed (pid=#{pid}): #{output.presence || 'no output'}"
-      end
-      # No status when the process was reaped elsewhere (e.g. Sidekiq restarted
-      # mid-run); claude's final result event in the log says how it ended.
-      if exit_status.nil?
-        outcome = AiCli::Output.new(output).final_outcome
-        raise AiCli::CommandError, "#{AiCli::Runner.agent} exit status unknown (pid=#{pid}), treating as failed" if outcome.nil?
-        raise AiCli::CommandError, "#{AiCli::Runner.agent} failed (pid=#{pid}): #{output.presence || 'no output'}" if outcome == :error
-      end
+      output = AiCli::RunVerdict.new(
+        exit_status: exit_status, output: full_log, agent: AiCli::Runner.agent, pid: pid
+      ).verify!
 
       [ :finished, output ]
     end
