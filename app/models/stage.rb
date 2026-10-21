@@ -17,31 +17,27 @@ class Stage < ApplicationRecord
     workflow.pending? || workflow.current_stage_id != id
   end
 
-  # Action of the newest run, nil when the stage has none. Ordered by id explicitly: the association's default order
-  # is created_at desc.
+  # Action of the newest run, nil when the stage has none.
   def last_action
-    stage_runs.reorder(id: :desc).first&.action
+    run_history.last_action
   end
 
   # Trailing run of failed/started rows (newest first) with no success or `resumed` in between; counts the failed ones.
   def consecutive_failures
-    stage_runs.reorder(id: :desc).pluck(:action)
-              .take_while { |action| %w[failed started].include?(action) }
-              .count("failed")
+    run_history.consecutive_failures
   end
 
   def resolving_conflicts?
-    last_action == "conflict_resolution_started"
+    run_history.resolving_conflicts?
   end
 
   def completed_local_test_rounds
-    stage_runs.where(action: "local_test_completed").count
+    run_history.completed_local_test_rounds
   end
 
   # A local test run that started but whose newest run isn't a completion (earlier completed rounds don't count).
   def local_test_unfinished?
-    last = last_action
-    last.present? && last != "local_test_completed"
+    run_history.local_test_unfinished?
   end
 
   # Records one audit-log row for this stage; `action` must be in StageRun::ACTIONS (raises RecordInvalid otherwise).
@@ -61,5 +57,13 @@ class Stage < ApplicationRecord
 
   def candidate_templates
     PromptTemplate.where(stage_type: stage_type).order(:name)
+  end
+
+  private
+
+  # Built per call, never memoized: log_run! followed by a read must see the new row. Ordered by id explicitly: the
+  # association's default order is created_at desc.
+  def run_history
+    Stages::RunHistory.new(stage_runs.reorder(id: :desc).pluck(:action))
   end
 end
