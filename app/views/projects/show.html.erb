@@ -30,10 +30,13 @@
     <thead>
       <tr>
         <% if @project.jira? %>
-          <th><input type="checkbox" aria-label="Select all" data-action="change->select-all#toggle" form="time-log-form"></th>
+          <th><input type="checkbox" aria-label="Select all tickets without logged time" data-action="change->select-all#toggle" form="time-log-form"></th>
         <% end %>
         <th>Position</th>
         <th><%= @project.personal? ? "Task" : "Jira" %></th>
+        <% if @project.jira? %>
+          <th>Time</th>
+        <% end %>
         <% unless @project.personal? %>
           <th>Branch</th>
         <% end %>
@@ -49,7 +52,7 @@
       <% @workflows.each do |workflow| %>
         <tr>
           <% if @project.jira? %>
-            <td><% if workflow.development? %><input type="checkbox" name="workflow_ids[]" value="<%= workflow.id %>" form="time-log-form" data-select-all-target="row" aria-label="Select <%= workflow.label %>"><% end %></td>
+            <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: (workflow.time_logs.any? ? {} : { select_all_target: "row" }), aria: { label: "Select #{workflow.label}" } %><% end %></td>
           <% end %>
           <td class="numeric">
             <%= workflow.position %>
@@ -57,6 +60,15 @@
             <%= button_to "↓", move_project_workflow_path(@project, workflow, direction: "down"), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == @workflows.last, form: { style: "display:inline" } %>
           </td>
           <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(@project, workflow)) %><%= content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review? %><%= content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook? %></td>
+          <% if @project.jira? %>
+            <td>
+              <% if workflow.development? && workflow.time_logs.any? %>
+                <span class="badge badge-success">Time logged</span>
+              <% elsif workflow.development? %>
+                <span class="badge badge-neutral">Not logged</span>
+              <% end %>
+            </td>
+          <% end %>
           <% unless @project.personal? %>
             <td class="text-muted"><%= workflow.branch_name %></td>
           <% end %>

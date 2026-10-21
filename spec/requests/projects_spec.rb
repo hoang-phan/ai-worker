@@ -97,6 +97,21 @@ RSpec.describe "Projects", type: :request do
   end
 
   describe "GET show" do
+    it "shows time-log status and makes only unlogged tickets selectable by the header checkbox" do
+      logged = project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone")
+      unlogged = project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "spec-2", github_reviewer: "someone")
+      logged.time_logs.create!(ticket_key: "SPEC-1", started_at: Time.current, seconds: 3600)
+
+      get project_path(project)
+
+      unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*>/)[0]
+      logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*>/)[0]
+
+      expect(response.body).to include("Time logged", "Not logged", 'aria-label="Select all tickets without logged time"')
+      expect(unlogged_checkbox).to include('data-select-all-target="row"')
+      expect(logged_checkbox).not_to include("data-select-all-target")
+    end
+
     it "renders the Jira and Bugsnag sync sections for a jira project" do
       project.jira_syncs.create!(jira_project: "SPEC")
       project.bugsnag_syncs.create!(bugsnag_project: "spec-app", jira_project: "SPEC", last_synced_at: 2.hours.ago)
