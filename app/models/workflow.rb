@@ -81,15 +81,6 @@ class Workflow < ApplicationRecord
     skills.to_s.split(",").map(&:strip).reject(&:blank?)
   end
 
-  # The in-flight status an errored workflow goes back to: reviewing once a PR
-  # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
-  def resume_status
-    return :uat_testing if uat_test_at.present?
-    return :local_testing if local_test_unfinished?
-
-    development? && github_pr_url.present? ? :reviewing : :implementing
-  end
-
   # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
   def brief
     (summary.presence || label).to_s.squish.truncate(SUMMARY_LENGTH)
@@ -132,58 +123,22 @@ class Workflow < ApplicationRecord
     self.variables = Workflows::Variables.parse(text)
   end
 
-  # Pending -> implementing (a runbook starts at its first stage). False when it was already started.
-  def start!
-    return false unless pending?
+  # The manual lifecycle transitions live in Workflows::Transitions.
+  def start! = Workflows::Transitions.new(self).start!
 
-    runbook? ? start_runbook! : update!(status: :implementing)
-    true
-  end
+  def resume! = Workflows::Transitions.new(self).resume!
 
-  # The runbook's "Run stage" button is only valid on an implementing runbook that isn't mid-run.
-  def can_run_stage?
-    runbook? && implementing? && !processing?
-  end
+  def resume_status = Workflows::Transitions.new(self).resume_status
 
-  # Flags the runbook so the scheduler runs its current stage and carries on. False when no stage is ready.
-  # The caller enqueues WorkflowSchedulerJob.
-  def request_stage_run!
-    return false unless can_run_stage?
+  def can_rollback_to_review? = Workflows::Transitions.new(self).can_rollback_to_review?
 
-    update!(auto_run: true)
-    true
-  end
+  def rollback_to_review! = Workflows::Transitions.new(self).rollback_to_review!
 
-  # The runbook's Next button is only valid while a finished stage is waiting for it.
-  def can_advance?
-    runbook? && awaiting_next?
-  end
+  def can_run_stage? = Workflows::Transitions.new(self).can_run_stage?
 
-  # Errored -> the in-flight status chosen by resume_status, logging a 'resumed' StageRun. False unless errored.
-  def resume!
-    return false unless errored?
+  def request_stage_run! = Workflows::Transitions.new(self).request_stage_run!
 
-    transaction do
-      update!(status: resume_status)
-      current_stage&.stage_runs&.create!(action: "resumed")
-    end
-    true
-  end
-
-  def can_rollback_to_review?
-    done? && development? && github_pr_url.present?
-  end
-
-  # Done development workflow with a PR -> reviewing, logging a 'rolled_back_to_review' StageRun.
-  def rollback_to_review!
-    return false unless can_rollback_to_review?
-
-    transaction do
-      update!(status: :reviewing)
-      current_stage&.stage_runs&.create!(action: "rolled_back_to_review")
-    end
-    true
-  end
+  def can_advance? = Workflows::Transitions.new(self).can_advance?
 
   # The runbook state machine lives in Workflows::RunbookNavigator.
   def start_runbook! = Workflows::RunbookNavigator.new(self).start!
@@ -222,12 +177,6 @@ class Workflow < ApplicationRecord
 
   def stage_outputs
     StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
-  end
-
-  # An errored workflow whose newest local test run started but never finished goes back to it, not to review
-  # (also true for a retest after a fix round: earlier completed rounds don't count).
-  def local_test_unfinished?
-    stages.find_by(stage_type: :local_test)&.local_test_unfinished? || false
   end
 
   def copy_source_is_a_runbook_of_this_project
