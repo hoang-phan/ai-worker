@@ -118,32 +118,10 @@ module Stages
     end
 
     def run_pr_check
-      # A merged PR is done — skip review/check inspection entirely.
-      if github.merged?(workflow.github_pr_url)
-        workflow.update!(status: :merged)
-        return stage.log_run!("pr_merged_closed")
-      end
-
-      result = Stages::PrCheckDecision.new(
-        review_decision: github.review_decision(workflow.github_pr_url, handoff.reviewers),
-        local_test_failing: workflow.local_test_feedback.present?,
-        checks_failing: -> { github.checks_failing?(workflow.github_pr_url) }
+      Stages::PrCheckRun.new(
+        workflow: workflow, stage: stage, project: project, github: github, git: git,
+        handoff: handoff, prompt: prompt, start_ai_run: method(:start_ai_run)
       ).call
-      result.actions.each { |action| stage.log_run!(action) }
-
-      case result.decision
-      when :approved
-        workflow.update!(status: :done)
-        stage.log_run!("approved_closed")
-      when :changes_requested
-        if git.update_with_main!(project, workflow.branch_name) == :conflict
-          start_ai_run(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
-        else
-          start_ai_run(prompt.body)
-        end
-      else
-        stage.log_run!("no_action_pending")
-      end
     end
   end
 end

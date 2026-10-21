@@ -184,57 +184,17 @@ RSpec.describe Stages::StartHandler, type: :service do
 
   describe "pr_check" do
     let(:stage_type) { :pr_check }
-    let(:decision) { Struct.new(:decision, :actions) }
 
-    before do
-      allow(github).to receive_messages(merged?: false, review_decision: "CHANGES_REQUESTED", checks_failing?: false)
-    end
-
-    def stub_decision(name, actions = [])
-      allow(Stages::PrCheckDecision).to receive(:new).and_return(double(call: decision.new(name, actions)))
-    end
-
-    it "marks a merged PR merged without inspecting reviews" do
-      allow(github).to receive(:merged?).and_return(true)
+    it "delegates to Stages::PrCheckRun, passing start_ai_run" do
+      run = instance_double(Stages::PrCheckRun, call: nil)
+      allow(Stages::PrCheckRun).to receive(:new).and_return(run)
       handler.call
 
-      expect(workflow.reload.status).to eq "merged"
-      expect(actions).to eq %w[pr_merged_closed]
-      expect(github).not_to have_received(:review_decision)
-    end
-
-    it "closes an approved PR as done, logging the decision actions first" do
-      stub_decision(:approved, %w[check_passed])
-      handler.call
-
-      expect(workflow.reload.status).to eq "done"
-      expect(actions).to eq %w[check_passed approved_closed]
-    end
-
-    it "logs no_action_pending when nothing is decided" do
-      stub_decision(:pending)
-      handler.call
-
-      expect(actions).to eq %w[no_action_pending]
-      expect(AiCli::Runner).not_to have_received(:start)
-    end
-
-    it "starts the review-fix run when changes are requested and main merges cleanly" do
-      stub_decision(:changes_requested)
-      handler.call
-
-      expect(git).to have_received(:update_with_main!).with(project, "start-handler")
-      expect(AiCli::Runner).to have_received(:start).with(local_directory, "the prompt", anything)
-      expect_run_started
-    end
-
-    it "starts conflict resolution when main conflicts" do
-      stub_decision(:changes_requested)
-      allow(git).to receive(:update_with_main!).and_return(:conflict)
-      handler.call
-
-      expect(AiCli::Runner).to have_received(:start).with(local_directory, Prompts::StagePrompt::CONFLICT, anything)
-      expect_run_started(action: "conflict_resolution_started")
+      expect(Stages::PrCheckRun).to have_received(:new).with(
+        hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git,
+                       handoff: handoff, prompt: prompt, start_ai_run: an_instance_of(Method))
+      )
+      expect(run).to have_received(:call)
     end
   end
 end
