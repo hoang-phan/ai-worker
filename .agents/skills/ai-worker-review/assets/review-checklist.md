@@ -1,6 +1,7 @@
 # ai-worker review checklist
 
 ## Subprocess safety
+(For git/gh specifics — `Git::Shell`, `Github::Runner`, CommandError conventions — see the `ai-worker-git-github` skill.)
 - No `Open3`/`system`/backtick call builds a `cd X && ...` compound shell string. Every call passes `chdir:` (Ruby) or uses `git -C <dir>` / `gh -R org/repo` (CLI flag) instead.
 - Every subprocess call checks the exit status and raises a scoped `CommandError` on failure rather than silently swallowing a non-zero exit.
 
