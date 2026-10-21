@@ -59,25 +59,16 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "pr_check" do
     let(:stage_type) { :pr_check }
+    let(:pr_check_finish) { instance_double(Stages::PrCheckFinish, call: nil) }
 
-    it "re-requests review, clears feedback, logs and notifies reviewers again" do
-      workflow.update!(local_test_feedback: "old", status: :reviewing)
-      allow(project).to receive(:local_test_ready?).and_return(false)
-      handle("done\nFIXED: tidied up")
-
-      expect(github).to have_received(:request_review!).with(workflow.github_pr_url, [ "octocat" ])
-      expect(workflow.reload).to have_attributes(local_test_feedback: nil, status: "reviewing")
-      expect(actions).to match_array(%w[requested_changes_fixed])
-      expect(handoff).to have_received(:notify_reviewers!).with(again: true, fixed: anything)
-    end
-
-    it "schedules a retest instead of notifying when the policy asks for one" do
-      allow(Stages::LocalTestPolicy).to receive(:retest_after_fix?).and_return(true)
+    it "delegates to PrCheckFinish" do
+      allow(Stages::PrCheckFinish).to receive(:new).and_return(pr_check_finish)
       handle
 
-      expect(workflow.reload.status).to eq "local_testing"
-      expect(actions).to match_array(%w[requested_changes_fixed local_test_retest_scheduled])
-      expect(handoff).not_to have_received(:notify_reviewers!)
+      expect(Stages::PrCheckFinish).to have_received(:new).with(
+        workflow: workflow, stage: stage, project: project, github: github, handoff: handoff
+      )
+      expect(pr_check_finish).to have_received(:call).with(output)
     end
   end
 

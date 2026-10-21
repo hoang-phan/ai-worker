@@ -15,7 +15,7 @@ module Stages
     def call(output)
       case stage.stage_type
       when "implementation" then finish_implementation(output)
-      when "pr_check" then finish_pr_check(output)
+      when "pr_check" then Stages::PrCheckFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output)
       when "task" then finish_task(output)
       when "pr_review" then finish_pr_review(output)
       when "jira_update" then finish_jira_update(output)
@@ -37,20 +37,6 @@ module Stages
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
       handoff.enable_auto_merge!(pr_url) unless testing_locally
       handoff.notify_reviewers! unless testing_locally
-    end
-
-    def finish_pr_check(output)
-      github.request_review!(workflow.github_pr_url, handoff.reviewers)
-      retest = Stages::LocalTestPolicy.retest_after_fix?(
-        local_test_ready: project.local_test_ready?,
-        completed_rounds: workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i,
-        feedback_pending: workflow.local_test_feedback.present?,
-        retest_requested: AiCli::Output.new(output).retest_requested?
-      )
-      workflow.update!(Workflow::AI_RUN_RESET.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
-      stage.log_run!("requested_changes_fixed", output: output)
-      stage.log_run!("local_test_retest_scheduled") if retest
-      handoff.notify_reviewers!(again: true, fixed: AiCli::Output.new(output).fixed_summary) unless retest
     end
 
     def finish_task(output)
