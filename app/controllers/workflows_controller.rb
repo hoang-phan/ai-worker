@@ -49,16 +49,7 @@ class WorkflowsController < ApplicationController
     return redirect_back_or_to(@project, alert: "Select at least one workflow.") if workflows.empty?
 
     result = Jira::TimeLogBatch.new.call(workflows, hours)
-    logged = result.logged
-    failure = result.failure
-
-    summary = logged.map { |log| "#{log.ticket_key} #{l(log.started_at, format: :short)}" }.to_sentence
-    if failure
-      message = "#{failure}.#{" Logged before that: #{summary}." if logged.any?}"
-      redirect_back_or_to @project, alert: message
-    else
-      redirect_back_or_to @project, notice: "Logged #{hours} h on #{summary}."
-    end
+    redirect_back_or_to @project, (result.success? ? :notice : :alert) => result.message(hours)
   end
 
   def destroy_image
