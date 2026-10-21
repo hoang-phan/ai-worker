@@ -17,16 +17,9 @@ module Github
       JSON.parse(out)["url"]
     end
 
-    # Finds the PR the implementation run opened. the agent may push to a branch
-    # named differently from `workflow.branch_name` (e.g. `bug/ENG-1/slug` per
-    # the target repo's conventions), so try, in order: the PR URL the agent
-    # printed, the workflow's own branch name, then any open PR whose head
-    # branch contains the Jira ticket.
-    def find_pr_url(branch_name:, jira_ticket:, output: nil)
-      url_from_output(output) ||
-        url_for_head(branch_name) ||
-        url_for_ticket(jira_ticket) ||
-        raise(CommandError, "agent finished but no PR was found (branch=#{branch_name.inspect}, ticket=#{jira_ticket.inspect})")
+    # Finds the PR the implementation run opened; see Github::PrLocator.
+    def find_pr_url(...)
+      PrLocator.new(project, runner: runner).call(...)
     end
 
     # { "state" => "OPEN", "author" => "login", "head_ref" => "branch", "cross_repository" => false }
@@ -105,29 +98,6 @@ module Github
 
     def run!(...)
       runner.run!(...)
-    end
-
-    # Last PR URL for this project's repo printed in the agent's output.
-    def url_from_output(output)
-      pattern = %r{https://github\.com/#{Regexp.escape(project.repo_full_name)}/pull/\d+}i
-      output.to_s.scan(pattern).last
-    end
-
-    def url_for_head(branch_name)
-      return if branch_name.blank?
-
-      JSON.parse(run!([ "gh", "pr", "view", branch_name, "--json", "url" ]))["url"]
-    rescue CommandError
-      nil
-    end
-
-    def url_for_ticket(jira_ticket)
-      key = jira_ticket.to_s[/[A-Z][A-Z0-9]+-\d+/i]
-      return unless key
-
-      out = run!([ "gh", "pr", "list", "--state", "open", "--limit", "100", "--json", "url,headRefName" ])
-      prs = JSON.parse(out).select { |pr| pr["headRefName"].to_s.downcase.include?(key.downcase) }
-      prs.first&.dig("url")
     end
   end
 end

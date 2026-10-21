@@ -73,27 +73,11 @@ RSpec.describe Github::Reader do
     expect(Open3).to have_received(:capture3).with(*%w[gh run list --workflow ci.yml], any_args, "-R", "other/repo", chdir: local_directory)
   end
 
-  describe "#find_pr_url" do
-    it "prefers the PR URL printed in the agent output without calling gh" do
-      allow(Open3).to receive(:capture3)
+  it "delegates find_pr_url to PrLocator" do
+    allow(Open3).to receive(:capture3)
 
-      expect(reader.find_pr_url(branch_name: "b", jira_ticket: "ENG-1", output: "opened #{pr_url}")).to eq(pr_url)
-      expect(Open3).not_to have_received(:capture3)
-    end
-
-    it "falls back to a PR whose head branch contains the ticket" do
-      allow(Open3).to receive(:capture3) do |*args, **|
-        args[0..2] == %w[gh pr view] ? [ "", "none", failed ] : [ JSON.generate([ { "url" => pr_url, "headRefName" => "bug/eng-1/x" } ]), "", ok ]
-      end
-
-      expect(reader.find_pr_url(branch_name: "b", jira_ticket: "ENG-1")).to eq(pr_url)
-    end
-
-    it "raises when nothing matches" do
-      allow(Open3).to receive(:capture3).and_return([ "", "nope", failed ])
-
-      expect { reader.find_pr_url(branch_name: "b", jira_ticket: "none") }.to raise_error(Github::CommandError, /no PR was found/)
-    end
+    expect(reader.find_pr_url(branch_name: "b", jira_ticket: "ENG-1", output: "opened #{pr_url}")).to eq(pr_url)
+    expect(Open3).not_to have_received(:capture3)
   end
 
   it "never issues write commands" do
