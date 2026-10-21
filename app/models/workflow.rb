@@ -114,25 +114,21 @@ class Workflow < ApplicationRecord
 
   # Names a stage produced at run time (`VAR: NAME=value` in its output), as opposed to inputs the user typed.
   def output_variable_names
-    StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
-            .flat_map { |output| AiCli::Output.new(output).variables.keys }.uniq
+    Workflows::Variables.output_names(stage_outputs)
   end
 
   # The variables the user set up front (channel, CSS group …), without anything a stage emitted.
   def input_variables
-    variables.except(*output_variable_names)
+    Workflows::Variables.input_only(variables, stage_outputs)
   end
 
   # Edited in the UI as one `NAME=value` per line.
   def variables_text
-    variables.map { |name, value| "#{name}=#{value.to_s.gsub("\n", "\\n")}" }.join("\n")
+    Workflows::Variables.to_text(variables)
   end
 
   def variables_text=(text)
-    self.variables = text.to_s.lines.filter_map do |line|
-      name, value = line.strip.split("=", 2)
-      [ name.strip.upcase, value.to_s.strip.gsub("\\n", "\n") ] if name.present?
-    end.to_h
+    self.variables = Workflows::Variables.parse(text)
   end
 
   # Pending -> implementing (a runbook starts at its first stage). False when it was already started.
@@ -222,6 +218,10 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  def stage_outputs
+    StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
+  end
 
   # An errored workflow whose newest local test run started but never finished goes back to it, not to review
   # (also true for a retest after a fix round: earlier completed rounds don't count).
