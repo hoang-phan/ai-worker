@@ -1,0 +1,30 @@
+<fieldset class="field">
+  <legend>Local test by the agent (optional)</legend>
+  <p class="field-hint">Jira projects only. After implementation opens the PR, a separate stage has the agent start the project's development server (<code>RAILS_ENV=development</code>), run the same "How to test" steps in a headless browser as the UAT test does, fix what its change broke, and post the result on the PR before it goes to review. The shared test instructions (above, in the main section) apply too. It writes to this project's own development database, so keep the instructions to safe, additive test data.</p>
+
+  <div class="field">
+    <label><%= f.check_box :local_test_enabled %> Test PRs locally before review</label>
+  </div>
+
+  <div class="field">
+    <%= f.label :local_url, "Local URL" %>
+    <%= f.text_field :local_url, placeholder: "http://localhost:3000" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :local_instructions, "Local-only instructions (optional)" %>
+    <%= f.text_area :local_instructions, rows: 6, placeholder: "e.g. Start the server with bin/dev (port 3000). Local data is seeded with bin/rails db:seed." %>
+    <p class="field-hint">How to start the server and anything specific to local data.</p>
+  </div>
+
+  <div class="field">
+    <%= f.label :local_username, "Local username" %>
+    <%= f.text_field :local_username, autocomplete: "off" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :local_password, "Local password" %>
+    <%= f.password_field :local_password, value: nil, autocomplete: "new-password", placeholder: (f.object.local_password.present? ? "Saved (leave blank to keep)" : nil) %>
+    <p class="field-hint">Stored encrypted. Handed to the agent as an environment variable for the run.</p>
+  </div>
+</fieldset>

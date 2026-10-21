@@ -1,0 +1,29 @@
+<fieldset class="field">
+  <legend>Slack PR reviews (optional)</legend>
+  <p class="field-hint">Jira projects only. Every 30 minutes the agent CLI looks through your Slack mentions (via its Slack MCP connector) for PRs of this repo, in the message or its thread. Each open PR that isn't yours becomes a review workflow: the agent checks out the branch, reviews it, posts the GitHub verdict and replies in the Slack thread. Review workflows run one at a time per project, like any other workflow.</p>
+
+  <div class="field">
+    <label><%= f.check_box :slack_review_enabled %> Review PRs from Slack mentions automatically</label>
+  </div>
+
+  <div class="field">
+    <%= f.label :slack_mention, "Mention to look for" %>
+    <%= f.text_field :slack_mention, placeholder: "@hoang, a user ID or a user group such as @frontend-reviewers" %>
+  </div>
+</fieldset>
+
+<fieldset class="field">
+  <legend>Slack review requests (optional)</legend>
+  <p class="field-hint">Jira projects only. When a PR goes up for review (and again when review is re-requested after fixes), post a one-line message in this channel tagging the reviewers. Posted as you through the Slack MCP connector (the agent CLI must be connected to Slack and able to post in the channel).</p>
+
+  <div class="field">
+    <%= f.label :slack_review_channel, "Channel ID" %>
+    <%= f.text_field :slack_review_channel, placeholder: "C0B5XFY2F0T (from the channel's link or details)" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :slack_user_map, "GitHub → Slack users" %>
+    <%= f.text_area :slack_user_map, rows: 3, placeholder: "octocat=U012ABCDE\nhubot=U034FGHIJ" %>
+    <p class="field-hint">One <code>github-login=SlackUserID</code> per line. Reviewers without an entry are named in plain text instead of tagged.</p>
+  </div>
+</fieldset>

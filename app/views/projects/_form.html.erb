@@ -1,15 +1,6 @@
 <div class="card form-card" data-controller="skill-insert">
   <%= form_with model: project do |f| %>
-    <% if project.errors.any? %>
-      <div class="error-summary">
-        <strong><%= pluralize(project.errors.count, "error") %> prevented this project from saving:</strong>
-        <ul>
-          <% project.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "projects/form/errors", project: project %>
 
     <div class="field">
       <%= f.label :name %>
@@ -59,147 +50,11 @@
       <p class="field-hint">Shared by UAT and local testing by the agent: how to log in, which data to prepare, a guide to read, things to avoid. Put anything that only works on UAT (e.g. GitHub Actions wrappers for test data) in the UAT-only box below.</p>
     </div>
 
-    <fieldset class="field">
-      <legend>Jira integration (optional)</legend>
-      <p class="field-hint">Jira projects only. Tickets are fetched by the agent CLI through its Atlassian MCP connector (no API token needed). Add the Jira projects / parent tickets to pull from as syncs on the project page.</p>
-
-      <div class="field">
-        <%= f.label :jira_base_url, "Jira site URL" %>
-        <%= f.text_field :jira_base_url, placeholder: "https://netengine-trial.atlassian.net" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :jira_assignee, "Assignee" %>
-        <%= f.text_field :jira_assignee, placeholder: "Email, full name, account ID, profile URL or currentUser()" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :jira_tester, "Tester" %>
-        <%= f.text_field :jira_tester, placeholder: "Email, full name, account ID or profile URL" %>
-        <p class="field-hint">After a PR is merged, the agent moves the ticket to UAT (UI-testable change) and assigns it to this tester, setting the Developer field to the original assignee; otherwise to Releaseable.</p>
-      </div>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>UAT test by the agent (optional)</legend>
-      <p class="field-hint">Jira projects only. When the post-merge update moves a ticket to UAT, the agent waits the delay below, then opens the UAT site in a headless browser, runs the ticket's "How to test" steps, records a video and trace, attaches them to the ticket and posts the result as a comment. Needs <code>JIRA_EMAIL</code> and <code>JIRA_ACCESS_TOKEN</code> in <code>.env</code> for the attachments. Use a low-privilege test account, never production.</p>
-
-      <div class="field">
-        <label><%= f.check_box :uat_test_enabled %> Test tickets on UAT automatically</label>
-      </div>
-
-      <div class="field">
-        <%= f.label :uat_url, "UAT URL" %>
-        <%= f.text_field :uat_url, placeholder: "https://uat.example.com" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :uat_instructions, "UAT-only instructions (optional)" %>
-        <%= f.text_area :uat_instructions, rows: 6, placeholder: "e.g. Read the guide at /Users/you/code/scout-testing-guide/README.md and follow it for login and test data." %>
-        <p class="field-hint">Free text added to the agent's UAT prompt: how to log in, what data to prepare, a guide to read, things to avoid. Anything goes; it can point at a file, folder or URL.</p>
-      </div>
-
-      <div class="field">
-        <%= f.label :uat_username, "UAT username" %>
-        <%= f.text_field :uat_username, autocomplete: "off" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :uat_password, "UAT password" %>
-        <%= f.password_field :uat_password, value: nil, autocomplete: "new-password", placeholder: (f.object.uat_password.present? ? "Saved (leave blank to keep)" : nil) %>
-        <p class="field-hint">Stored encrypted. It is handed to the agent as an environment variable for the test run.</p>
-      </div>
-
-      <div class="field">
-        <%= f.label :uat_test_delay_minutes, "Wait after the ticket reaches UAT (minutes)" %>
-        <%= f.number_field :uat_test_delay_minutes, min: 0 %>
-      </div>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>Local test by the agent (optional)</legend>
-      <p class="field-hint">Jira projects only. After implementation opens the PR, a separate stage has the agent start the project's development server (<code>RAILS_ENV=development</code>), run the same "How to test" steps in a headless browser as the UAT test does, fix what its change broke, and post the result on the PR before it goes to review. The shared test instructions (above, in the main section) apply too. It writes to this project's own development database, so keep the instructions to safe, additive test data.</p>
-
-      <div class="field">
-        <label><%= f.check_box :local_test_enabled %> Test PRs locally before review</label>
-      </div>
-
-      <div class="field">
-        <%= f.label :local_url, "Local URL" %>
-        <%= f.text_field :local_url, placeholder: "http://localhost:3000" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :local_instructions, "Local-only instructions (optional)" %>
-        <%= f.text_area :local_instructions, rows: 6, placeholder: "e.g. Start the server with bin/dev (port 3000). Local data is seeded with bin/rails db:seed." %>
-        <p class="field-hint">How to start the server and anything specific to local data.</p>
-      </div>
-
-      <div class="field">
-        <%= f.label :local_username, "Local username" %>
-        <%= f.text_field :local_username, autocomplete: "off" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :local_password, "Local password" %>
-        <%= f.password_field :local_password, value: nil, autocomplete: "new-password", placeholder: (f.object.local_password.present? ? "Saved (leave blank to keep)" : nil) %>
-        <p class="field-hint">Stored encrypted. Handed to the agent as an environment variable for the run.</p>
-      </div>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>Brainstorm workflows (optional)</legend>
-      <p class="field-hint">Personal projects only. Every hour, if this project has no pending workflow, a read-only agent looks at the code and the project's workflows (including implementing ones, which aren't in the code yet, so nothing is proposed twice) and proposes new workflows toward the goal below. It uses <code>BRAINSTORM_MODEL</code> (default <code><%= Brainstorm::Planner::DEFAULT_MODEL %></code>) at <code>BRAINSTORM_EFFORT</code> (default <code><%= Brainstorm::Planner::DEFAULT_EFFORT %></code>) from <code>.env</code>.</p>
-
-      <div class="field">
-        <label><%= f.check_box :brainstorm_enabled %> Brainstorm workflows automatically</label>
-      </div>
-
-      <div class="field">
-        <%= f.label :brainstorm_goal, "Goal" %>
-        <%= f.text_area :brainstorm_goal, rows: 3, placeholder: "e.g. Improve the app UI / Increase test coverage / Suggest functionality that makes the app more useful" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :brainstorm_max_workflows, "Max workflows per run" %>
-        <%= f.number_field :brainstorm_max_workflows, min: 1, max: 20 %>
-      </div>
-
-      <div class="field">
-        <label><%= f.check_box :brainstorm_auto_start %> Start brainstormed workflows without review</label>
-        <p class="field-hint">Off: they are created pending and wait for you to press Start (and brainstorming waits until you start them).</p>
-      </div>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>Slack PR reviews (optional)</legend>
-      <p class="field-hint">Jira projects only. Every 30 minutes the agent CLI looks through your Slack mentions (via its Slack MCP connector) for PRs of this repo, in the message or its thread. Each open PR that isn't yours becomes a review workflow: the agent checks out the branch, reviews it, posts the GitHub verdict and replies in the Slack thread. Review workflows run one at a time per project, like any other workflow.</p>
-
-      <div class="field">
-        <label><%= f.check_box :slack_review_enabled %> Review PRs from Slack mentions automatically</label>
-      </div>
-
-      <div class="field">
-        <%= f.label :slack_mention, "Mention to look for" %>
-        <%= f.text_field :slack_mention, placeholder: "@hoang, a user ID or a user group such as @frontend-reviewers" %>
-      </div>
-    </fieldset>
-
-    <fieldset class="field">
-      <legend>Slack review requests (optional)</legend>
-      <p class="field-hint">Jira projects only. When a PR goes up for review (and again when review is re-requested after fixes), post a one-line message in this channel tagging the reviewers. Posted as you through the Slack MCP connector (the agent CLI must be connected to Slack and able to post in the channel).</p>
-
-      <div class="field">
-        <%= f.label :slack_review_channel, "Channel ID" %>
-        <%= f.text_field :slack_review_channel, placeholder: "C0B5XFY2F0T (from the channel's link or details)" %>
-      </div>
-
-      <div class="field">
-        <%= f.label :slack_user_map, "GitHub → Slack users" %>
-        <%= f.text_area :slack_user_map, rows: 3, placeholder: "octocat=U012ABCDE\nhubot=U034FGHIJ" %>
-        <p class="field-hint">One <code>github-login=SlackUserID</code> per line. Reviewers without an entry are named in plain text instead of tagged.</p>
-      </div>
-    </fieldset>
+    <%= render "projects/form/jira", f: f %>
+    <%= render "projects/form/uat_test", f: f %>
+    <%= render "projects/form/local_test", f: f %>
+    <%= render "projects/form/brainstorm", f: f %>
+    <%= render "projects/form/slack", f: f %>
 
     <div class="form-actions">
       <%= f.submit %>

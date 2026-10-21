@@ -6,6 +6,31 @@ RSpec.describe "Projects", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
+  describe "GET new and edit" do
+    it "renders every optional settings fieldset and preserves saved password placeholders" do
+      get new_project_path
+
+      expect(response.body).to include(
+        "Jira integration (optional)",
+        "UAT test by the agent (optional)",
+        "Local test by the agent (optional)",
+        "Brainstorm workflows (optional)",
+        "Slack PR reviews (optional)",
+        "Slack review requests (optional)",
+        'name="project[jira_base_url]"',
+        'name="project[uat_password]"',
+        'name="project[local_url]"',
+        'name="project[brainstorm_goal]"',
+        'name="project[slack_review_channel]"'
+      )
+
+      project.update!(uat_password: "secret")
+      get edit_project_path(project)
+
+      expect(response.body).to include('name="project[uat_password]"', 'placeholder="Saved (leave blank to keep)"')
+    end
+  end
+
   describe "POST sync_slack" do
     let(:fetcher) { instance_double(Slack::MentionFetcher, start: true) }
     let(:sync) { instance_double(Slack::ReviewSync, blockers: [], fetcher: fetcher) }

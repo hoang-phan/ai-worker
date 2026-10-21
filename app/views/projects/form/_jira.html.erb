@@ -1,0 +1,20 @@
+<fieldset class="field">
+  <legend>Jira integration (optional)</legend>
+  <p class="field-hint">Jira projects only. Tickets are fetched by the agent CLI through its Atlassian MCP connector (no API token needed). Add the Jira projects / parent tickets to pull from as syncs on the project page.</p>
+
+  <div class="field">
+    <%= f.label :jira_base_url, "Jira site URL" %>
+    <%= f.text_field :jira_base_url, placeholder: "https://netengine-trial.atlassian.net" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :jira_assignee, "Assignee" %>
+    <%= f.text_field :jira_assignee, placeholder: "Email, full name, account ID, profile URL or currentUser()" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :jira_tester, "Tester" %>
+    <%= f.text_field :jira_tester, placeholder: "Email, full name, account ID or profile URL" %>
+    <p class="field-hint">After a PR is merged, the agent moves the ticket to UAT (UI-testable change) and assigns it to this tester, setting the Developer field to the original assignee; otherwise to Releaseable.</p>
+  </div>
+</fieldset>

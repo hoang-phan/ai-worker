@@ -1,0 +1,23 @@
+<fieldset class="field">
+  <legend>Brainstorm workflows (optional)</legend>
+  <p class="field-hint">Personal projects only. Every hour, if this project has no pending workflow, a read-only agent looks at the code and the project's workflows (including implementing ones, which aren't in the code yet, so nothing is proposed twice) and proposes new workflows toward the goal below. It uses <code>BRAINSTORM_MODEL</code> (default <code><%= Brainstorm::Planner::DEFAULT_MODEL %></code>) at <code>BRAINSTORM_EFFORT</code> (default <code><%= Brainstorm::Planner::DEFAULT_EFFORT %></code>) from <code>.env</code>.</p>
+
+  <div class="field">
+    <label><%= f.check_box :brainstorm_enabled %> Brainstorm workflows automatically</label>
+  </div>
+
+  <div class="field">
+    <%= f.label :brainstorm_goal, "Goal" %>
+    <%= f.text_area :brainstorm_goal, rows: 3, placeholder: "e.g. Improve the app UI / Increase test coverage / Suggest functionality that makes the app more useful" %>
+  </div>
+
+  <div class="field">
+    <%= f.label :brainstorm_max_workflows, "Max workflows per run" %>
+    <%= f.number_field :brainstorm_max_workflows, min: 1, max: 20 %>
+  </div>
+
+  <div class="field">
+    <label><%= f.check_box :brainstorm_auto_start %> Start brainstormed workflows without review</label>
+    <p class="field-hint">Off: they are created pending and wait for you to press Start (and brainstorming waits until you start them).</p>
+  </div>
+</fieldset>
