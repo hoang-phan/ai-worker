@@ -33,15 +33,21 @@ class BugsnagSyncsController < ApplicationController
 
   def run
     triager = Bugsnag::Triager.new(@bugsnag_sync)
-    if triager.blockers.any?
-      redirect_to @project, alert: "Bugsnag sync blocked: #{triager.blockers.join('; ')}"
-    elsif triager.start
+    result = AgentRuns::ManualStart.call(
+      blockers: -> { triager.blockers },
+      start: -> { triager.start },
+      rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
+    )
+    case result.status
+    when :blocked
+      redirect_to @project, alert: "Bugsnag sync blocked: #{result.detail}"
+    when :started
       redirect_to @project, notice: "Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes."
-    else
+    when :already_running
       redirect_to @project, alert: "A Bugsnag triage is already running for this sync."
+    when :failed
+      redirect_to @project, alert: "Bugsnag sync failed: #{result.detail}"
     end
-  rescue Bugsnag::FetchError, AiCli::CommandError => e
-    redirect_to @project, alert: "Bugsnag sync failed: #{e.message}"
   end
 
   private

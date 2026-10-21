@@ -42,33 +42,49 @@ class ProjectsController < ApplicationController
   # waiting for the next 30-minute fetch; SlackReviewJob imports the result.
   def sync_slack
     sync = Slack::ReviewSync.new(@project)
-    if sync.blockers.any?
-      redirect_to @project, alert: "Slack sync blocked: #{sync.blockers.join('; ')}"
-    elsif sync.fetcher.start
+    result = AgentRuns::ManualStart.call(
+      blockers: -> { sync.blockers },
+      start: -> { sync.fetcher.start },
+      rescue_errors: [ AiCli::CommandError ]
+    )
+    case result.status
+    when :blocked
+      redirect_to @project, alert: "Slack sync blocked: #{result.detail}"
+    when :started
       redirect_to @project, notice: "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing."
-    else
+    when :already_running
       redirect_to @project, alert: "A Slack fetch is already running for this project."
+    when :failed
+      redirect_to @project, alert: "Slack sync failed: #{result.detail}"
     end
-  rescue AiCli::CommandError => e
-    redirect_to @project, alert: "Slack sync failed: #{e.message}"
   end
 
   # Runs a brainstorm now instead of waiting for the hourly one. Like the scheduled run it only happens while
   # the project has no pending workflow; BrainstormJob imports the result as pending workflows.
   def brainstorm
     planner = Brainstorm::Planner.new(@project)
-    if planner.blockers.any?
-      redirect_to @project, alert: "Brainstorm blocked: #{planner.blockers.join('; ')}"
-    elsif planner.queued_count.positive?
-      redirect_to @project, alert: "Brainstorm skipped: #{planner.queued_count} workflow(s) still pending; start or delete them first."
-    elsif planner.start
-      @project.update(brainstorm_last_run_at: Time.current)
+    result = AgentRuns::ManualStart.call(
+      blockers: -> { planner.blockers },
+      skip_reason: -> {
+        queued = planner.queued_count
+        "#{queued} workflow(s) still pending; start or delete them first." if queued.positive?
+      },
+      start: -> { planner.start },
+      after_start: -> { @project.update(brainstorm_last_run_at: Time.current) },
+      rescue_errors: [ AiCli::CommandError ]
+    )
+    case result.status
+    when :blocked
+      redirect_to @project, alert: "Brainstorm blocked: #{result.detail}"
+    when :skipped
+      redirect_to @project, alert: "Brainstorm skipped: #{result.detail}"
+    when :started
       redirect_to @project, notice: "Agent is brainstorming workflows. They appear within the hour after it finishes."
-    else
+    when :already_running
       redirect_to @project, alert: "A brainstorm is already running for this project."
+    when :failed
+      redirect_to @project, alert: "Brainstorm failed: #{result.detail}"
     end
-  rescue AiCli::CommandError => e
-    redirect_to @project, alert: "Brainstorm failed: #{e.message}"
   end
 
   private

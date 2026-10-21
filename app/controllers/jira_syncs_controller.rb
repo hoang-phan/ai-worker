@@ -33,15 +33,21 @@ class JiraSyncsController < ApplicationController
 
   def run
     sync = Jira::TicketSync.new(@jira_sync)
-    if sync.blockers.any?
-      redirect_to @project, alert: "Jira sync blocked: #{sync.blockers.join('; ')}"
-    elsif sync.fetcher.start
+    result = AgentRuns::ManualStart.call(
+      blockers: -> { sync.blockers },
+      start: -> { sync.fetcher.start },
+      rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
+    )
+    case result.status
+    when :blocked
+      redirect_to @project, alert: "Jira sync blocked: #{result.detail}"
+    when :started
       redirect_to @project, notice: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing."
-    else
+    when :already_running
       redirect_to @project, alert: "A Jira fetch is already running for this sync."
+    when :failed
+      redirect_to @project, alert: "Jira sync failed: #{result.detail}"
     end
-  rescue Jira::FetchError, AiCli::CommandError => e
-    redirect_to @project, alert: "Jira sync failed: #{e.message}"
   end
 
   private
