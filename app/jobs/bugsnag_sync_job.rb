@@ -16,7 +16,7 @@ class BugsnagSyncJob < ApplicationJob
         rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ],
         poll: -> { triager.poll },
         import: ->(rows) { triager.import(rows) },
-        summary: ->(added) { added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new" },
+        summary: ->(added) { Bugsnag::Triager.summary(added) },
         persist: ->(_added, summary) { bugsnag_sync.update(last_synced_at: Time.current, last_result: summary) },
         eligible: -> { bugsnag_sync.auto_sync? },
         due: -> { AgentRuns::Cadence.daily_on_weekdays(hour: RUN_HOUR, last_started_at: triager.last_started_at) },

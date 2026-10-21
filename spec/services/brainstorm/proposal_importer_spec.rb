@@ -89,4 +89,13 @@ RSpec.describe Brainstorm::ProposalImporter do
     expect(result.skipped.size).to eq(1)
     expect(result.skipped.first).to start_with("Broken #{suffix} (").and include("Task description")
   end
+
+
+  describe "Result#summary" do
+    it "counts created and skipped" do
+      result = described_class::Result.new(created: [ 1, 2 ], skipped: [ "a" ])
+
+      expect(result.summary).to eq("created 2, skipped 1")
+    end
+  end
 end

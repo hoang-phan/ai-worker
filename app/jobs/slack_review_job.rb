@@ -17,7 +17,7 @@ class SlackReviewJob < ApplicationJob
         rescue_errors: [ Slack::FetchError, AiCli::CommandError ],
         poll: -> { fetcher.poll },
         import: ->(mentions) { sync.import(mentions) },
-        summary: ->(result) { summarize(result) },
+        summary: ->(result) { result.summary },
         log_message: ->(result, summary) { "[SlackReviewJob] project=#{project.id} #{summary} #{result.failed.join('; ')}".strip },
         persist: ->(_result, summary) { project.update(slack_last_synced_at: Time.current, slack_last_result: summary) },
         # Don't wait for the scheduler's next */5 cron tick: start the new reviews now.
@@ -29,13 +29,5 @@ class SlackReviewJob < ApplicationJob
         persist_failure: ->(message) { project.update(slack_last_result: message) }
       )
     end
-  end
-
-  private
-
-  def summarize(result)
-    skipped = "skipped #{result.skipped.size}"
-    skipped += " (#{result.skipped_reasons.map { |reason, count| "#{count} #{reason}" }.join(", ")})" if result.skipped_reasons.any?
-    "created #{result.created.size}, #{skipped}, failed #{result.failed.size}"
   end
 end

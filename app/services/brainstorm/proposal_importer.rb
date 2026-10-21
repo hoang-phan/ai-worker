@@ -3,7 +3,11 @@ module Brainstorm
   # an in-flight workflow or an earlier proposal in the same batch. Only while the queue is still empty, so a manual
   # workflow added meanwhile isn't buried. `in_flight` is the project's implementing workflows.
   class ProposalImporter
-    Result = Struct.new(:created, :skipped, keyword_init: true)
+    Result = Struct.new(:created, :skipped, keyword_init: true) do
+      def summary
+        "created #{created.size}, skipped #{skipped.size}"
+      end
+    end
 
     def initialize(project, in_flight:)
       @project = project

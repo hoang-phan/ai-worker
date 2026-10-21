@@ -19,7 +19,7 @@ class JiraSyncJob < ApplicationJob
         rescue_errors: [ Jira::FetchError, AiCli::CommandError ],
         poll: -> { fetcher.poll },
         import: ->(issues) { sync.import(issues) },
-        summary: ->(result) { "created #{result.created.size}, skipped #{result.skipped.size}, failed #{result.failed.size}" },
+        summary: ->(result) { result.summary },
         log_message: ->(result, summary) { "[JiraSyncJob] jira_sync=#{jira_sync.id} #{summary} #{result.failed.join('; ')}".strip },
         persist: ->(_result, summary) { jira_sync.update(last_synced_at: Time.current, last_result: summary) },
         eligible: -> { jira_sync.auto_sync? },

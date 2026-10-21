@@ -9,7 +9,13 @@ module Slack
     PR_URL = ReviewCandidate::PR_URL
 
     # skipped_reasons: { "merged" => 2, ... } — why PRs in `skipped` were not imported.
-    Result = Struct.new(:blockers, :created, :skipped, :failed, :skipped_reasons, keyword_init: true)
+    Result = Struct.new(:blockers, :created, :skipped, :failed, :skipped_reasons, keyword_init: true) do
+      def summary
+        skipped_text = "skipped #{skipped.size}"
+        skipped_text += " (#{skipped_reasons.map { |reason, count| "#{count} #{reason}" }.join(", ")})" if skipped_reasons.any?
+        "created #{created.size}, #{skipped_text}, failed #{failed.size}"
+      end
+    end
 
     def initialize(project)
       @project = project

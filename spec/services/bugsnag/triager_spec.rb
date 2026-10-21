@@ -18,4 +18,14 @@ RSpec.describe Bugsnag::Triager do
       expect(triager.poll).to eq([ { "bugsnag_id" => "abc123def456", "jira_key" => "UNS-12" } ])
     end
   end
+
+  describe ".summary" do
+    it "lists the newly added keys" do
+      expect(described_class.summary(%w[UNS-1 UNS-2])).to eq("2 new ticket(s): UNS-1, UNS-2")
+    end
+
+    it "says nothing new when no keys were added" do
+      expect(described_class.summary([])).to eq("nothing new")
+    end
+  end
 end

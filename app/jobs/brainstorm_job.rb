@@ -12,7 +12,7 @@ class BrainstormJob < ApplicationJob
         rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ],
         poll: -> { planner.poll },
         import: ->(proposals) { planner.import(proposals) },
-        summary: ->(result) { "created #{result.created.size}, skipped #{result.skipped.size}" },
+        summary: ->(result) { result.summary },
         persist: ->(_result, summary) { project.update(brainstorm_last_result: summary) },
         idle: -> { !planner.running? },
         due: -> { planner.queued_count.zero? },

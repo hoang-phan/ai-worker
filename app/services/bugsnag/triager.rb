@@ -41,6 +41,11 @@ module Bugsnag
     ID = /\A[\w-]{6,64}\z/
     KEY = /\A[A-Z][A-Z0-9]+-\d+\z/
 
+    # Human summary of an import's newly added keys (shown as last_result).
+    def self.summary(added)
+      added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new"
+    end
+
     def initialize(bugsnag_sync)
       @sync = bugsnag_sync
       @project = bugsnag_sync.project

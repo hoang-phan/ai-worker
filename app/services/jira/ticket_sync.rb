@@ -4,7 +4,11 @@ module Jira
   # Idempotent: a ticket that already has a workflow in this project (in any
   # status) is skipped.
   class TicketSync
-    Result = Struct.new(:blockers, :created, :skipped, :failed, keyword_init: true)
+    Result = Struct.new(:blockers, :created, :skipped, :failed, keyword_init: true) do
+      def summary
+        "created #{created.size}, skipped #{skipped.size}, failed #{failed.size}"
+      end
+    end
 
     def initialize(jira_sync)
       @jira_sync = jira_sync
