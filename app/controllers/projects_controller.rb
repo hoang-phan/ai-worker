@@ -1,4 +1,6 @@
 class ProjectsController < ApplicationController
+  include ManualStartFlash
+
   before_action :set_project, only: %i[show edit update destroy sync_slack brainstorm]
 
   def index
@@ -47,16 +49,13 @@ class ProjectsController < ApplicationController
       start: -> { sync.fetcher.start },
       rescue_errors: [ AiCli::CommandError ]
     )
-    case result.status
-    when :blocked
-      redirect_to @project, alert: "Slack sync blocked: #{result.detail}"
-    when :started
-      redirect_to @project, notice: "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing."
-    when :already_running
-      redirect_to @project, alert: "A Slack fetch is already running for this project."
-    when :failed
-      redirect_to @project, alert: "Slack sync failed: #{result.detail}"
-    end
+    redirect_after_manual_start(
+      result,
+      to: @project,
+      label: "Slack sync",
+      started: "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing.",
+      already_running: "A Slack fetch is already running for this project."
+    )
   end
 
   # Runs a brainstorm now instead of waiting for the hourly one. Like the scheduled run it only happens while
@@ -73,18 +72,13 @@ class ProjectsController < ApplicationController
       after_start: -> { @project.update(brainstorm_last_run_at: Time.current) },
       rescue_errors: [ AiCli::CommandError ]
     )
-    case result.status
-    when :blocked
-      redirect_to @project, alert: "Brainstorm blocked: #{result.detail}"
-    when :skipped
-      redirect_to @project, alert: "Brainstorm skipped: #{result.detail}"
-    when :started
-      redirect_to @project, notice: "Agent is brainstorming workflows. They appear within the hour after it finishes."
-    when :already_running
-      redirect_to @project, alert: "A brainstorm is already running for this project."
-    when :failed
-      redirect_to @project, alert: "Brainstorm failed: #{result.detail}"
-    end
+    redirect_after_manual_start(
+      result,
+      to: @project,
+      label: "Brainstorm",
+      started: "Agent is brainstorming workflows. They appear within the hour after it finishes.",
+      already_running: "A brainstorm is already running for this project."
+    )
   end
 
   private

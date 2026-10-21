@@ -1,4 +1,6 @@
 class JiraSyncsController < ApplicationController
+  include ManualStartFlash
+
   before_action :set_project
   before_action :set_jira_sync, only: %i[edit update destroy run]
 
@@ -38,16 +40,13 @@ class JiraSyncsController < ApplicationController
       start: -> { sync.fetcher.start },
       rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
     )
-    case result.status
-    when :blocked
-      redirect_to @project, alert: "Jira sync blocked: #{result.detail}"
-    when :started
-      redirect_to @project, notice: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing."
-    when :already_running
-      redirect_to @project, alert: "A Jira fetch is already running for this sync."
-    when :failed
-      redirect_to @project, alert: "Jira sync failed: #{result.detail}"
-    end
+    redirect_after_manual_start(
+      result,
+      to: @project,
+      label: "Jira sync",
+      started: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.",
+      already_running: "A Jira fetch is already running for this sync."
+    )
   end
 
   private

@@ -1,0 +1,49 @@
+require "rails_helper"
+
+RSpec.describe "JiraSyncs", type: :request do
+  let(:local_directory) { Dir.mktmpdir("jira-syncs-request-spec") }
+  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:jira_sync) { project.jira_syncs.create!(jira_project: "SPEC") }
+  let(:fetcher) { instance_double(Jira::AgentFetcher, start: true) }
+  let(:sync) { instance_double(Jira::TicketSync, blockers: [], fetcher: fetcher) }
+
+  before { allow(Jira::TicketSync).to receive(:new).and_return(sync) }
+
+  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
+
+  describe "POST run" do
+    it "reports the blockers" do
+      allow(sync).to receive(:blockers).and_return([ "no base url" ])
+
+      post run_project_jira_sync_path(project, jira_sync)
+
+      expect(response).to redirect_to(project_path(project))
+      expect(flash[:alert]).to eq("Jira sync blocked: no base url")
+      expect(fetcher).not_to have_received(:start)
+    end
+
+    it "starts the fetch" do
+      post run_project_jira_sync_path(project, jira_sync)
+
+      expect(response).to redirect_to(project_path(project))
+      expect(flash[:notice]).to eq("Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.")
+    end
+
+    it "says when a fetch is already running" do
+      allow(fetcher).to receive(:start).and_return(false)
+
+      post run_project_jira_sync_path(project, jira_sync)
+
+      expect(flash[:alert]).to eq("A Jira fetch is already running for this sync.")
+    end
+
+    it "reports a failed start" do
+      allow(fetcher).to receive(:start).and_raise(Jira::FetchError, "bad token")
+
+      post run_project_jira_sync_path(project, jira_sync)
+
+      expect(response).to redirect_to(project_path(project))
+      expect(flash[:alert]).to eq("Jira sync failed: bad token")
+    end
+  end
+end

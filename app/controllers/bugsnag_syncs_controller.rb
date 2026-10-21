@@ -1,4 +1,6 @@
 class BugsnagSyncsController < ApplicationController
+  include ManualStartFlash
+
   before_action :set_project
   before_action :set_bugsnag_sync, only: %i[edit update destroy run]
 
@@ -38,16 +40,13 @@ class BugsnagSyncsController < ApplicationController
       start: -> { triager.start },
       rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
     )
-    case result.status
-    when :blocked
-      redirect_to @project, alert: "Bugsnag sync blocked: #{result.detail}"
-    when :started
-      redirect_to @project, notice: "Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes."
-    when :already_running
-      redirect_to @project, alert: "A Bugsnag triage is already running for this sync."
-    when :failed
-      redirect_to @project, alert: "Bugsnag sync failed: #{result.detail}"
-    end
+    redirect_after_manual_start(
+      result,
+      to: @project,
+      label: "Bugsnag sync",
+      started: "Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes.",
+      already_running: "A Bugsnag triage is already running for this sync."
+    )
   end
 
   private
