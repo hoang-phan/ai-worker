@@ -61,13 +61,7 @@
             <td class="text-muted"><%= workflow.branch_name %></td>
           <% end %>
           <td>
-            <% status_badge = case workflow.status
-               when "done", "merged", "jira_updated", "uat_tested" then "badge-success"
-               when "implementing", "reviewing", "waiting", "uat_waiting", "uat_testing", "local_testing" then "badge-info"
-               when "errored" then "badge-danger"
-               else "badge-neutral"
-               end %>
-            <span class="badge <%= status_badge %>"><%= workflow.status %></span>
+            <%= workflow_status_badge(workflow) %>
           </td>
           <td><%= workflow.runbook? ? (workflow.current_stage&.display_name || workflow.status) : (workflow.current_stage&.stage_type || workflow.status) %></td>
           <% unless @project.personal? %>
