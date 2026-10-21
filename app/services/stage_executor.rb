@@ -54,7 +54,7 @@ class StageExecutor
   end
 
   def finalize_success(output)
-    return finish_conflict_resolution(output) if stage.resolving_conflicts?
+    return conflict_resolution_finish.call(output) if stage.resolving_conflicts?
 
     Stages::CompletionHandler.new(
       workflow: workflow, stage: stage, project: project,
@@ -62,17 +62,11 @@ class StageExecutor
     ).call(output)
   end
 
-  # The conflict-resolution run must leave the merge committed; only then does
-  # the review-fix prompt run (immediately, in the same tick).
-  def finish_conflict_resolution(output)
-    if Git::BranchService.merge_in_progress?(project)
-      Git::BranchService.abort_merge!(project)
-      raise AiCli::CommandError, "#{AiCli::Runner.agent} did not finish resolving merge conflicts with main"
-    end
-
-    workflow.update!(Workflow::AI_RUN_RESET)
-    stage.log_run!("conflicts_resolved", output: output)
-    start_handler.start_ai_run(prompt.body)
+  def conflict_resolution_finish
+    Stages::ConflictResolutionFinish.new(
+      workflow: workflow, stage: stage, project: project,
+      git: Git::BranchService, prompt: prompt, start_ai_run: start_handler.method(:start_ai_run)
+    )
   end
 
   def fail_stage(error)
