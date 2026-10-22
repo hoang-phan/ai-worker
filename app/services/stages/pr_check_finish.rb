@@ -13,12 +13,7 @@ module Stages
     def call(output)
       parsed_output = AiCli::Output.new(output)
       github.request_review!(workflow.github_pr_url, handoff.reviewers)
-      retest = Stages::LocalTestPolicy.retest_after_fix?(
-        local_test_ready: project.local_test_ready?,
-        completed_rounds: workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i,
-        feedback_pending: workflow.local_test_feedback.present?,
-        retest_requested: parsed_output.retest_requested?
-      )
+      retest = retest?(parsed_output)
       workflow.finish_ai_run!(local_test_feedback: nil, **(retest ? { status: :local_testing } : {}))
       stage.log_run!("requested_changes_fixed", output: output)
       stage.log_run!("local_test_retest_scheduled") if retest
@@ -28,5 +23,18 @@ module Stages
     private
 
     attr_reader :workflow, :stage, :project, :github, :handoff
+
+    def retest?(parsed_output)
+      Stages::LocalTestPolicy.retest_after_fix?(
+        local_test_ready: project.local_test_ready?,
+        completed_rounds: completed_local_test_rounds,
+        feedback_pending: workflow.local_test_feedback.present?,
+        retest_requested: parsed_output.retest_requested?
+      )
+    end
+
+    def completed_local_test_rounds
+      workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i
+    end
   end
 end
