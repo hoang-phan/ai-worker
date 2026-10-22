@@ -20,11 +20,12 @@ module Slack
     # Headless (`claude -p`) can't prompt: approve only the one tool that posts.
     ALLOWED_TOOLS = %w[mcp__claude_ai_Slack__slack_send_message].freeze
 
-    def initialize(project, runner: AiCli::Runner, clock: -> { Time.current }, root: ROOT)
+    def initialize(project, runner: AiCli::Runner, clock: -> { Time.current }, root: ROOT, collector: nil)
       @project = project
       @runner = runner
       @clock = clock
       @root = Pathname(root)
+      @collector = collector || PingCollector.new(root: @root, poller: runner.method(:poll))
     end
 
     def enabled?
@@ -57,12 +58,12 @@ module Slack
 
     # Reads back finished pings of `workflow` (see PingCollector). Returns true while a ping is still running.
     def collect(workflow)
-      PingCollector.new.collect(workflow)
+      collector.collect(workflow)
     end
 
     private
 
-    attr_reader :project, :runner, :clock, :root
+    attr_reader :project, :runner, :clock, :root, :collector
 
     # tmp/slack_pings/<workflow_id>/<started_at>/, the layout PingCollector reads back.
     def run_dir(workflow)

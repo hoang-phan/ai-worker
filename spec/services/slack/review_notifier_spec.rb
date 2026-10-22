@@ -2,11 +2,13 @@ require "rails_helper"
 
 RSpec.describe Slack::ReviewNotifier do
   let(:project) { instance_double(Project, slack_review_channel: "C123", slack_user_id_for: nil) }
-  let(:notifier) { described_class.new(project) }
+  let(:tmp_root) { Pathname(Dir.mktmpdir("slack_pings_spec")) }
+  let(:runner) { double("runner", start: 42, poll: nil) }
+  let(:notifier) { described_class.new(project, runner: runner, root: tmp_root) }
   let(:workflow) { instance_double(Workflow, id: 987_654_321, slack_review_thread_ts: nil) }
-  let(:dir) { described_class::ROOT.join(workflow.id.to_s) }
+  let(:dir) { tmp_root.join(workflow.id.to_s) }
 
-  after { FileUtils.rm_rf(dir) }
+  after { FileUtils.remove_entry(tmp_root) if tmp_root.exist? }
 
   describe "#message" do
     it "delegates to Slack::ReviewMessage with the project's Slack id lookup" do
@@ -17,13 +19,9 @@ RSpec.describe Slack::ReviewNotifier do
   end
 
   describe "#notify!" do
-    let(:tmp_root) { Pathname(Dir.mktmpdir("slack_pings_spec")) }
     let(:now) { Time.zone.at(1_760_000_000) }
-    let(:runner) { double("runner", start: 42) }
     let(:notifier) { described_class.new(project, runner: runner, clock: -> { now }, root: tmp_root) }
     let(:run_dir) { tmp_root.join(workflow.id.to_s, "1760000000") }
-
-    after { FileUtils.remove_entry(tmp_root) if tmp_root.exist? }
 
     def notify(**opts)
       notifier.notify!(workflow: workflow, pr_url: "u", label: "l", reviewers: [], **opts)
@@ -79,7 +77,7 @@ RSpec.describe Slack::ReviewNotifier do
 
     it "saves the permalink as the thread once the run finished" do
       ping(pid: 42, log: "Posted.\nhttps://ws.slack.com/archives/C123/p1760000000123456\n")
-      allow(AiCli::Runner).to receive(:poll).with(42).and_return([ :completed, nil ])
+      allow(runner).to receive(:poll).with(42).and_return([ :completed, nil ])
       expect(workflow).to receive(:update!).with(slack_review_thread_ts: "https://ws.slack.com/archives/C123/p1760000000123456")
       expect(notifier.collect(workflow)).to be(false)
       expect(dir).not_to exist
@@ -87,9 +85,16 @@ RSpec.describe Slack::ReviewNotifier do
 
     it "waits while the run is alive" do
       ping(pid: 42, log: "")
-      allow(AiCli::Runner).to receive(:poll).and_return(:running)
+      allow(runner).to receive(:poll).and_return(:running)
       expect(workflow).not_to receive(:update!)
       expect(notifier.collect(workflow)).to be(true)
+    end
+
+    it "delegates to an injected collector" do
+      collector = instance_double(Slack::PingCollector, collect: true)
+      notifier = described_class.new(project, runner: runner, root: tmp_root, collector: collector)
+      expect(notifier.collect(workflow)).to be(true)
+      expect(collector).to have_received(:collect).with(workflow)
     end
   end
 end
