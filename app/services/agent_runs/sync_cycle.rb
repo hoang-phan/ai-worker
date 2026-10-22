@@ -3,20 +3,18 @@
 # when the record is eligible, idle, due and unblocked. Expected errors are
 # recorded and logged so later records in the calling job still run.
 #
-# Callbacks (all callables):
-#   poll         -> finished payload or nil
-#   import       -> (payload) result
-#   summary      -> (result) string
-#   persist      -> (result, summary) store the summary on the record
-#   log_message  -> (result, summary) info line body; defaults to the summary
-#   after_import -> (result) post-import hook
-#   eligible     -> whether this record may start runs at all
-#   idle         -> whether no run is in flight
-#   due          -> whether the cadence allows a new run
-#   blockers     -> array of reasons not to start
-#   start        -> start the detached run
-#   after_start  -> hook run after a successful start
-#   persist_failure -> (message) store "failed: ..." on the record
+# The source is a duck-typed object (see AgentRuns::CycleSource):
+#   poll                        -> finished payload or nil
+#   import(payload)             -> result
+#   summary(result)             -> string
+#   persist!(result, summary)   -> store the summary on the record
+#   persist_failure!(message)   -> store "failed: ..." on the record
+#   eligible? / idle? / due?    -> may start / nothing in flight / cadence allows
+#   blockers                    -> array of reasons not to start
+#   start!                      -> start the detached run
+#   log_message(result, summary) (optional) -> info line body; defaults to "<log_prefix> <summary>"
+#   after_import(result)        (optional) -> post-import hook
+#   after_start                 (optional) -> hook run after a successful start
 module AgentRuns
   class SyncCycle
     Outcome = Struct.new(:imported, :started, :blocked, :failed, keyword_init: true) do
@@ -25,60 +23,52 @@ module AgentRuns
 
     def self.call(...) = new(...).call
 
-    def initialize(log_prefix:, rescue_errors:, poll:, import:, summary:, persist:, persist_failure:, start:,
-                   blockers: -> { [] }, eligible: -> { true }, idle: -> { true }, due: -> { true },
-                   log_message: nil, after_import: nil, after_start: nil, logger: Rails.logger)
+    def initialize(source:, log_prefix:, rescue_errors:, logger: Rails.logger)
+      @source = source
       @log_prefix = log_prefix
       @rescue_errors = rescue_errors
-      @poll = poll
-      @import = import
-      @summary = summary
-      @persist = persist
-      @persist_failure = persist_failure
-      @start = start
-      @blockers = blockers
-      @eligible = eligible
-      @idle = idle
-      @due = due
-      @log_message = log_message
-      @after_import = after_import
-      @after_start = after_start
       @logger = logger
     end
 
     def call
       outcome = Outcome.none
-      payload = @poll.call
+      payload = @source.poll
       if payload
-        record(@import.call(payload))
+        record(@source.import(payload))
         outcome.imported = true
       end
 
-      return outcome unless @eligible.call && @idle.call && @due.call
+      return outcome unless @source.eligible? && @source.idle? && @source.due?
 
-      reasons = @blockers.call
+      reasons = @source.blockers
       if reasons.any?
         @logger.warn("#{@log_prefix} blocked: #{reasons.join('; ')}")
         outcome.blocked = true
       else
-        @start.call
-        @after_start&.call
+        @source.start!
+        @source.after_start if @source.respond_to?(:after_start)
         outcome.started = true
       end
       outcome
     rescue *@rescue_errors => e
       @logger.error("#{@log_prefix} #{e.message}")
-      @persist_failure.call("failed: #{e.message}".truncate(250))
+      @source.persist_failure!("failed: #{e.message}".truncate(250))
       Outcome.new(imported: outcome.imported, started: false, blocked: false, failed: true)
     end
 
     private
 
     def record(result)
-      summary = @summary.call(result)
-      @logger.info(@log_message ? @log_message.call(result, summary) : "#{@log_prefix} #{summary}")
-      @persist.call(result, summary)
-      @after_import&.call(result)
+      summary = @source.summary(result)
+      @logger.info(log_message(result, summary))
+      @source.persist!(result, summary)
+      @source.after_import(result) if @source.respond_to?(:after_import)
+    end
+
+    def log_message(result, summary)
+      return "#{@log_prefix} #{summary}" unless @source.respond_to?(:log_message)
+
+      @source.log_message(result, summary)
     end
   end
 end

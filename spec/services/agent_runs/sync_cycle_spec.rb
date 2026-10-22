@@ -8,27 +8,56 @@ RSpec.describe AgentRuns::SyncCycle do
   let(:idle) { true }
   let(:due) { true }
   let(:blockers) { [] }
+
   let(:overrides) { {} }
 
-  let(:args) do
-    {
-      log_prefix: "[Spec] thing=1",
-      rescue_errors: [ ArgumentError, AiCli::CommandError ],
-      poll: -> { calls << :poll; payload },
-      import: ->(p) { calls << [ :import, p ]; "result-of-#{p}" },
-      summary: ->(r) { "summary(#{r})" },
-      persist: ->(r, s) { calls << [ :persist, r, s ] },
-      persist_failure: ->(m) { calls << [ :persist_failure, m ] },
-      eligible: -> { eligible },
-      idle: -> { idle },
-      due: -> { due },
-      blockers: -> { blockers },
-      start: -> { calls << :start },
-      after_import: ->(r) { calls << [ :after_import, r ] },
-      after_start: -> { calls << :after_start },
-      logger: logger
-    }.merge(overrides)
+  let(:source_class) do
+    Class.new(AgentRuns::CycleSource) do
+      attr_accessor :calls, :payload, :eligible, :idle, :due, :blocker_list, :failures
+
+      def initialize(calls)
+        @calls = calls
+        @eligible = @idle = @due = true
+        @blocker_list = []
+        @failures = {}
+      end
+
+      def poll = step(:poll) { payload }
+      def import(p) = step(:import, p) { "result-of-#{p}" }
+      def summary(r) = "summary(#{r})"
+      def persist!(r, s) = step(:persist, r, s) { nil }
+      def persist_failure!(m) = calls << [ :persist_failure, m ]
+      def eligible? = eligible
+      def idle? = idle
+      def due? = due
+      def blockers = blocker_list
+      def start! = step(:start) { nil }
+      def after_import(r) = calls << [ :after_import, r ]
+      def after_start = calls << :after_start
+
+      private
+
+      def step(name, *args)
+        calls << (args.empty? ? name : [ name, *args ])
+        raise failures[name] if failures[name]
+
+        yield
+      end
+    end
   end
+
+  let(:source) do
+    source_class.new(calls).tap do |s|
+      s.payload = payload
+      s.eligible = eligible
+      s.idle = idle
+      s.due = due
+      s.blocker_list = blockers
+      overrides.each { |name, value| s.public_send("#{name}=", value) }
+    end
+  end
+
+  let(:args) { { source: source, log_prefix: "[Spec] thing=1", rescue_errors: [ ArgumentError, AiCli::CommandError ], logger: logger } }
 
   subject(:outcome) { described_class.call(**args) }
 
@@ -51,7 +80,7 @@ RSpec.describe AgentRuns::SyncCycle do
       end
 
       context "with a custom log message" do
-        let(:overrides) { { log_message: ->(r, s) { "custom #{r} #{s}" } } }
+        before { source.define_singleton_method(:log_message) { |r, s| "custom #{r} #{s}" } }
 
         it "logs it instead of the default" do
           outcome
@@ -100,11 +129,43 @@ RSpec.describe AgentRuns::SyncCycle do
       end
     end
 
-    context "with defaults for the optional gates" do
-      let(:args) { super().except(:eligible, :idle, :due, :blockers, :after_start, :after_import) }
+    context "with a bare source relying on the CycleSource defaults" do
+      let(:bare) do
+        Class.new(AgentRuns::CycleSource) do
+          attr_reader :started
+
+          def poll = nil
+          def start! = @started = true
+        end.new
+      end
+      let(:args) { super().merge(source: bare) }
 
       it "starts" do
         expect(outcome.started).to be(true)
+        expect(bare.started).to be(true)
+      end
+    end
+
+    context "with a duck-typed source lacking the hooks" do
+      let(:duck) do
+        Struct.new(:calls) do
+          def poll = "p"
+          def import(p) = "r-#{p}"
+          def summary(r) = "s(#{r})"
+          def persist!(*) = nil
+          def persist_failure!(*) = nil
+          def eligible? = true
+          def idle? = true
+          def due? = true
+          def blockers = []
+          def start! = calls << :start
+        end.new(calls)
+      end
+      let(:args) { super().merge(source: duck) }
+
+      it "skips the hooks and logs the default line" do
+        expect(outcome).to have_attributes(imported: true, started: true)
+        expect(logger).to have_received(:info).with("[Spec] thing=1 s(r-p)")
       end
     end
   end
@@ -118,7 +179,7 @@ RSpec.describe AgentRuns::SyncCycle do
       [ ArgumentError.new("boom"), AiCli::CommandError.new("cli boom") ].each do |error|
         context "when #{name} raises #{error.class}" do
           let(:payload) { "p" }
-          let(:overrides) { { step => step == :import ? ->(_p) { raise error } : -> { raise error } } }
+          let(:overrides) { { failures: { step => error } } }
 
           it "logs, records a truncated failure and returns failed without raising" do
             expect(outcome.failed).to be(true)
@@ -131,7 +192,7 @@ RSpec.describe AgentRuns::SyncCycle do
     end
 
     context "when the persisted error message is long" do
-      let(:overrides) { { poll: -> { raise ArgumentError, "x" * 400 } } }
+      let(:overrides) { { failures: { poll: ArgumentError.new("x" * 400) } } }
 
       it "truncates to 250 characters" do
         outcome
@@ -142,7 +203,7 @@ RSpec.describe AgentRuns::SyncCycle do
 
     context "when an import fails after a successful poll" do
       let(:payload) { "p" }
-      let(:overrides) { { import: ->(_p) { raise ArgumentError, "bad" } } }
+      let(:overrides) { { failures: { import: ArgumentError.new("bad") } } }
 
       it "does not report an import" do
         expect(outcome).to have_attributes(imported: false, failed: true)
@@ -151,7 +212,7 @@ RSpec.describe AgentRuns::SyncCycle do
 
     context "when the record step fails after import" do
       let(:payload) { "p" }
-      let(:overrides) { { persist: ->(_r, _s) { raise ArgumentError, "db" } } }
+      let(:overrides) { { failures: { persist: ArgumentError.new("db") } } }
 
       it "is reported as failed" do
         expect(outcome.failed).to be(true)
@@ -159,7 +220,7 @@ RSpec.describe AgentRuns::SyncCycle do
     end
 
     context "with an unexpected error" do
-      let(:overrides) { { poll: -> { raise "surprise" } } }
+      let(:overrides) { { failures: { poll: RuntimeError.new("surprise") } } }
 
       it "propagates" do
         expect { outcome }.to raise_error(RuntimeError, "surprise")
@@ -167,9 +228,8 @@ RSpec.describe AgentRuns::SyncCycle do
     end
 
     it "lets later records run after a failing one" do
-      outcomes = [ -> { raise ArgumentError, "first" }, -> { nil } ].map do |poll|
-        described_class.call(**args, poll: poll)
-      end
+      failing = source_class.new([]).tap { |s| s.failures = { poll: ArgumentError.new("first") } }
+      outcomes = [ failing, source ].map { |s| described_class.call(**args, source: s) }
       expect(outcomes.map(&:failed)).to eq([ true, false ])
       expect(outcomes.last.started).to be(true)
     end

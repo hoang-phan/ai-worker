@@ -5,21 +5,10 @@ class BrainstormJob < ApplicationJob
 
   def perform
     Project.personal.where(brainstorm_enabled: true).find_each do |project|
-      planner = Brainstorm::Planner.new(project)
-
       AgentRuns::SyncCycle.call(
+        source: Brainstorm::CycleSource.new(project),
         log_prefix: "[BrainstormJob] project=#{project.id}",
-        rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ],
-        poll: -> { planner.poll },
-        import: ->(proposals) { planner.import(proposals) },
-        summary: ->(result) { result.summary },
-        persist: ->(_result, summary) { project.update(brainstorm_last_result: summary) },
-        idle: -> { !planner.running? },
-        due: -> { planner.wait_reason.nil? },
-        blockers: -> { planner.blockers },
-        start: -> { planner.start },
-        after_start: -> { planner.record_start! },
-        persist_failure: ->(message) { project.update(brainstorm_last_result: message) }
+        rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ]
       )
     end
   end
