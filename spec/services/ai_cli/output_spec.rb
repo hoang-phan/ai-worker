@@ -70,6 +70,29 @@ RSpec.describe AiCli::Output do
     it("is nil when missing") { expect(output("x").fixed_summary).to be_nil }
   end
 
+  describe "#follow_ups" do
+    let(:block) { %(FOLLOW_UPS_BEGIN\n[{"summary":"Fix X","task":"Do X in a.rb, verify with rspec"}]\nFOLLOW_UPS_END) }
+
+    it "parses the block" do
+      expect(output("done\n#{block}\n").follow_ups).to eq([ { "summary" => "Fix X", "task" => "Do X in a.rb, verify with rspec" } ])
+    end
+
+    it "uses the last block when the prompt's example was echoed" do
+      echoed = %(FOLLOW_UPS_BEGIN\n[{"summary":"Example","task":"Example task"}]\nFOLLOW_UPS_END\n)
+      expect(output("#{echoed}work\n#{block}").follow_ups.map { |row| row["summary"] }).to eq([ "Fix X" ])
+    end
+
+    it "cleans rows" do
+      long = "a" * 300
+      text = %(FOLLOW_UPS_BEGIN\n[{"summary":"#{long}","task":"t"},{"summary":"","task":"t"},"x"]\nFOLLOW_UPS_END)
+      expect(output(text).follow_ups.map { |row| row["summary"].length }).to eq([ Workflow::SUMMARY_LENGTH ])
+    end
+
+    it("is empty for invalid JSON") { expect(output("FOLLOW_UPS_BEGIN\nnot json\nFOLLOW_UPS_END").follow_ups).to eq([]) }
+    it("is empty for a non-array") { expect(output(%(FOLLOW_UPS_BEGIN\n{"a":1}\nFOLLOW_UPS_END)).follow_ups).to eq([]) }
+    it("is empty when missing") { expect(output("x").follow_ups).to eq([]) }
+  end
+
   describe "#lessons" do
     it "returns the lines of the last block without bullets or blank lines" do
       text = "LESSONS_BEGIN\nexample\nLESSONS_END\nLESSONS_BEGIN\n- Use partial A\n\n  - Prefer B  \nplain C\nLESSONS_END\nLOCAL_RETEST: NO"

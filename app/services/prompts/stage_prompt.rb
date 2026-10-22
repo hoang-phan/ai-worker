@@ -68,6 +68,7 @@ module Prompts
           notify_enabled: stage.pr_check? && notifier.enabled?
         ),
         Prompts::StageSections::LessonsRequest.new(stage_type: stage_type),
+        Prompts::StageSections::FollowUps.new(stage_type: stage_type),
         Prompts::StageSections::Lessons.new(stage_type: stage_type, lessons: project.agent_lessons),
         Prompts::StageSections::CheckOutput.new(stage_type: stage_type),
         Prompts::StageSections::Subagents.new(stage_type: stage_type, entries: subagent_roster.call(project.local_directory))

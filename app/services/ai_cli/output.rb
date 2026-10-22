@@ -55,6 +55,16 @@ module AiCli
       block.lines.map { |line| line.strip.delete_prefix("- ").strip }.reject(&:blank?)
     end
 
+    # Rows of the last FOLLOW_UPS_BEGIN/FOLLOW_UPS_END block (the log may echo the prompt's own example): a JSON array
+    # of {"summary", "task"}, cleaned by Brainstorm::ProposalNormalizer. [] when the block is missing or not valid JSON.
+    def follow_ups
+      body = text.scan(/^[ \t]*FOLLOW_UPS_BEGIN[ \t]*\n(.*?)\n?^[ \t]*FOLLOW_UPS_END[ \t]*$/m).last&.first
+      rows = JSON.parse(body.to_s)
+      rows.is_a?(Array) ? Brainstorm::ProposalNormalizer.call(rows) : []
+    rescue JSON::ParserError
+      []
+    end
+
     # A line that is only POSTED.
     def posted?
       text.match?(/^\s*POSTED\s*$/)

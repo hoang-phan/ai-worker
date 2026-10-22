@@ -31,7 +31,15 @@ RSpec.describe Prompts::StagePrompt do
       after { template.destroy }
 
       it "wins over the template and renders placeholders" do
-        expect(stage_prompt.body).to eq("Own prompt: Do the thing")
+        expect(stage_prompt.body).to start_with("Own prompt: Do the thing")
+      end
+    end
+
+    context "when the stage is a task" do
+      let(:stage_attrs) { { prompt: "Do {TASK}" } }
+
+      it "asks for follow-ups" do
+        expect(stage_prompt.body).to include("FOLLOW_UPS_BEGIN")
       end
     end
 
@@ -42,7 +50,7 @@ RSpec.describe Prompts::StagePrompt do
       after { template.destroy }
 
       it "uses the template body" do
-        expect(stage_prompt.body).to eq("Template: Do the thing")
+        expect(stage_prompt.body).to start_with("Template: Do the thing")
       end
     end
 
@@ -204,7 +212,7 @@ RSpec.describe Prompts::StagePrompt do
       let(:roster) { ->(_dir) { [] } }
 
       it "adds nothing" do
-        expect(stage_prompt.body).to eq("Do Do the thing")
+        expect(stage_prompt.body).not_to include("subagents")
       end
     end
   end
