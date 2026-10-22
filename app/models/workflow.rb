@@ -35,6 +35,16 @@ class Workflow < ApplicationRecord
   # Columns cleared when an agent run finishes or fails; merge into the workflow's next update!.
   AI_RUN_RESET = { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, ai_provider: nil }.freeze
 
+  # The agent CLI this workflow runs with when its stage's agent names none: the provider picked by AiCli::Rotation
+  # the first time it needs one (kept for the workflow's life), else nil for the app-wide agent.
+  def rotation_provider!
+    return rotation_provider if rotation_provider.present?
+
+    provider = AiCli::Rotation.next_provider
+    update_column(:rotation_provider, provider) if provider
+    provider
+  end
+
   scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 
   validates :jira_ticket, presence: true, if: :jira_development?

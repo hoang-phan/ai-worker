@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
   create_table "agent_delegations", force: :cascade do |t|
     t.integer "agent_id", null: false
     t.datetime "created_at", null: false
@@ -185,6 +185,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_140000) do
     t.text "pr_skills"
     t.boolean "processing", default: false, null: false
     t.integer "project_id", null: false
+    t.string "rotation_provider"
     t.text "skills"
     t.string "slack_review_thread_ts"
     t.string "slack_url"

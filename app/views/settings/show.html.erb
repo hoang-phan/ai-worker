@@ -15,3 +15,20 @@
     </div>
   <% end %>
 </div>
+
+<div class="card form-card">
+  <h2>Workflow round robin</h2>
+  <%= form_with url: settings_path, method: :patch do |f| %>
+    <% @rotation.each do |name, weight| %>
+      <div class="field">
+        <%= label_tag "rotation_#{name}", name %>
+        <%= number_field_tag "rotation[#{name}]", weight, min: 0, step: 1, id: "rotation_#{name}" %>
+      </div>
+    <% end %>
+    <p class="text-muted">How many consecutive workflows each agent gets per cycle (e.g. claude 5, codex 3, cursor 1), to spread usage limits. Each workflow keeps its agent for its whole life; a stage's own agent still wins. All zeros turns it off and the agent above is used. The agent above (and brainstorm, syncs) is still used for non-workflow tasks.</p>
+
+    <div class="form-actions">
+      <%= f.submit "Save round robin" %>
+    </div>
+  <% end %>
+</div>

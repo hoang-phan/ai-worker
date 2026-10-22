@@ -52,7 +52,7 @@ module Prompts
       agent = stage.agent
       return "" unless agent
 
-      provider = AiCli::Providers.find(agent.provider.presence || AiCli::AgentSetting.current)
+      provider = AiCli::Providers.find(agent.provider.presence || workflow.rotation_provider! || AiCli::AgentSetting.current)
       Prompts::StageSections::AgentBrief.new(
         name: agent.name, description: agent.description, instructions: agent.instructions,
         allowed_tools: agent.allowed_tools, tools_enforced: provider&.capabilities&.tool_lists

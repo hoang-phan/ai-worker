@@ -12,6 +12,7 @@ module Stages
 
     def call(prompt_text, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
       log_path = logs.new_path(workflow.id)
+      provider = run_provider
       pid = runner.start(
         project.local_directory,
         prompt_text,
@@ -21,7 +22,7 @@ module Stages
         disallowed_tools: disallowed_tools,
         model: agent&.model.presence,
         effort: agent&.effort.presence,
-        provider: agent&.provider.presence,
+        provider: provider,
         allowed_tools: agent&.allowed_tools.presence
       )
 
@@ -31,12 +32,17 @@ module Stages
         ai_log_path: log_path,
         ai_started_at: Time.current,
         ai_log_offset: 0,
-        ai_provider: agent&.provider.presence
+        ai_provider: provider
       )
       stage.log_run!(action)
     end
 
     private
+
+    # The stage agent's own provider wins; otherwise the workflow's round-robin provider (nil: app-wide agent).
+    def run_provider
+      agent&.provider.presence || workflow.rotation_provider!
+    end
 
     def agent
       stage.agent
