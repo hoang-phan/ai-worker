@@ -17,6 +17,12 @@ RSpec.describe Brainstorm::RunLifecycle do
 
   after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
+  describe "#result_path" do
+    it "is the detached run's result file inside the run directory" do
+      expect(lifecycle.result_path).to eq(dir.join("result.json"))
+    end
+  end
+
   describe "#poll when the agent wrote no result.json" do
     it "retries once when the stream was aborted" do
       dir.join("agent.log").write("#{aborted_event}\n")

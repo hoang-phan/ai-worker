@@ -23,6 +23,8 @@ module Brainstorm
 
     Result = ProposalImporter::Result
 
+    delegate :running?, :last_started_at, to: :lifecycle
+
     def self.model
       ENV["BRAINSTORM_MODEL"].presence || DEFAULT_MODEL
     end
@@ -56,14 +58,6 @@ module Brainstorm
     # Stamps the project's last-run time; callers invoke it after a successful `start`.
     def record_start!
       project.update!(brainstorm_last_run_at: clock.current)
-    end
-
-    def running?
-      lifecycle.running?
-    end
-
-    def last_started_at
-      lifecycle.last_started_at
     end
 
     def start
@@ -114,12 +108,8 @@ module Brainstorm
     def prompt(context)
       Prompt.new(
         goal: project.brainstorm_goal, max_workflows: project.brainstorm_max_workflows,
-        result_file: result_file, history_file: history_file, **context.prompt_inputs
+        result_file: lifecycle.result_path, history_file: history_file, **context.prompt_inputs
       ).to_s
-    end
-
-    def result_file
-      dir.join("result.json")
     end
 
     def history_file
