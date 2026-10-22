@@ -1,0 +1,26 @@
+<div class="field">
+  <%= f.label :name %>
+  <%= f.text_field :name %>
+</div>
+<div class="field">
+  <%= f.label :position %>
+  <%= f.number_field :position %>
+</div>
+<div class="field">
+  <%= f.label :run_mode, "What the stage does" %>
+  <%= f.select :run_mode, stage_run_mode_options %>
+</div>
+<div class="field">
+  <%= f.label :channel, "Slack channel (message stages)" %>
+  <%= f.text_field :channel %>
+</div>
+<div class="field">
+  <%= f.label :auto_advance, "Continue automatically after this stage" %>
+  <%= f.check_box :auto_advance %>
+  <p class="field-hint">Unticked, the runbook stops here until someone clicks Next (a decision point). Ticked, the next stage starts by itself.</p>
+</div>
+<div class="field">
+  <%= f.label :wait_for_workflow, "Wait for GitHub Actions workflow (optional)" %>
+  <%= f.text_field :wait_for_workflow, placeholder: "manual_environment_deploy.yml" %>
+  <p class="field-hint">The stage won't start until the latest run of this workflow (started after the previous stage began) has finished successfully; it fails if that run fails.</p>
+</div>

@@ -7,58 +7,13 @@
     <%= render "shared/error_summary", record: f.object %>
 
     <% if workflow.runbook? %>
-      <div class="field">
-        <%= f.label :name %>
-        <%= f.text_field :name %>
-      </div>
-      <div class="field">
-        <%= f.label :position %>
-        <%= f.number_field :position %>
-      </div>
-      <div class="field">
-        <%= f.label :run_mode, "What the stage does" %>
-        <%= f.select :run_mode, Stage.run_modes.keys.map { |m| [ m == "agent" ? "Run the prompt with the agent" : "Post the text to Slack", m ] } %>
-      </div>
-      <div class="field">
-        <%= f.label :channel, "Slack channel (message stages)" %>
-        <%= f.text_field :channel %>
-      </div>
-      <div class="field">
-        <%= f.label :auto_advance, "Continue automatically after this stage" %>
-        <%= f.check_box :auto_advance %>
-        <p class="field-hint">Unticked, the runbook stops here until someone clicks Next (a decision point). Ticked, the next stage starts by itself.</p>
-      </div>
-      <div class="field">
-        <%= f.label :wait_for_workflow, "Wait for GitHub Actions workflow (optional)" %>
-        <%= f.text_field :wait_for_workflow, placeholder: "manual_environment_deploy.yml" %>
-        <p class="field-hint">The stage won't start until the latest run of this workflow (started after the previous stage began) has finished successfully; it fails if that run fails.</p>
-      </div>
+      <%= render "stages/form/runbook_fields", f: f, stage: stage, workflow: workflow, project: project %>
     <% end %>
 
     <% if stage.ci_check? %>
-      <div class="field">
-        <%= f.label :command, "Check command" %>
-        <%= f.text_area :command, rows: 3, placeholder: workflow.project.ci_command.presence || "bin/ci" %>
-        <p class="field-hint">Plain code, no agent. Run with <code>bash -lc</code> in the project's clone; its output is what the verify stage reads. Blank uses the project's check command.</p>
-      </div>
+      <%= render "stages/form/command_field", f: f, stage: stage, workflow: workflow, project: project %>
     <% else %>
-    <div class="field">
-      <%= f.label :prompt_template_id, "Prompt template" %>
-      <%= f.select :prompt_template_id,
-            options_for_select(
-              stage.candidate_templates.map { |t| [t.name, t.id, { data: { body: t.body } }] },
-              stage.prompt_template_id
-            ),
-            { include_blank: "Use default template for #{stage.stage_type}" },
-            data: { template_fill_target: "select", action: "change->template-fill#fill" } %>
-      <p class="field-hint">Selecting a template fills in the prompt below with this workflow's details &mdash; edit it freely before saving.</p>
-    </div>
-
-    <div class="field">
-      <%= f.label :prompt %>
-      <%= render "shared/skill_hints", project: project %>
-      <%= f.text_area :prompt, rows: 20, data: { skill_insert_target: "input", template_fill_target: "input" } %>
-    </div>
+      <%= render "stages/form/prompt_fields", f: f, stage: stage, workflow: workflow, project: project %>
     <% end %>
 
     <div class="form-actions">

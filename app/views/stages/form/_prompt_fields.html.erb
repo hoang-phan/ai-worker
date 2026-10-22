@@ -1,0 +1,14 @@
+<div class="field">
+  <%= f.label :prompt_template_id, "Prompt template" %>
+  <%= f.select :prompt_template_id,
+        options_for_select(stage_template_options(stage), stage.prompt_template_id),
+        { include_blank: "Use default template for #{stage.stage_type}" },
+        data: { template_fill_target: "select", action: "change->template-fill#fill" } %>
+  <p class="field-hint">Selecting a template fills in the prompt below with this workflow's details &mdash; edit it freely before saving.</p>
+</div>
+
+<div class="field">
+  <%= f.label :prompt %>
+  <%= render "shared/skill_hints", project: project %>
+  <%= f.text_area :prompt, rows: 20, data: { skill_insert_target: "input", template_fill_target: "input" } %>
+</div>

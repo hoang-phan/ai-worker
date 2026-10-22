@@ -1,0 +1,5 @@
+<div class="field">
+  <%= f.label :command, "Check command" %>
+  <%= f.text_area :command, rows: 3, placeholder: workflow.project.ci_command.presence || "bin/ci" %>
+  <p class="field-hint">Plain code, no agent. Run with <code>bash -lc</code> in the project's clone; its output is what the verify stage reads. Blank uses the project's check command.</p>
+</div>
