@@ -38,6 +38,7 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 ## Spec recipe
 
 - `spec/services/ai_cli/detached_run_spec.rb` is the model: `Dir.mktmpdir` state dir, pass a fake `runner:` (`instance_double`; `start` returns `4242`, `poll` returns `:running` or `[ :completed, nil ]`), write a fake `pid` and result file by hand, then call `poll`.
+- `Brainstorm::Planner` follows the same injection: `initialize(project, clock: Time, root: ROOT, lifecycle: nil)`; its spec passes a tmp `root:` and an `instance_double` `lifecycle:` (no `stub_const`, no `allow(RunLifecycle).to receive(:new)`).
 - Fetcher specs (`spec/services/{jira,slack,bugsnag}/*_spec.rb`): pass `root: Pathname(tmp)` (no `stub_const`); for `start`/`poll` pass a fake `run:` that records `start`'s kwargs and assert cwd, allowed_tools and the result file named in the prompt, write a result file with good and junk rows, assert `poll` returns only the filtered rows; also cover missing file, bad JSON, non-array, and staleness (pid alive and `started_at` older than `STALE_AFTER` raises `FetchError` and clears the pid).
 - Sync specs: each `blockers` reason, `import` creating records, idempotent re-import, a row that fails validation landing in `failed`.
 - Job specs (`spec/jobs/*_sync_job_spec.rb`): stub the fetcher; assert import-before-start, no start while running or blocked, FetchError recorded as `"failed: ..."`.

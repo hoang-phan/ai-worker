@@ -2,7 +2,8 @@ require "rails_helper"
 
 RSpec.describe BrainstormJob, type: :job do
   let(:dirs) { [] }
-  let(:planner) { Brainstorm::Planner.new(project) }
+  let(:state_root) { Dir.mktmpdir("brainstorm-job-state").tap { |d| dirs << d } }
+  let(:planner) { Brainstorm::Planner.new(project, root: state_root) }
   let(:blockers) { [] }
   let(:enabled) { true }
   let!(:project) { create_project(brainstorm_enabled: enabled) }

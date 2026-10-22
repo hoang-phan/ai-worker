@@ -31,10 +31,11 @@ module Brainstorm
       ENV["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
     end
 
-    def initialize(project, clock: Time)
+    def initialize(project, clock: Time, root: ROOT, lifecycle: nil)
       @project = project
       @clock = clock
-      @dir = ROOT.join(project.id.to_s)
+      @dir = Pathname(root).join(project.id.to_s)
+      @lifecycle = lifecycle || RunLifecycle.new(dir: dir, stale_after: STALE_AFTER)
     end
 
     def blockers
@@ -84,11 +85,7 @@ module Brainstorm
 
     private
 
-    attr_reader :project, :dir, :clock
-
-    def lifecycle
-      @lifecycle ||= RunLifecycle.new(dir: dir, stale_after: STALE_AFTER)
-    end
+    attr_reader :project, :dir, :clock, :lifecycle
 
     # Workflows that are not in the code yet (the only ones the agent can't see by reading it).
     def in_flight

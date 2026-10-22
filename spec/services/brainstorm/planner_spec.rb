@@ -1,17 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::Planner do
-  subject(:planner) { described_class.new(project) }
+  subject(:planner) { described_class.new(project, root: root, lifecycle: lifecycle) }
 
   let(:root) { Pathname.new(Dir.mktmpdir("planner-spec")) }
   let(:project) { Project.new(id: 987_654, name: "Spec project", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
   let(:dir) { root.join("987654") }
   let(:lifecycle) { instance_double(Brainstorm::RunLifecycle, running?: false, last_started_at: nil, start: true, poll: nil) }
-
-  before do
-    stub_const("Brainstorm::Planner::ROOT", root)
-    allow(Brainstorm::RunLifecycle).to receive(:new).with(dir: dir, stale_after: 45.minutes).and_return(lifecycle)
-  end
 
   after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
@@ -61,7 +56,7 @@ RSpec.describe Brainstorm::Planner do
       at = Time.zone.local(2026, 1, 2, 3, 4, 5)
       clock = double("clock", current: at)
 
-      described_class.new(project, clock: clock).record_start!
+      described_class.new(project, clock: clock, root: root, lifecycle: lifecycle).record_start!
 
       expect(project.reload.brainstorm_last_run_at).to eq(at)
     end

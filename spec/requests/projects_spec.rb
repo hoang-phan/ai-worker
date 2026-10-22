@@ -85,7 +85,10 @@ RSpec.describe "Projects", type: :request do
   end
 
   describe "POST brainstorm" do
-    let(:planner) { Brainstorm::Planner.new(project) }
+    let(:state_root) { Dir.mktmpdir("projects-request-state") }
+    let(:planner) { Brainstorm::Planner.new(project, root: state_root) }
+
+    after { FileUtils.remove_entry(state_root) if state_root.start_with?(Dir.tmpdir) && File.exist?(state_root) }
 
     before do
       allow(planner).to receive_messages(blockers: [], queued_count: 0, start: true)
