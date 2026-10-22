@@ -36,14 +36,7 @@ module Jira
       ensure_credentials!
       mine = account_id
       worklogs = []
-      start_at = 0
-      loop do
-        data = get_json("/rest/api/3/issue/#{ticket_key}/worklog", startAt: start_at, maxResults: 1000)
-        logs = data["worklogs"] || []
-        worklogs += my_worklogs_from(logs, mine)
-        start_at += logs.size
-        break if logs.empty? || start_at >= data["total"].to_i
-      end
+      each_offset_page("/rest/api/3/issue/#{ticket_key}/worklog", maxResults: 1000) { |_data, logs| worklogs += my_worklogs_from(logs, mine) }
       worklogs
     end
 
@@ -51,15 +44,8 @@ module Jira
     def keys_with_my_worklogs_since(date)
       ensure_credentials!
       keys = []
-      page_token = nil
-      loop do
-        params = { jql: %(worklogAuthor = currentUser() AND worklogDate >= "#{date.strftime('%Y-%m-%d')}"), fields: "key", maxResults: 100 }
-        params[:nextPageToken] = page_token if page_token
-        data = get_json("/rest/api/3/search/jql", params)
-        keys += issue_keys_from(data)
-        page_token = data["nextPageToken"]
-        break if page_token.blank? || data["isLast"]
-      end
+      jql = %(worklogAuthor = currentUser() AND worklogDate >= "#{date.strftime('%Y-%m-%d')}")
+      each_token_page("/rest/api/3/search/jql", jql: jql, fields: "key", maxResults: 100) { |data| keys += issue_keys_from(data) }
       keys
     end
 
@@ -77,6 +63,30 @@ module Jira
 
     def get_json(path, params = {})
       request(:get, path, params: params, expect: 200) { |code| "Jira #{path[%r{issue/([^/]+)}, 1] || path} could not be read (HTTP #{code})" }
+    end
+
+    # Yields (data, items) for each startAt/total page of "worklogs" until a page is empty or startAt reaches total.
+    def each_offset_page(path, params)
+      start_at = 0
+      loop do
+        data = get_json(path, params.merge(startAt: start_at))
+        items = data["worklogs"] || []
+        yield data, items
+        start_at += items.size
+        break if items.empty? || start_at >= data["total"].to_i
+      end
+    end
+
+    # Yields each nextPageToken page until the token is blank or the page is the last.
+    def each_token_page(path, params)
+      page_token = nil
+      loop do
+        page_params = page_token ? params.merge(nextPageToken: page_token) : params
+        data = get_json(path, page_params)
+        yield data
+        page_token = data["nextPageToken"]
+        break if page_token.blank? || data["isLast"]
+      end
     end
 
     def my_worklogs_from(logs, account_id)

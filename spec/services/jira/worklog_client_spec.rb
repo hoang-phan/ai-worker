@@ -72,6 +72,27 @@ RSpec.describe Jira::WorklogClient do
       expect(requests).to have_attributes(size: 3)
     end
 
+    it "pages with startAt and maxResults 1000" do
+      me = { accountId: "me-1" }
+      responses.concat([
+        response(200, { accountId: "me-1" }),
+        response(200, { total: 2, worklogs: [ { id: "1", author: me, started: "2026-10-19T09:00:00.000+0700", timeSpentSeconds: 60 } ] }),
+        response(200, { total: 2, worklogs: [ { id: "2", author: me, started: "2026-10-19T10:00:00.000+0700", timeSpentSeconds: 60 } ] })
+      ])
+
+      client.my_worklogs("SPEC-1")
+
+      queries = requests.drop(1).map { |_, uri| URI.decode_www_form(uri.query).to_h }
+      expect(queries).to eq([ { "startAt" => "0", "maxResults" => "1000" }, { "startAt" => "1", "maxResults" => "1000" } ])
+    end
+
+    it "stops on an empty page even when total says there is more" do
+      responses.concat([ response(200, { accountId: "me-1" }), response(200, { total: 5, worklogs: [] }) ])
+
+      expect(client.my_worklogs("SPEC-1")).to eq([])
+      expect(requests).to have_attributes(size: 2)
+    end
+
     it "raises WorklogError on a non-200 response" do
       responses.concat([ response(200, { accountId: "me-1" }), response(404, {}) ])
 
@@ -113,6 +134,33 @@ RSpec.describe Jira::WorklogClient do
       ])
 
       expect(client.keys_with_my_worklogs_since(Date.new(2026, 10, 18))).to eq(%w[A-1 B-2])
+    end
+
+    it "sends the jql, fields, maxResults and nextPageToken" do
+      responses.concat([
+        response(200, { issues: [ { key: "A-1" } ], nextPageToken: "t2" }),
+        response(200, { issues: [], isLast: true })
+      ])
+
+      client.keys_with_my_worklogs_since(Date.new(2026, 10, 18))
+
+      first, second = requests.map { |_, uri| [ uri.path, URI.decode_www_form(uri.query).to_h ] }
+      expect(first).to eq([ "/rest/api/3/search/jql", { "jql" => %(worklogAuthor = currentUser() AND worklogDate >= "2026-10-18"), "fields" => "key", "maxResults" => "100" } ])
+      expect(second.last).to include("nextPageToken" => "t2", "maxResults" => "100")
+    end
+
+    it "stops on isLast even when a token is present" do
+      responses << response(200, { issues: [ { key: "A-1" } ], nextPageToken: "t2", isLast: true })
+
+      expect(client.keys_with_my_worklogs_since(Date.new(2026, 10, 18))).to eq(%w[A-1])
+      expect(requests).to have_attributes(size: 1)
+    end
+
+    it "stops on a blank token" do
+      responses << response(200, { issues: [ { key: "A-1" } ], nextPageToken: "" })
+
+      expect(client.keys_with_my_worklogs_since(Date.new(2026, 10, 18))).to eq(%w[A-1])
+      expect(requests).to have_attributes(size: 1)
     end
   end
 end
