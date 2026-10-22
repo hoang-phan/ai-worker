@@ -7,6 +7,42 @@ RSpec.describe Jira::WorklogClient do
     instance_double(Net::HTTPResponse, code: code.to_s, body: body.to_json)
   end
 
+  describe "#add_worklog" do
+    it "posts the worklog and returns its id" do
+      captured = nil
+      allow(Net::HTTP).to receive(:start) do |*_args, **_opts, &block|
+        http = instance_double(Net::HTTP)
+        allow(http).to receive(:request) { |req| captured = req; response(201, { id: "99" }) }
+        block.call(http)
+      end
+
+      id = client.add_worklog("SPEC-1", started_at: Time.new(2026, 10, 20, 9, 30, 0, "+07:00"), seconds: 5400)
+
+      expect(id).to eq("99")
+      expect(captured).to be_a(Net::HTTP::Post)
+      expect(captured.path).to eq("/rest/api/3/issue/SPEC-1/worklog")
+      expect(JSON.parse(captured.body)).to eq("started" => "2026-10-20T09:30:00.000+0700", "timeSpentSeconds" => 5400)
+    end
+
+    it "raises WorklogError on a non-201 response" do
+      allow(Net::HTTP).to receive(:start).and_return(response(400, {}))
+
+      expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira worklog for SPEC-1 failed \(HTTP 400\)/)
+    end
+
+    [ Errno::ECONNREFUSED, Timeout::Error, SocketError ].each do |error|
+      it "maps #{error} to WorklogError" do
+        allow(Net::HTTP).to receive(:start).and_raise(error)
+
+        expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira request failed/)
+      end
+    end
+
+    it "raises WorklogError without credentials" do
+      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /not set/)
+    end
+  end
+
   describe "#my_worklogs" do
     it "returns only the authenticated user's worklogs, following pages" do
       me = { accountId: "me-1" }
@@ -44,6 +80,12 @@ RSpec.describe Jira::WorklogClient do
 
       expect(client.set_original_estimate_if_blank("SPEC-1", 5400)).to be(true)
       expect(Net::HTTP).to have_received(:start).twice
+    end
+
+    it "raises WorklogError on a non-204 update response" do
+      allow(Net::HTTP).to receive(:start).and_return(response(200, { fields: { timetracking: {} } }), response(403, {}))
+
+      expect { client.set_original_estimate_if_blank("SPEC-1", 5400) }.to raise_error(Jira::WorklogError, /estimate update for SPEC-1 failed \(HTTP 403\)/)
     end
 
     it "leaves an existing estimate alone" do
