@@ -27,8 +27,8 @@ module Prompts
       # command as plain code and saved its output; this run only reads it. {CI_OUTPUT} / {CI_STATUS} are that log
       # and exit status.
       "ci_verify" => "Reads the saved CI output and fixes what it reports",
-      # Used by a `pr_create` stage when no template of that type exists. Runs once the check/verify loop passed (or,
-      # for projects without the loop, right after implementation): the branch is committed locally and not pushed yet.
+      # Used by a `pr_create` stage when no template of that type exists. The branch is committed locally and not pushed
+      # yet. In the ci_loop flow it runs right after implementation, before the CI check (which needs the pushed commit).
       "pr_create" => "Pushes the branch, opens the PR, updates the ticket"
     }.freeze
 

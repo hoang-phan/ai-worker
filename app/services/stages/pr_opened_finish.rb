@@ -10,15 +10,19 @@ module Stages
       @handoff = handoff
     end
 
-    # `action` is the StageRun logged for the stage that opened the PR.
-    def call(output, action:)
+    # `action` is the StageRun logged for the stage that opened the PR. `checks_follow` (the ci_loop flow) opens the PR
+    # before the CI check so the check can post its result to the pushed commit: the workflow goes to the check, and
+    # reviewers are told only once it passed (CiVerifyFinish). Auto-merge can already be on: the required check
+    # blocks the merge until it passes.
+    def call(output, action:, checks_follow: false)
       pr_url = github.find_pr_url(branch_name: workflow.branch_name, jira_ticket: workflow.jira_ticket, output: output)
       testing_locally = workflow.development? && project.local_test_ready?
-      workflow.update!(Workflow::AI_RUN_RESET.merge(github_pr_url: pr_url, status: testing_locally ? :local_testing : :reviewing))
+      next_status = if checks_follow then :ci_checking else (testing_locally ? :local_testing : :reviewing) end
+      workflow.update!(Workflow::AI_RUN_RESET.merge(github_pr_url: pr_url, status: next_status))
       stage.log_run!(action, output: output)
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
       handoff.enable_auto_merge!(pr_url) unless testing_locally
-      handoff.notify_reviewers! unless testing_locally
+      handoff.notify_reviewers! unless testing_locally || checks_follow
     end
 
     private

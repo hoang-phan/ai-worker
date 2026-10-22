@@ -1,7 +1,7 @@
 module Workflows
   # Where an errored workflow of a ci_loop-flow project goes back to, from the newest run logged by the stages of the
-  # pre-review flow (simple_implementation, ci_check, ci_verify, pr_create). nil when the workflow isn't in that part of
-  # the flow, so Transitions falls back to its other rules.
+  # pre-review flow (simple_implementation, pr_create, ci_check, ci_verify). nil when the workflow isn't in that part of
+  # the flow (or its checks passed), so Transitions falls back to its other rules.
   class CiLoopResume
     def initialize(workflow)
       @workflow = workflow
@@ -14,10 +14,10 @@ module Workflows
       return nil unless run
 
       case run.stage.stage_type
-      when "simple_implementation" then run.action == "ran_implementation" ? :ci_checking : :implementing
+      when "simple_implementation" then run.action == "ran_implementation" ? :opening_pr : :implementing
       when "ci_check" then run.action == "ci_check_completed" ? :ci_verifying : :ci_checking
       when "ci_verify" then after_verify(run.action)
-      when "pr_create" then run.action == "pr_created" ? nil : :opening_pr
+      when "pr_create" then run.action == "pr_created" ? :ci_checking : :opening_pr
       end
     end
 
@@ -25,7 +25,7 @@ module Workflows
 
     def after_verify(action)
       case action
-      when "ci_verify_passed" then :opening_pr
+      when "ci_verify_passed" then nil
       when "ci_verify_failed", "ci_rounds_exhausted" then :ci_checking
       else :ci_verifying
       end

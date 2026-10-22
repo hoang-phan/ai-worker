@@ -4,8 +4,8 @@ class Project < ApplicationRecord
   has_many :bugsnag_syncs, dependent: :destroy
 
   # How a Jira project's development workflows run. standard: implementation (checks and PR included) then review.
-  # ci_loop: implementation without checks or PR, then a check/verify loop on the project's `ci_command`, then the PR
-  # stage, then review. A flow, not a kind: a ci_loop project is still a Jira project in every other respect.
+  # ci_loop: implementation without checks or PR, then the PR stage (push, open PR), then a check/verify loop on the
+  # project's `ci_command` against the pushed commit, then review. A flow, not a kind: a ci_loop project is still a Jira project in every other respect.
   enum :flow, { standard: 0, ci_loop: 1 }, prefix: :flow
 
   # jira: GitHub-backed projects driven by Jira tickets; they go through
@@ -47,7 +47,7 @@ class Project < ApplicationRecord
     (workflows.maximum(:position) || 0) + 1
   end
 
-  # Jira projects on the ci_loop flow run simple_implementation -> (ci_check -> ci_verify)* -> pr_create before review
+  # Jira projects on the ci_loop flow run simple_implementation -> pr_create -> (ci_check -> ci_verify)* before review
   # (see docs/RUNBOOK.md).
   def ci_loop_ready?
     jira? && flow_ci_loop?

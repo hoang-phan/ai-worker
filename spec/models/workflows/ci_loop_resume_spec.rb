@@ -14,6 +14,9 @@ RSpec.describe Workflows::CiLoopResume do
 
   it "resumes the step whose newest run it was" do
     workflow.stages.find_by!(stage_type: :simple_implementation).log_run!("ran_implementation")
+    expect(status).to eq :opening_pr
+
+    workflow.stages.find_by!(stage_type: :pr_create).log_run!("pr_created")
     expect(status).to eq :ci_checking
 
     check = workflow.stages.find_by!(stage_type: :ci_check)
@@ -31,11 +34,11 @@ RSpec.describe Workflows::CiLoopResume do
     expect(status).to eq :ci_checking
   end
 
-  it "resumes the PR stage after passing, and falls back once review has started" do
-    workflow.stages.find_by!(stage_type: :ci_verify).log_run!("ci_verify_passed")
+  it "retries the PR stage when it failed, and falls back once the checks passed" do
+    workflow.stages.find_by!(stage_type: :pr_create).log_run!("failed")
     expect(status).to eq :opening_pr
 
-    workflow.stages.find_by!(stage_type: :pr_create).log_run!("pr_created")
+    workflow.stages.find_by!(stage_type: :ci_verify).log_run!("ci_verify_passed")
     expect(status).to be_nil
   end
 

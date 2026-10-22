@@ -27,17 +27,17 @@ RSpec.describe Prompts::Defaults do
     "simple_implementation" => {
       marker: nil,
       placeholders: %w[{SKILLS} {JIRA}],
-      sha256: "3eb81871f5a957f6aed0d204cba8fe748c8620644f64b0ad828503218d362491"
+      sha256: "e27137f080bd37e7acf61e559b86bf7cc1d8f0241a341af446bfcae6b0a9f47d"
     },
     "ci_verify" => {
       marker: "CI_VERDICT",
       placeholders: %w[{JIRA} {CI_COMMAND} {CI_STATUS} {CI_OUTPUT} {CI_VERIFY_INSTRUCTIONS}],
-      sha256: "815725e723de0a1992119726b2c326f4c9aea507b8c725a7046fde0ea85e7d4e"
+      sha256: "fe950a34ffd9a37f0e27134299bb5fdad0197db9f6660fb47a3ccc6526b0b05a"
     },
     "pr_create" => {
       marker: nil,
       placeholders: %w[{JIRA} {PR_SKILLS} {REVIEWER} {PR_INSTRUCTIONS}],
-      sha256: "0f5ac77cc5052bbc2093825a025294d71990a19d6f76f9d1f3e805f6165ee9e5"
+      sha256: "a7e20380e3323350cf3b5a71a5080b29350ccb93e759534a391ef55c50e581a5"
     }
   }.freeze
 

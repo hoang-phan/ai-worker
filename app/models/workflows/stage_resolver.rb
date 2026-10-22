@@ -9,7 +9,7 @@ module Workflows
                              "local_testing" => "local_test", "ci_checking" => "ci_check", "ci_verifying" => "ci_verify",
                              "opening_pr" => "pr_create" }.freeze
     # `ci_loop` flow projects: implementation is its own stage that neither runs the checks nor opens the PR;
-    # the check/verify loop and the PR stage follow it.
+    # the PR stage and then the check/verify loop follow it (the check needs the pushed commit to post its result to).
     CI_LOOP_STAGE_TYPE_BY_STATUS = STAGE_TYPE_BY_STATUS.merge("implementing" => "simple_implementation").freeze
     # personal-project workflows have a single stage and skip "reviewing" entirely
     SIMPLE_STAGE_TYPE_BY_STATUS = { "implementing" => "task" }.freeze
