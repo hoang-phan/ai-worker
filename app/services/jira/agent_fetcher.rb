@@ -14,7 +14,6 @@ module Jira
   class AgentFetcher
     ROOT = Rails.root.join("tmp", "jira_sync")
     STALE_AFTER = 15.minutes
-    KEY = /\A[A-Z][A-Z0-9]+-\d+\z/
 
     def initialize(jira_sync)
       @jira_sync = jira_sync
@@ -38,7 +37,7 @@ module Jira
     # nil while still running (or nothing started); an array of
     # { "key", "summary" } once finished. Raises FetchError on failure.
     def poll
-      run.poll { |rows| filter(rows) }
+      run.poll { |rows| TicketRows.call(rows) }
     end
 
     private
@@ -47,13 +46,6 @@ module Jira
 
     def run
       @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "tickets.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
-
-    def filter(rows)
-      rows.filter_map do |row|
-        key = row.is_a?(Hash) ? row["key"].to_s.strip : nil
-        { "key" => key, "summary" => row["summary"].to_s } if key&.match?(KEY)
-      end
     end
 
     def prompt

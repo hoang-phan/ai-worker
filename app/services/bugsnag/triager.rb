@@ -38,8 +38,6 @@ module Bugsnag
       Glob
       Write
     ].freeze
-    ID = /\A[\w-]{6,64}\z/
-    KEY = /\A[A-Z][A-Z0-9]+-\d+\z/
 
     # Human summary of an import's newly added keys (shown as last_result).
     def self.summary(added)
@@ -75,18 +73,12 @@ module Bugsnag
     # nil while running (or nothing started); once finished, the array of
     # { "bugsnag_id", "jira_key" } the agent ticketed. Raises FetchError on failure.
     def poll
-      run.poll { |rows| filter(rows) }
+      run.poll { |rows| TriageRows.call(rows) }
     end
 
     # Merges a poll result into the ledger; returns the newly added keys.
     def import(rows)
-      ledger = sync.ledger.dup
-      added = rows.filter_map do |row|
-        next if ledger.key?(row["bugsnag_id"])
-
-        ledger[row["bugsnag_id"]] = row["jira_key"]
-        row["jira_key"]
-      end
+      ledger, added = LedgerMerge.call(sync.ledger, rows)
       sync.update!(ledger: ledger)
       added
     end
@@ -97,16 +89,6 @@ module Bugsnag
 
     def run
       @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
-
-    def filter(rows)
-      rows.filter_map do |row|
-        next unless row.is_a?(Hash)
-
-        id = row["bugsnag_id"].to_s.strip
-        key = row["jira_key"].to_s.strip
-        { "bugsnag_id" => id, "jira_key" => key } if id.match?(ID) && key.match?(KEY)
-      end
     end
 
     def prompt

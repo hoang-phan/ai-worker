@@ -54,7 +54,7 @@ module Slack
     # nil while still running (or nothing started); an array of
     # { "slack_url", "pr_urls" } once finished. Raises FetchError on failure.
     def poll
-      run.poll { |rows| filter(rows) }
+      run.poll { |rows| MentionRows.call(rows) }
     end
 
     private
@@ -63,16 +63,6 @@ module Slack
 
     def run
       @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "mentions.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
-
-    def filter(rows)
-      rows.filter_map do |row|
-        next unless row.is_a?(Hash)
-
-        slack_url = row["slack_url"].to_s.strip
-        pr_urls = Array(row["pr_urls"]).map { |url| url.to_s.strip }.select { |url| url.match?(ReviewSync::PR_URL) }
-        { "slack_url" => slack_url, "pr_urls" => pr_urls.uniq } if slack_url.present? && pr_urls.any?
-      end
     end
 
     def prompt(since)
