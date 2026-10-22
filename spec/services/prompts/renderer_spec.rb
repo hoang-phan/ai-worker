@@ -32,8 +32,18 @@ RSpec.describe Prompts::Renderer do
       expect(described_class::BUILT_IN_TOKENS).to match_array(described_class.placeholders_for(workflow).keys)
     end
 
-    it "includes every project placeholder token" do
+    it "includes every project and workflow placeholder token" do
       expect(described_class::BUILT_IN_TOKENS).to include(*Prompts::ProjectPlaceholders::TOKENS)
+      expect(described_class::BUILT_IN_TOKENS).to include(*Prompts::WorkflowPlaceholders::TOKENS)
+    end
+
+    it "keeps the cheatsheet order" do
+      expect(described_class::BUILT_IN_TOKENS).to eq(
+        %w[{JIRA} {PR} {REVIEWER} {SKILLS} {PR_SKILLS} {IMAGES} {TASK} {SLACK}] +
+        %w[{TESTER} {UAT_URL} {TEST_INSTRUCTIONS} {UAT_INSTRUCTIONS} {LOCAL_URL} {LOCAL_INSTRUCTIONS}
+           {CI_INSTRUCTIONS} {CI_VERIFY_INSTRUCTIONS} {PR_INSTRUCTIONS} {CI_COMMAND}] +
+        %w[{CI_OUTPUT} {CI_STATUS} {STARTED_ON} {STAGE_NAME} {PREV_OUTPUT}]
+      )
     end
   end
 
@@ -51,7 +61,7 @@ RSpec.describe Prompts::Renderer do
     end
 
     it "shows {STARTED_ON} in the Brisbane time zone" do
-      expect(described_class::STARTED_ON_TIME_ZONE).to eq("Australia/Brisbane")
+      expect(Prompts::WorkflowPlaceholders::STARTED_ON_TIME_ZONE).to eq("Australia/Brisbane")
       expect(described_class.render("{STARTED_ON}", workflow)).to eq("05/03/2026")
     end
 
@@ -97,11 +107,11 @@ RSpec.describe Prompts::Renderer do
       after { runbook.destroy }
 
       it "is the last PREV_OUTPUT_LIMIT chars of the previous stage's stage_completed output" do
-        output = "x" * 10 + "y" * described_class::PREV_OUTPUT_LIMIT
+        output = "x" * 10 + "y" * Prompts::WorkflowPlaceholders::PREV_OUTPUT_LIMIT
         first.log_run!("stage_completed", output: output)
         runbook.update!(current_stage_id: second.id)
 
-        expect(described_class.render("{PREV_OUTPUT}", runbook)).to eq("y" * described_class::PREV_OUTPUT_LIMIT)
+        expect(described_class.render("{PREV_OUTPUT}", runbook)).to eq("y" * Prompts::WorkflowPlaceholders::PREV_OUTPUT_LIMIT)
       end
 
       it "is empty on the first stage" do
