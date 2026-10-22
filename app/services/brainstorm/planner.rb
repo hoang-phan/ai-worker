@@ -66,13 +66,15 @@ module Brainstorm
     end
 
     def start
-      lifecycle.start(prepare: method(:write_history), **launch_inputs)
+      context = launch_context
+      lifecycle.start(prepare: -> { write_history(context) }, **launch_inputs(context))
     end
 
     # nil while running (or nothing started); once finished, the array of { "summary", "task" } the agent proposed.
     # Raises FetchError on failure.
     def poll
-      lifecycle.poll(prepare: method(:write_history), **launch_inputs) { |rows| ProposalNormalizer.call(rows) }
+      context = launch_context
+      lifecycle.poll(prepare: -> { write_history(context) }, **launch_inputs(context)) { |rows| ProposalNormalizer.call(rows) }
     end
 
     # Creates a workflow per proposal; see ProposalImporter for the rules.
@@ -93,29 +95,29 @@ module Brainstorm
       project.workflows.development.where(status: :implementing).order(id: :desc)
     end
 
-    def history_lines
-      in_flight.map { |workflow| "- #{workflow.brief}" }
+    # One read of the implementing workflows per start/poll attempt; history.md and the prompt both come from it.
+    def launch_context
+      LaunchContext.from_workflows(in_flight.to_a)
     end
 
-    def launch_inputs
+    def launch_inputs(context)
       {
         cwd: project.local_directory,
-        prompt: prompt,
+        prompt: prompt(context),
         allowed_tools: ALLOWED_TOOLS,
         model: self.class.model,
         effort: self.class.effort
       }
     end
 
-    def write_history
-      history_file.write(history_lines.join("\n"))
+    def write_history(context)
+      history_file.write(context.history_text)
     end
 
-    def prompt
+    def prompt(context)
       Prompt.new(
         goal: project.brainstorm_goal, max_workflows: project.brainstorm_max_workflows,
-        backlog_lines: history_lines, total_in_flight: in_flight.count,
-        result_file: result_file, history_file: history_file
+        result_file: result_file, history_file: history_file, **context.prompt_inputs
       ).to_s
     end
 
