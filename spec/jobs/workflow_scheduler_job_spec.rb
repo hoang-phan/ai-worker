@@ -107,19 +107,18 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
   end
 
   describe "the post-merge phase" do
-    it "is skipped while implementation work is in progress" do
-      workflow(project: project, processing: true)
-      done = workflow(project: project(kind: :jira), status: :done, github_pr_url: "https://github.com/acme/widgets/pull/1")
-      merged = workflow(project: project(kind: :jira), status: :merged)
+    it "delegates to PostMergePhase" do
+      phase = instance_double(Scheduling::PostMergePhase, call: nil)
+      allow(Scheduling::PostMergePhase).to receive(:new).and_return(phase)
 
       described_class.perform_now
 
-      expect(merge_checks).not_to include(done.id)
-      expect(calls).not_to include(merged.id)
+      expect(phase).to have_received(:call)
     end
 
     it "confirms merges and starts one merged workflow when idle" do
       done = workflow(project: project(kind: :jira), status: :done, github_pr_url: "https://github.com/acme/widgets/pull/2", position: 1)
+      done.stages.create!(stage_type: :pr_check)
       first_merged = workflow(project: project(kind: :jira), status: :merged, position: 2)
       second_merged = workflow(project: project(kind: :jira), status: :merged, position: 3)
 
@@ -132,6 +131,15 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
   end
 
   describe "the UAT phase" do
+    it "delegates to UatPhase with the max concurrency" do
+      phase = instance_double(Scheduling::UatPhase, call: nil)
+      allow(Scheduling::UatPhase).to receive(:new).with(max_capacity: max_agents).and_return(phase)
+
+      described_class.perform_now
+
+      expect(phase).to have_received(:call)
+    end
+
     it "moves due UAT workflows to testing and retries idle tests using free slots" do
       busy = workflow(project: project, processing: true)
       due = workflow(project: project(kind: :jira), status: :uat_waiting, uat_test_at: 1.minute.ago, position: 1)
@@ -142,21 +150,6 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
       expect(calls).to include(busy.id, due.id, retrying.id)
       expect(due.reload).to be_uat_testing
       expect(retrying.reload).to be_uat_testing
-    end
-
-    context "when only one slot is free" do
-      let(:max_agents) { 2 }
-
-      it "starts only one due UAT workflow" do
-        workflow(project: project, processing: true)
-        first = workflow(project: project(kind: :jira), status: :uat_waiting, uat_test_at: 2.minutes.ago, position: 1)
-        second = workflow(project: project(kind: :jira), status: :uat_waiting, uat_test_at: 1.minute.ago, position: 2)
-
-        described_class.perform_now
-
-        expect(calls).to include(first.id)
-        expect(calls).not_to include(second.id)
-      end
     end
   end
 
