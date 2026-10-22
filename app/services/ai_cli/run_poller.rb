@@ -7,11 +7,10 @@ module AiCli
     def initialize(pid:, log_path:, log_offset:, started_at:, log_tag:, stale_after:, runner: AiCli::Runner, kill: Process.method(:kill))
       @pid = pid
       @runner = runner
-      @kill = kill
       @log_offset = log_offset
-      @started_at = started_at
       @log_tail = AiCli::LogTail.new(log_path: log_path, log_tag: log_tag) if log_path
       @stale_after = stale_after
+      @stale_run = AiCli::StaleRun.new(started_at: started_at, stale_after: stale_after, kill: kill)
     end
 
     # :running, or [:finished, output]. Raises AiCli::CommandError if the run failed or timed out.
@@ -22,8 +21,8 @@ module AiCli
       if result == :running
         # Only a run that is still alive can be stale; checking first would
         # report a run that finished while no tick fired as timed out.
-        if stale?
-          kill_stale_run
+        if stale_run.stale?
+          stale_run.terminate!(pid)
           raise AiCli::CommandError, "#{runner.agent} timed out after #{stale_after.inspect} (pid=#{pid})"
         end
         return :running
@@ -40,7 +39,7 @@ module AiCli
 
     private
 
-    attr_reader :pid, :log_tail, :started_at, :stale_after, :runner, :kill
+    attr_reader :pid, :log_tail, :stale_after, :stale_run, :runner
 
     def tail_log
       return unless log_tail
@@ -50,16 +49,6 @@ module AiCli
 
     def full_log
       log_tail ? log_tail.full : ""
-    end
-
-    def stale?
-      started_at.present? && started_at < stale_after.ago
-    end
-
-    def kill_stale_run
-      kill.call("TERM", pid)
-    rescue Errno::ESRCH
-      nil
     end
   end
 end

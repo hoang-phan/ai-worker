@@ -6,11 +6,10 @@ module Ci
 
     def initialize(pid:, log_offset:, started_at:, stale_after:, runner: AiCli::Runner, kill: Process.method(:kill), **)
       @runner = runner
-      @kill = kill
       @pid = pid
       @log_offset = log_offset
-      @started_at = started_at
       @stale_after = stale_after
+      @stale_run = AiCli::StaleRun.new(started_at: started_at, stale_after: stale_after, kill: kill)
     end
 
     # :running, or [:finished, exit_status]. Raises AiCli::CommandError on a timeout or when the status is unknown.
@@ -18,9 +17,9 @@ module Ci
       result = runner.poll(pid)
 
       if result == :running
-        return :running unless stale?
+        return :running unless stale_run.stale?
 
-        kill_stale_run
+        stale_run.terminate!(-pid)
         raise AiCli::CommandError, "CI command timed out after #{stale_after.inspect} (pid=#{pid})"
       end
 
@@ -32,16 +31,6 @@ module Ci
 
     private
 
-    attr_reader :pid, :started_at, :stale_after, :runner, :kill
-
-    def stale?
-      started_at.present? && started_at < stale_after.ago
-    end
-
-    def kill_stale_run
-      kill.call("TERM", -pid)
-    rescue Errno::ESRCH
-      nil
-    end
+    attr_reader :pid, :stale_after, :stale_run, :runner
   end
 end
