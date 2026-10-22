@@ -100,7 +100,7 @@ Personal projects can have a standing goal (`projects.brainstorm_goal`, e.g. "im
 
 - It only runs while the project has no `pending` development workflow (`Workflow::QUEUED_STATUSES`). Implementing workflows don't block it, but aren't in the code yet, so only they are listed to the agent to avoid duplicates (done ones are already in the code it reads); other statuses are Jira-project concerns and irrelevant here.
 - To keep the agent's context small it is given one short line per implementing workflow (`Workflow#brief`: `summary`, else the label, max 100 chars), newest 30 inline, all of them in `history.md` next to the result for grepping. Imported proposals are also deduped against those.
-- `BRAINSTORM_MODEL` (default `claude-opus-5-5`) and `BRAINSTORM_EFFORT` (default `high`) in `.env` become `--model` / `--effort` through `AiCli::Runner.start(model:, effort:)`; claude only. Tools are limited to read/search, `git log/ls-files/status/diff` and `Write`.
+- `BRAINSTORM_MODEL` (default `gpt-6-sol`) and `BRAINSTORM_EFFORT` (default `high`) in `.env` become `--model` / `--effort` through `AiCli::Runner.start(model:, effort:)`; claude only. Tools are limited to read/search, `git log/ls-files/status/diff` and `Write`.
 - "Brainstorm now" on the project page triggers a run, under the same no-pending rule.
 
 ## PR-review workflows (Slack)
