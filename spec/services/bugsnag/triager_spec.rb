@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe Bugsnag::Triager do
-
   # Records the keyword args `start` receives and yields canned rows to `poll`.
   let(:fake_run_class) do
     Class.new do
@@ -72,15 +71,5 @@ RSpec.describe Bugsnag::Triager do
 
     expect(triager.running?).to be(true)
     expect(triager.last_started_at).to eq(time)
-  end
-
-  describe ".summary" do
-    it "lists the newly added keys" do
-      expect(described_class.summary(%w[UNS-1 UNS-2])).to eq("2 new ticket(s): UNS-1, UNS-2")
-    end
-
-    it "says nothing new when no keys were added" do
-      expect(described_class.summary([])).to eq("nothing new")
-    end
   end
 end

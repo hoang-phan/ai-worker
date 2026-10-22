@@ -9,11 +9,12 @@ RSpec.describe BugsnagSyncJob, type: :job do
   end
   let(:auto_sync) { true }
   let!(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB", auto_sync: auto_sync) }
-  let(:triager) { instance_double(Bugsnag::Triager, poll: nil, running?: false, last_started_at: nil, start: nil, blockers: blockers) }
+  let(:triager) { instance_double(Bugsnag::Triager, poll: nil, running?: false, last_started_at: nil, start: nil) }
+  let(:triage_sync) { instance_double(Bugsnag::TriageSync, triager: triager, blockers: blockers) }
   let(:blockers) { [] }
 
   before do
-    allow(Bugsnag::Triager).to receive(:new).and_return(triager)
+    allow(Bugsnag::TriageSync).to receive(:new).and_return(triage_sync)
     allow(Rails.logger).to receive(:warn)
   end
 
@@ -25,7 +26,7 @@ RSpec.describe BugsnagSyncJob, type: :job do
     before { allow(triager).to receive(:poll).and_return(rows) }
 
     it "records the added tickets and sync time" do
-      allow(triager).to receive(:import).with(rows).and_return(%w[WEB-1 WEB-2])
+      allow(triage_sync).to receive(:import).with(rows).and_return(Bugsnag::TriageSync::Result.new(added: %w[WEB-1 WEB-2]))
       travel_to(Time.zone.local(2026, 10, 20, 8, 0)) do
         described_class.perform_now
         expect(bugsnag_sync.reload.last_result).to eq("2 new ticket(s): WEB-1, WEB-2")
@@ -34,14 +35,14 @@ RSpec.describe BugsnagSyncJob, type: :job do
     end
 
     it "records 'nothing new' when no tickets were added" do
-      allow(triager).to receive(:import).and_return([])
+      allow(triage_sync).to receive(:import).and_return(Bugsnag::TriageSync::Result.new(added: []))
       described_class.perform_now
       expect(bugsnag_sync.reload.last_result).to eq("nothing new")
     end
   end
 
   it "does not import or record when the poll has nothing finished" do
-    expect(triager).not_to receive(:import)
+    expect(triage_sync).not_to receive(:import)
     travel_to(tuesday_10am) { described_class.perform_now }
     expect(bugsnag_sync.reload.last_result).to be_nil
   end
@@ -111,12 +112,13 @@ RSpec.describe BugsnagSyncJob, type: :job do
   end
 
   describe "errors" do
-    let!(:other_sync) { project.bugsnag_syncs.create!(bugsnag_project: "api", jira_project: "API", auto_sync: true) }
-    let(:other_triager) { instance_double(Bugsnag::Triager, poll: nil, running?: false, last_started_at: nil, start: nil, blockers: []) }
+    let!(:other_bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "api", jira_project: "API", auto_sync: true) }
+    let(:other_triager) { instance_double(Bugsnag::Triager, poll: nil, running?: false, last_started_at: nil, start: nil) }
+    let(:other_sync) { instance_double(Bugsnag::TriageSync, triager: other_triager, blockers: []) }
 
     before do
       allow(Rails.logger).to receive(:error)
-      allow(Bugsnag::Triager).to receive(:new) { |s| s == bugsnag_sync ? triager : other_triager }
+      allow(Bugsnag::TriageSync).to receive(:new) { |s| s == bugsnag_sync ? triage_sync : other_sync }
     end
 
     it "records a FetchError and carries on with the next sync" do

@@ -4,9 +4,10 @@ RSpec.describe "BugsnagSyncs", type: :request do
   let(:local_directory) { Dir.mktmpdir("bugsnag-syncs-request-spec") }
   let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "spec-app", jira_project: "SPEC") }
-  let(:triager) { instance_double(Bugsnag::Triager, blockers: [], start: true) }
+  let(:triager) { instance_double(Bugsnag::Triager, start: true) }
+  let(:triage_sync) { instance_double(Bugsnag::TriageSync, blockers: [], triager: triager) }
 
-  before { allow(Bugsnag::Triager).to receive(:new).and_return(triager) }
+  before { allow(Bugsnag::TriageSync).to receive(:new).and_return(triage_sync) }
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
@@ -24,7 +25,7 @@ RSpec.describe "BugsnagSyncs", type: :request do
 
   describe "POST run" do
     it "reports the blockers" do
-      allow(triager).to receive(:blockers).and_return([ "no token" ])
+      allow(triage_sync).to receive(:blockers).and_return([ "no token" ])
 
       post run_project_bugsnag_sync_path(project, bugsnag_sync)
 

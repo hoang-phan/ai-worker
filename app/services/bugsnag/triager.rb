@@ -39,11 +39,6 @@ module Bugsnag
       Write
     ].freeze
 
-    # Human summary of an import's newly added keys (shown as last_result).
-    def self.summary(added)
-      added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new"
-    end
-
     delegate :running?, :last_started_at, to: :run
 
     def initialize(bugsnag_sync, root: ROOT, run: nil)
@@ -51,10 +46,6 @@ module Bugsnag
       @project = bugsnag_sync.project
       @dir = Pathname(root).join(bugsnag_sync.id.to_s)
       @run = run || AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
-
-    def blockers
-      Projects::RunBlockers.new(project).messages(:jira_kind, :jira_site_url, :local_directory)
     end
 
     def start
@@ -65,13 +56,6 @@ module Bugsnag
     # { "bugsnag_id", "jira_key" } the agent ticketed. Raises FetchError on failure.
     def poll
       run.poll { |rows| TriageRows.call(rows) }
-    end
-
-    # Merges a poll result into the ledger; returns the newly added keys.
-    def import(rows)
-      ledger, added = LedgerMerge.call(sync.ledger, rows)
-      sync.update!(ledger: ledger)
-      added
     end
 
     private
