@@ -4,8 +4,8 @@ module Github
   #   Github::Writer - side-effecting operations (request review, auto-merge, checkout)
   # Both share a Github::Runner, which owns command construction and error translation.
   class Client
-    FAILED_CONCLUSIONS = Reader::FAILED_CONCLUSIONS
-    FAILED_STATES = Reader::FAILED_STATES
+    FAILED_CONCLUSIONS = FailingChecks::FAILED_CONCLUSIONS
+    FAILED_STATES = FailingChecks::FAILED_STATES
 
     attr_reader :reader, :writer
 

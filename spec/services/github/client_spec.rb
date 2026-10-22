@@ -30,6 +30,6 @@ RSpec.describe Github::Client, "facade" do
 
     expect(default.reader).to be_a(Github::Reader)
     expect(default.writer).to be_a(Github::Writer)
-    expect(described_class::FAILED_STATES).to eq(Github::Reader::FAILED_STATES)
+    expect(described_class::FAILED_STATES).to eq(Github::FailingChecks::FAILED_STATES)
   end
 end

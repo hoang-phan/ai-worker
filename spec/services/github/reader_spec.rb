@@ -119,7 +119,7 @@ RSpec.describe Github::Reader do
   end
 
   describe "#checks_failing?" do
-    Github::Reader::FAILED_CONCLUSIONS.each do |conclusion|
+    Github::FailingChecks::FAILED_CONCLUSIONS.each do |conclusion|
       it "is true for conclusion #{conclusion}" do
         stub_gh("statusCheckRollup" => [ { "conclusion" => "SUCCESS" }, { "conclusion" => conclusion.downcase } ])
 
@@ -127,7 +127,7 @@ RSpec.describe Github::Reader do
       end
     end
 
-    Github::Reader::FAILED_STATES.each do |state|
+    Github::FailingChecks::FAILED_STATES.each do |state|
       it "is true for state #{state}" do
         stub_gh("statusCheckRollup" => [ { "state" => state } ])
 

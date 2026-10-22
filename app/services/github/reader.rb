@@ -4,17 +4,13 @@ module Github
   # Query-only `gh` operations: PR state, checks, reviews and workflow runs.
   # Never changes anything on GitHub or in the clone.
   class Reader
-    FAILED_CONCLUSIONS = %w[FAILURE TIMED_OUT STARTUP_FAILURE ACTION_REQUIRED].freeze
-    FAILED_STATES = %w[FAILURE ERROR].freeze
-
     def initialize(project, runner: Runner.new(project))
       @project = project
       @runner = runner
     end
 
     def pr_url_for_branch(branch_name)
-      out = run!([ "gh", "pr", "view", branch_name, "--json", "url" ])
-      JSON.parse(out)["url"]
+      pr_view(branch_name, "url")["url"]
     end
 
     # Finds the PR the implementation run opened; see Github::PrLocator.
@@ -24,7 +20,7 @@ module Github
 
     # { "state" => "OPEN", "author" => "login", "head_ref" => "branch", "cross_repository" => false }
     def pr_info(pr_url)
-      data = JSON.parse(run!([ "gh", "pr", "view", pr_url, "--json", "state,author,headRefName,isCrossRepository" ]))
+      data = pr_view(pr_url, "state", "author", "headRefName", "isCrossRepository")
       {
         "state" => data["state"].to_s.upcase,
         "author" => data.dig("author", "login").to_s,
@@ -34,7 +30,7 @@ module Github
     end
 
     def pr_title(pr_url)
-      JSON.parse(run!([ "gh", "pr", "view", pr_url, "--json", "title" ]))["title"].to_s
+      pr_view(pr_url, "title")["title"].to_s
     end
 
     # Login of the account `gh` is authenticated as.
@@ -43,8 +39,7 @@ module Github
     end
 
     def merged?(pr_url)
-      out = run!([ "gh", "pr", "view", pr_url, "--json", "state" ])
-      JSON.parse(out)["state"].to_s.upcase == "MERGED"
+      pr_view(pr_url, "state")["state"].to_s.upcase == "MERGED"
     end
 
     # "APPROVED", "CHANGES_REQUESTED", or nil (still waiting).
@@ -55,18 +50,13 @@ module Github
     # and can be blank or require every reviewer). Approval wins over a
     # pending change request.
     def review_decision(pr_url, reviewers)
-      out = run!([ "gh", "pr", "view", pr_url, "--json", "latestReviews" ])
-      ReviewDecision.call(JSON.parse(out)["latestReviews"].to_a, reviewers)
+      ReviewDecision.call(pr_view(pr_url, "latestReviews")["latestReviews"].to_a, reviewers)
     end
 
     # True if any GitHub check on the PR has finished in a failing state.
     # Checks still queued/in progress (no conclusion yet) are ignored.
     def checks_failing?(pr_url)
-      out = run!([ "gh", "pr", "view", pr_url, "--json", "statusCheckRollup" ])
-      JSON.parse(out)["statusCheckRollup"].to_a.any? do |check|
-        FAILED_CONCLUSIONS.include?(check["conclusion"].to_s.upcase) ||
-          FAILED_STATES.include?(check["state"].to_s.upcase)
-      end
+      FailingChecks.call(pr_view(pr_url, "statusCheckRollup")["statusCheckRollup"].to_a)
     end
 
     # State of the newest run of a GitHub Actions workflow (file name or name) that started at or after `since`,
@@ -82,6 +72,10 @@ module Github
     private
 
     attr_reader :project, :runner
+
+    def pr_view(ref, *fields)
+      JSON.parse(run!([ "gh", "pr", "view", ref, "--json", fields.join(",") ]))
+    end
 
     def run!(...)
       runner.run!(...)
