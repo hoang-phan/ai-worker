@@ -1,7 +1,5 @@
 class ProjectsController < ApplicationController
-  include ManualStartFlash
-
-  before_action :set_project, only: %i[show edit update destroy sync_slack brainstorm]
+  before_action :set_project, only: %i[show edit update destroy]
 
   def index
     @projects = Project.order(:name)
@@ -39,44 +37,6 @@ class ProjectsController < ApplicationController
   def destroy
     @project.destroy
     redirect_to projects_path, notice: "Project deleted."
-  end
-
-  # Asks the agent to look for new Slack mentions with PRs right now instead of
-  # waiting for the next 30-minute fetch; SlackReviewJob imports the result.
-  def sync_slack
-    sync = Slack::ReviewSync.new(@project)
-    result = AgentRuns::ManualStart.call(
-      blockers: -> { sync.blockers },
-      start: -> { sync.fetcher.start },
-      rescue_errors: [ AiCli::CommandError ]
-    )
-    redirect_after_manual_start(
-      result,
-      to: @project,
-      label: "Slack sync",
-      started: "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing.",
-      already_running: "A Slack fetch is already running for this project."
-    )
-  end
-
-  # Runs a brainstorm now instead of waiting for the hourly one. Like the scheduled run it only happens while
-  # the project has no pending workflow; BrainstormJob imports the result as pending workflows.
-  def brainstorm
-    planner = Brainstorm::Planner.new(@project)
-    result = AgentRuns::ManualStart.call(
-      blockers: -> { planner.blockers },
-      skip_reason: -> { planner.wait_reason },
-      start: -> { planner.start },
-      after_start: -> { planner.record_start! },
-      rescue_errors: [ AiCli::CommandError ]
-    )
-    redirect_after_manual_start(
-      result,
-      to: @project,
-      label: "Brainstorm",
-      started: "Agent is brainstorming workflows. They appear within the hour after it finishes.",
-      already_running: "A brainstorm is already running for this project."
-    )
   end
 
   private

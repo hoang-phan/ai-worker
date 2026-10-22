@@ -7,8 +7,8 @@ Rails.application.routes.draw do
   mount Sidekiq::Web => "/sidekiq"
 
   resources :projects do
-    post :sync_slack, on: :member
-    post :brainstorm, on: :member
+    post :sync_slack, on: :member, to: "project_slack_syncs#create"
+    post :brainstorm, on: :member, to: "project_brainstorms#create"
     resources :jira_syncs, except: %i[index show] do
       post :run, on: :member
     end
