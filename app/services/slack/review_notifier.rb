@@ -1,8 +1,6 @@
 require "fileutils"
 
 module Slack
-  class NotifyError < StandardError; end
-
   # Posts a one-line "please review" message to the project's Slack channel once a PR is up for review,
   # tagging the Slack users that map to the PR's GitHub reviewers (Project#slack_user_map). Optional:
   # needs a channel on the project. The message is posted by a short detached agent run through the Slack MCP

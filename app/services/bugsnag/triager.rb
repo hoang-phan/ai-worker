@@ -1,9 +1,4 @@
-require "fileutils"
-require "json"
-
 module Bugsnag
-  class FetchError < StandardError; end
-
   # Triages a Bugsnag project's open errors into Jira Bugs via the agent CLI,
   # which uses the Bugsnag and Atlassian MCP connectors (no tokens in this
   # app). One detached agent run, started in the project's local clone so it

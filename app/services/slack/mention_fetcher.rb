@@ -1,9 +1,4 @@
-require "fileutils"
-require "json"
-
 module Slack
-  class FetchError < StandardError; end
-
   # Gets the Slack mentions that reference GitHub PRs of a project's repo via
   # the agent CLI, which uses the Slack MCP connector (no Slack token needed).
   # Same shape as Jira::AgentFetcher: the agent runs detached and writes a temp

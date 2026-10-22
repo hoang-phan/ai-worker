@@ -1,6 +1,4 @@
 module Brainstorm
-  class FetchError < StandardError; end
-
   # Brainstorms new workflows for a personal project from its standing goal ("improve the UI", "raise test
   # coverage", "suggest useful features" ...). One detached agent run in the project's local clone, read-only,
   # with a stronger model and higher effort than workflow runs (BRAINSTORM_MODEL / BRAINSTORM_EFFORT env). It

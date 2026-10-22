@@ -1,5 +1,3 @@
-require "fileutils"
-require "json"
 
 module Jira
   # Gets a project's matching Jira tickets via the agent CLI, which uses the
