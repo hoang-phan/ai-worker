@@ -37,7 +37,7 @@ module Brainstorm
     def poll(prepare: nil, **launch_inputs, &block)
       return unless pid_file.exist?
 
-      unless running? || result_file.exist?
+      unless running? || run.result_path.exist?
         FileUtils.rm_f(pid_file)
         return retry_missing_result(prepare: prepare, **launch_inputs)
       end
@@ -63,7 +63,7 @@ module Brainstorm
     def retry_missing_result(prepare:, **launch_inputs)
       outcome = RunOutcome.new(log_path: log_file, retried: retried_file.exist?)
       unless outcome.retry?
-        raise error_class, "agent wrote no #{result_file.basename} (#{outcome.failure_reason}); see #{log_file}"
+        raise error_class, "agent wrote no #{run.result_path.basename} (#{outcome.failure_reason}); see #{log_file}"
       end
 
       FileUtils.touch(retried_file)
@@ -73,7 +73,6 @@ module Brainstorm
     end
 
     def pid_file = dir.join("pid")
-    def result_file = dir.join("result.json")
     def retried_file = dir.join("retried")
     def log_file = run.log_path
   end

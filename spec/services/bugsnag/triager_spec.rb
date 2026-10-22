@@ -6,7 +6,7 @@ RSpec.describe Bugsnag::Triager do
   let(:fake_run_class) do
     Class.new do
       attr_reader :started
-      attr_accessor :last_started_at, :rows
+      attr_accessor :last_started_at, :rows, :result_path
 
       def start(**kwargs)
         @started = kwargs
@@ -47,6 +47,7 @@ RSpec.describe Bugsnag::Triager do
   describe "#start" do
     it "runs in the project's local directory with ALLOWED_TOOLS and a prompt naming result.json" do
       root = Pathname("/tmp/bugsnag-root")
+      run.result_path = root.join("1", "result.json")
       described_class.new(sync, root: root, run: run).start
 
       expect(run.started[:cwd]).to eq("/work/app")

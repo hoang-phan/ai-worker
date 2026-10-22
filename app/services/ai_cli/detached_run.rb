@@ -62,6 +62,7 @@ module AiCli
     end
 
     def log_path = log_file
+    def result_path = result_file
 
     def read_rows
       raise error_class, "agent wrote no #{result_file.basename}; see #{log_file}" unless result_file.exist?

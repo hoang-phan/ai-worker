@@ -58,12 +58,8 @@ module Slack
 
     def prompt(since)
       Slack::MentionPrompt.new(
-        mention: project.slack_mention, repo_full_name: project.repo_full_name, since: since, mentions_file: mentions_file
+        mention: project.slack_mention, repo_full_name: project.repo_full_name, since: since, mentions_file: run.result_path
       ).to_s
-    end
-
-    def mentions_file
-      dir.join("mentions.json")
     end
   end
 end

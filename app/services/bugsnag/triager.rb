@@ -82,12 +82,8 @@ module Bugsnag
       TriagePrompt.new(
         repo_full_name: project.repo_full_name, bugsnag_project: sync.bugsnag_project, since: sync.last_synced_at&.iso8601,
         min_events: sync.min_events, max_tickets: sync.max_tickets, jira_base_url: project.jira_base_url,
-        jira_project: sync.jira_project, known_ids: sync.ledger, result_file: result_file
+        jira_project: sync.jira_project, known_ids: sync.ledger, result_file: run.result_path
       ).to_s
-    end
-
-    def result_file
-      dir.join("result.json")
     end
   end
 end

@@ -6,7 +6,7 @@ RSpec.describe Slack::MentionFetcher do
   let(:fake_run_class) do
     Class.new do
       attr_reader :started
-      attr_accessor :last_started_at, :rows
+      attr_accessor :last_started_at, :rows, :result_path
 
       def start(**kwargs)
         @started = kwargs
@@ -46,6 +46,7 @@ RSpec.describe Slack::MentionFetcher do
 
   describe "#start" do
     it "runs in the project dir with ALLOWED_TOOLS and a prompt naming mentions.json" do
+      run.result_path = root.join("1", "mentions.json")
       fetcher.start
 
       expect(run.started[:cwd]).to eq(root.join("1"))

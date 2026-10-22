@@ -6,7 +6,7 @@ RSpec.describe Jira::AgentFetcher do
   let(:fake_run_class) do
     Class.new do
       attr_reader :started
-      attr_accessor :last_started_at, :rows
+      attr_accessor :last_started_at, :rows, :result_path
 
       def start(**kwargs)
         @started = kwargs
@@ -42,6 +42,7 @@ RSpec.describe Jira::AgentFetcher do
   describe "#start" do
     it "runs in the sync dir with a prompt naming tickets.json and no allowed_tools" do
       Dir.mktmpdir do |tmp|
+        run.result_path = Pathname(tmp).join("1", "tickets.json")
         described_class.new(jira_sync, root: Pathname(tmp), run: run).start
 
         expect(run.started.keys).to contain_exactly(:cwd, :prompt)

@@ -15,6 +15,12 @@ RSpec.describe AiCli::DetachedRun do
     run.start(cwd: tmp, prompt: "go")
   end
 
+  describe "#result_path" do
+    it "is the result file inside the state dir" do
+      expect(run.result_path).to eq(dir.join("result.json"))
+    end
+  end
+
   describe "#start" do
     it "writes pid and started_at and deletes an old result" do
       FileUtils.mkdir_p(dir)

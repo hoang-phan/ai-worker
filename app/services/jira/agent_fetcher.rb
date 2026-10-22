@@ -40,12 +40,8 @@ module Jira
     def prompt
       Jira::FetchPrompt.new(
         jira_base_url: project.jira_base_url, assignee: project.jira_assignee,
-        jira_project: jira_sync.jira_project, parent_ticket: jira_sync.parent_ticket, tickets_file: tickets_file
+        jira_project: jira_sync.jira_project, parent_ticket: jira_sync.parent_ticket, tickets_file: run.result_path
       ).to_s
-    end
-
-    def tickets_file
-      dir.join("tickets.json")
     end
   end
 end
