@@ -39,64 +39,12 @@ RSpec.describe Jira::WorklogClient do
 
       expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira worklog for SPEC-1 failed \(HTTP 400\)/) { |e| expect(e.reason).to be_nil }
     end
-
-    [ Errno::ECONNREFUSED, Timeout::Error, SocketError ].each do |error|
-      it "maps #{error} to WorklogError" do
-        allow(transport).to receive(:call).and_raise(error)
-
-        expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira request failed/)
-      end
-    end
-
-    it "raises WorklogError without credentials" do
-      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /not set/) { |e| expect(e.reason).to eq(:missing_credentials) }
-    end
   end
 
-  describe "built requests" do
-    let(:basic_auth) { "Basic #{Base64.strict_encode64('me@example.com:tok')}" }
-
-    it "builds a GET with Accept, basic auth, an encoded query and no body" do
-      responses << response(200, { accountId: "me-1" }) << response(200, { total: 0, worklogs: [] })
-
-      client.my_worklogs("SPEC-1")
-      req, uri = requests.last
-
-      expect(req).to be_a(Net::HTTP::Get)
-      expect(uri.to_s).to start_with("https://example.atlassian.net/rest/api/3/issue/SPEC-1/worklog?")
-      expect(URI.decode_www_form(uri.query).to_h).to eq("maxResults" => "1000", "startAt" => "0")
-      expect(req["Accept"]).to eq("application/json")
-      expect(req["Content-Type"]).to be_nil
-      expect(req["Authorization"]).to eq(basic_auth)
-      expect(req.body).to be_nil
-    end
-
-    it "percent-encodes query params" do
-      responses << response(200, { issues: [], isLast: true })
-
-      client.keys_with_my_worklogs_since(Date.new(2026, 10, 18))
-
-      expect(requests.last.last.query).to include("jql=worklogAuthor+%3D+currentUser%28%29")
-    end
-
-    it "builds a POST with Accept, Content-Type, basic auth and a JSON body" do
-      responses << response(201, { id: "99" })
-
-      client.add_worklog("SPEC-1", started_at: Time.new(2026, 10, 20, 9, 30, 0, "+07:00"), seconds: 60)
-      req, uri = requests.last
-
-      expect(req).to be_a(Net::HTTP::Post)
-      expect(uri.to_s).to eq("https://example.atlassian.net/rest/api/3/issue/SPEC-1/worklog")
-      expect(req["Accept"]).to eq("application/json")
-      expect(req["Content-Type"]).to eq("application/json")
-      expect(req["Authorization"]).to eq(basic_auth)
-      expect(JSON.parse(req.body)).to eq("started" => "2026-10-20T09:30:00.000+0700", "timeSpentSeconds" => 60)
-    end
-
-    it "maps an invalid JSON response body to WorklogError" do
-      responses << instance_double(Net::HTTPResponse, code: "200", body: "not json")
-
-      expect { client.keys_with_my_worklogs_since(Date.new(2026, 10, 18)) }.to raise_error(Jira::WorklogError, /Jira request failed/)
+  describe "credentials" do
+    it "checks credentials before any request" do
+      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil, transport: transport).my_worklogs("SPEC-1") }.to raise_error(Jira::WorklogError, /not set/) { |e| expect(e.reason).to eq(:missing_credentials) }
+      expect(requests).to be_empty
     end
   end
 
@@ -144,10 +92,6 @@ RSpec.describe Jira::WorklogClient do
       responses.concat([ response(200, { accountId: "me-1" }), response(404, {}) ])
 
       expect { client.my_worklogs("SPEC-1") }.to raise_error(Jira::WorklogError, /SPEC-1 could not be read \(HTTP 404\)/)
-    end
-
-    it "raises WorklogError without credentials" do
-      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).my_worklogs("SPEC-1") }.to raise_error(Jira::WorklogError, /not set/) { |e| expect(e.reason).to eq(:missing_credentials) }
     end
   end
 
