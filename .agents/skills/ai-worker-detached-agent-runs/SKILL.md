@@ -9,7 +9,7 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 
 ## Moving parts
 
-- `app/services/ai_cli/detached_run.rb` — the shared state machine: `DetachedRun.new(dir:, result_name:, stale_after:, error_class:)` with `start(cwd:, prompt:, allowed_tools:, model:, effort:)`, `running?`, `poll { |rows| ... }`, `last_started_at`, `read_rows`, `log_path`. State dir holds `pid`, `started_at`, `agent.log` and the result file. `start` is a no-op (false) while the process is alive and deletes any old result; `poll` returns nil while running, raises `error_class` once running past `stale_after`, and after the process ends clears the pid and returns the (block-filtered) rows.
+- `app/services/ai_cli/detached_run.rb` — the shared state machine: `DetachedRun.new(dir:, result_name:, stale_after:, error_class:, runner: AiCli::Runner)` with `start(cwd:, prompt:, allowed_tools:, model:, effort:)`, `running?`, `poll { |rows| ... }`, `last_started_at`, `read_rows`, `log_path`. State dir holds `pid`, `started_at`, `agent.log` and the result file. `start` is a no-op (false) while the process is alive and deletes any old result; `poll` returns nil while running, raises `error_class` once running past `stale_after`, and after the process ends clears the pid and returns the (block-filtered) rows.
 - **Result file contract**: a JSON array and nothing else. `[]` means "ran, nothing found". Missing file or invalid JSON / non-array raises the module's `FetchError`, so the prompt must say "if the lookup fails, do NOT create the file".
 - **Fetcher** (`Jira::AgentFetcher`, `Slack::MentionFetcher`, `Bugsnag::Triager`) — wraps one `DetachedRun` (memoised `run`), owns `ROOT = Rails.root.join("tmp", ...)`, `STALE_AFTER`, `ALLOWED_TOOLS` (where the run needs tools), the prompt, and a `poll` of the form `run.poll { |rows| XRows.call(rows) }`. The row parser is a pure object with no filesystem/DB access (`Bugsnag::TriageRows`, `Jira::TicketRows`, `Slack::MentionRows`) that drops malformed rows; free-text from the agent is validated there with a regex such as `KEY`/`ID`/`ReviewSync::PR_URL`. Test it directly, not through a fake pid/result file. Bugsnag's ledger merge is likewise pure (`Bugsnag::LedgerMerge`). Public surface: `running?`, `last_started_at`, `start`, `poll`.
 - **`FetchError`** — one `class FetchError < StandardError` per module (`Jira::`, `Slack::`, `Bugsnag::`, `Brainstorm::`), passed as `error_class`.
@@ -37,7 +37,7 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 
 ## Spec recipe
 
-- `spec/services/ai_cli/detached_run_spec.rb` is the model: `Dir.mktmpdir` state dir, `allow(AiCli::Runner).to receive(:start).and_return(4242)`, `allow(AiCli::Runner).to receive(:poll).and_return(:running)` or `[ :completed, nil ]`, write a fake `pid` and result file by hand, then call `poll`.
+- `spec/services/ai_cli/detached_run_spec.rb` is the model: `Dir.mktmpdir` state dir, pass a fake `runner:` (`instance_double`; `start` returns `4242`, `poll` returns `:running` or `[ :completed, nil ]`), write a fake `pid` and result file by hand, then call `poll`.
 - Fetcher specs (`spec/services/{jira,slack,bugsnag}/*_spec.rb`): `stub_const("X::ROOT", Pathname(tmp))`, write a result file with good and junk rows, assert `poll` returns only the filtered rows; also cover missing file, bad JSON, non-array, and staleness (pid alive and `started_at` older than `STALE_AFTER` raises `FetchError` and clears the pid).
 - Sync specs: each `blockers` reason, `import` creating records, idempotent re-import, a row that fails validation landing in `failed`.
 - Job specs (`spec/jobs/*_sync_job_spec.rb`): stub the fetcher; assert import-before-start, no start while running or blocked, FetchError recorded as `"failed: ..."`.
@@ -46,5 +46,5 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 ## Safety
 
 - No secrets in prompts, logs or result files; the app holds no Jira/Slack/Bugsnag tokens.
-- Never start a real agent (or call `fetcher.start`) against a real project to try it — stub `AiCli::Runner`. No scratch scripts or `rails runner` against the development DB; every command sets `RAILS_ENV=test`.
+- Never start a real agent (or call `fetcher.start`) against a real project to try it — pass a fake `runner:`. No scratch scripts or `rails runner` against the development DB; every command sets `RAILS_ENV=test`.
 - Don't delete or hand-edit real `tmp/<name>/<id>` state dirs; a stale pid is cleared by `poll`.
