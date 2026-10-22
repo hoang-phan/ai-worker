@@ -72,6 +72,41 @@ RSpec.describe Prompts::WorkflowPlaceholders do
       expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("y" * described_class::PREV_OUTPUT_LIMIT)
     end
 
+    it "uses the newest stage_completed run by id across multiple completed runs" do
+      first.log_run!("stage_completed", output: "old")
+      first.log_run!("stage_completed", output: "new")
+      runbook.update!(current_stage_id: second.id)
+
+      expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("new")
+    end
+
+    it "breaks tied timestamps by id" do
+      stamp = Time.zone.parse("2026-01-01 10:00:00")
+      later_id = first.stage_runs.create!(action: "stage_completed", output: "a", created_at: stamp, updated_at: stamp)
+      newest = first.stage_runs.create!(action: "stage_completed", output: "b", created_at: stamp, updated_at: stamp)
+      runbook.update!(current_stage_id: second.id)
+
+      expect(newest.id).to be > later_id.id
+      expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("b")
+    end
+
+    it "is not replaced by later failed or started rows" do
+      first.log_run!("stage_completed", output: "good")
+      first.log_run!("failed", error: "boom", output: "bad")
+      first.log_run!("started", output: "partial")
+      runbook.update!(current_stage_id: second.id)
+
+      expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("good")
+    end
+
+    it "applies the tail limit to the newest run only" do
+      first.log_run!("stage_completed", output: "z" * 10)
+      first.log_run!("stage_completed", output: "a" * 5 + "b" * described_class::PREV_OUTPUT_LIMIT)
+      runbook.update!(current_stage_id: second.id)
+
+      expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("b" * described_class::PREV_OUTPUT_LIMIT)
+    end
+
     it "is empty on the first stage" do
       runbook.update!(current_stage_id: first.id)
       expect(described_class.for(runbook)["{PREV_OUTPUT}"]).to eq("")

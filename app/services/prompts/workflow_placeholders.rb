@@ -42,8 +42,7 @@ module Prompts
     # What the previous runbook stage's agent printed, so a stage can build on it.
     def previous_output
       previous = workflow.runbook? ? workflow.previous_runbook_stage : nil
-      run = previous&.stage_runs&.find_by(action: "stage_completed")
-      run&.output.to_s.last(PREV_OUTPUT_LIMIT)
+      Workflows::StageOutputs.new(workflow).latest_for(previous).to_s.last(PREV_OUTPUT_LIMIT)
     end
   end
 end

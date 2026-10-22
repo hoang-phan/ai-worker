@@ -41,4 +41,33 @@ RSpec.describe Workflow, type: :model do
       expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, auto_run: false)
     end
   end
+
+  describe "stage output variables" do
+    let(:runbook) { project.workflows.create!(kind: :runbook, task_description: "rb", variables: { "CHANNEL" => "#ops", "PR_URL" => "typed" }) }
+    let!(:step) { runbook.stages.create!(stage_type: :runbook_step, name: "Step") }
+    let!(:other) { runbook.stages.create!(stage_type: :runbook_step, name: "Other") }
+
+    after { runbook.destroy }
+
+    it "collects names from every completed run, across stages and runs" do
+      step.log_run!("stage_completed", output: "VAR: PR_URL=http://x")
+      step.log_run!("stage_completed", output: "VAR: EXTRA=1")
+      other.log_run!("stage_completed", output: "VAR_BEGIN: NOTES\nl1\nVAR_END")
+
+      expect(runbook.output_variable_names).to match_array(%w[PR_URL EXTRA NOTES])
+      expect(runbook.input_variables).to eq("CHANNEL" => "#ops")
+    end
+
+    it "ignores failed and started rows" do
+      step.log_run!("failed", output: "VAR: PR_URL=http://x", error: "boom")
+      step.log_run!("started", output: "VAR: OTHER=1")
+
+      expect(runbook.output_variable_names).to eq([])
+      expect(runbook.input_variables).to eq("CHANNEL" => "#ops", "PR_URL" => "typed")
+    end
+
+    it "is empty with no runs" do
+      expect(runbook.output_variable_names).to eq([])
+    end
+  end
 end

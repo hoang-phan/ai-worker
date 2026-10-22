@@ -174,7 +174,7 @@ class Workflow < ApplicationRecord
   private
 
   def stage_outputs
-    StageRun.where(stage_id: stages.select(:id), action: "stage_completed").pluck(:output)
+    Workflows::StageOutputs.new(self).all
   end
 
   def copy_source_is_a_runbook_of_this_project
