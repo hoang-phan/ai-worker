@@ -83,12 +83,17 @@ class Workflow < ApplicationRecord
 
   # comma-separated skill names entered in the UI, rendered into the {SKILLS} placeholder
   def skill_list
-    skills.to_s.split(",").map(&:strip).reject(&:blank?)
+    comma_list(skills)
   end
 
   # Same format as `skills`, rendered into {PR_SKILLS}: the skills only the PR stage uses (e.g. PR description writing).
   def pr_skill_list
-    pr_skills.to_s.split(",").map(&:strip).reject(&:blank?)
+    comma_list(pr_skills)
+  end
+
+  # `github_reviewer` holds one or more usernames, separated by commas and/or whitespace.
+  def reviewer_list
+    github_reviewer.to_s.split(/[,\s]+/).reject(&:blank?).uniq
   end
 
   # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
@@ -172,6 +177,10 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  def comma_list(value)
+    value.to_s.split(",").map(&:strip).reject(&:blank?)
+  end
 
   def stage_outputs
     Workflows::StageOutputs.new(self).all

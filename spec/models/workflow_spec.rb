@@ -70,4 +70,39 @@ RSpec.describe Workflow, type: :model do
       expect(runbook.output_variable_names).to eq([])
     end
   end
+
+  describe "#reviewer_list" do
+    it "splits on commas and whitespace, drops blanks and duplicates" do
+      workflow.github_reviewer = " alice, bob  carol,,alice ,\n"
+      expect(workflow.reviewer_list).to eq(%w[alice bob carol])
+    end
+
+    it "returns an empty list for blank or nil input" do
+      workflow.github_reviewer = nil
+      expect(workflow.reviewer_list).to eq([])
+      workflow.github_reviewer = "  , "
+      expect(workflow.reviewer_list).to eq([])
+    end
+
+    it "parses a simple pair" do
+      workflow.github_reviewer = "a, b"
+      expect(workflow.reviewer_list).to eq(%w[a b])
+    end
+  end
+
+  describe "#skill_list and #pr_skill_list" do
+    it "splits on commas only, strips and drops blanks, keeping duplicates and inner spaces" do
+      workflow.skills = " a , b c,, a ,"
+      workflow.pr_skills = "x,\n y ,,"
+      expect(workflow.skill_list).to eq([ "a", "b c", "a" ])
+      expect(workflow.pr_skill_list).to eq(%w[x y])
+    end
+
+    it "returns empty lists for nil" do
+      workflow.skills = nil
+      workflow.pr_skills = nil
+      expect(workflow.skill_list).to eq([])
+      expect(workflow.pr_skill_list).to eq([])
+    end
+  end
 end

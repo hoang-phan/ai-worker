@@ -24,7 +24,7 @@ Every `git` and `gh` subprocess in the app goes through one of these objects, al
 
 ## GitHub (`app/services/github/`)
 
-- `github/client.rb` — `Github::Client.new(project)`: a thin facade (`delegate`) over a reader and a writer sharing one `Runner`. It also keeps `parse_reviewers` and the `FAILED_*` constants. Callers use the facade; collaborators are injectable (`reader:`, `writer:`) for specs. It owns no logic of its own — and does **not** own PR lookup.
+- `github/client.rb` — `Github::Client.new(project)`: a thin facade (`delegate`) over a reader and a writer sharing one `Runner`. It also keeps the `FAILED_*` constants (reviewer parsing lives in `Workflow#reviewer_list`). Callers use the facade; collaborators are injectable (`reader:`, `writer:`) for specs. It owns no logic of its own — and does **not** own PR lookup.
 - `github/reader.rb` — `Github::Reader`, query-only: `pr_url_for_branch`, `find_pr_url` (delegates to `PrLocator`), `pr_info`, `pr_title`, `current_login`, `merged?`, `review_decision` (any assigned reviewer approving wins), `checks_failing?`, `workflow_run_state`.
 - `github/review_decision.rb` — `Github::ReviewDecision.call(latest_reviews, reviewers)`: pure review-state selection; an approval wins over a change request.
 - `github/workflow_run_state.rb` — `Github::WorkflowRunState.call(runs, since:)`: pure selection and mapping of the newest eligible Actions run.

@@ -7,11 +7,6 @@ module Github
     FAILED_CONCLUSIONS = Reader::FAILED_CONCLUSIONS
     FAILED_STATES = Reader::FAILED_STATES
 
-    # `workflow.github_reviewer` holds one or more usernames, comma-separated.
-    def self.parse_reviewers(value)
-      value.to_s.split(/[,\s]+/).reject(&:blank?).uniq
-    end
-
     attr_reader :reader, :writer
 
     def initialize(project, reader: nil, writer: nil)

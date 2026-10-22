@@ -21,7 +21,7 @@ module Prompts
       {
         "{JIRA}" => workflow.jira_ticket.to_s,
         "{PR}" => workflow.github_pr_url.to_s,
-        "{REVIEWER}" => Github::Client.parse_reviewers(workflow.github_reviewer).join(","),
+        "{REVIEWER}" => workflow.reviewer_list.join(","),
         "{SKILLS}" => workflow.skill_list.join(", "),
         "{PR_SKILLS}" => workflow.pr_skill_list.join(", "),
         "{IMAGES}" => workflow.image_paths.join(", "),

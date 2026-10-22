@@ -35,7 +35,7 @@ module Stages
     end
 
     def reviewers
-      Github::Client.parse_reviewers(workflow.github_reviewer)
+      workflow.reviewer_list
     end
 
     private
