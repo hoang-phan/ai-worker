@@ -145,4 +145,53 @@ RSpec.describe Stages::CompletionHandler, type: :service do
       expect(runbook_step_finish).to have_received(:call).with(output)
     end
   end
+
+  describe "dispatch over Stage::STAGE_TYPES" do
+    finishers = {
+      "implementation" => [ Stages::ImplementationFinish, %i[workflow stage project github handoff] ],
+      "pr_check" => [ Stages::PrCheckFinish, %i[workflow stage project github handoff] ],
+      "task" => [ Stages::TaskFinish, %i[workflow stage project git] ],
+      "pr_review" => [ Stages::PrReviewFinish, %i[workflow stage] ],
+      "jira_update" => [ Stages::JiraUpdateFinish, %i[workflow stage project] ],
+      "uat_test" => [ Stages::UatTestFinish, %i[workflow stage] ],
+      "local_test" => [ Stages::LocalTestFinish, %i[workflow stage handoff] ],
+      "ci_check" => [ Stages::CiCheckFinish, %i[workflow stage] ],
+      "simple_implementation" => [ Stages::SimpleImplementationFinish, %i[workflow stage] ],
+      "ci_verify" => [ Stages::CiVerifyFinish, %i[workflow stage project handoff] ],
+      "pr_create" => [ Stages::PrOpenedFinish, %i[workflow stage project github handoff] ],
+      "runbook_step" => [ Stages::RunbookStepFinish, %i[workflow stage] ]
+    }
+
+    it "covers every stage type" do
+      expect(finishers.keys).to match_array(Stage::STAGE_TYPES.keys.map(&:to_s))
+    end
+
+    Stage::STAGE_TYPES.each_key do |type|
+      context "with #{type}" do
+        let(:stage_type) { type }
+
+        it "builds the matching finisher and calls it with the output" do
+          klass, collaborators = finishers.fetch(type.to_s)
+          finisher = instance_double(klass, call: nil)
+          allow(klass).to receive(:new).and_return(finisher)
+          allow(project).to receive(:ci_loop_ready?).and_return(true)
+
+          handle
+
+          expected = collaborators.to_h { |name| [ name, public_send(name) ] }
+          expect(klass).to have_received(:new).with(**expected)
+          if type.to_s == "pr_create"
+            expect(finisher).to have_received(:call).with(output, action: "pr_created", checks_follow: true)
+          else
+            expect(finisher).to have_received(:call).with(output)
+          end
+        end
+      end
+    end
+  end
+
+  it "is a no-op returning nil for an unknown stage type" do
+    allow(stage).to receive(:stage_type).and_return("bogus")
+    expect(handle).to be_nil
+  end
 end
