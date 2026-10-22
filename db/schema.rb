@@ -88,8 +88,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
   create_table "prompt_templates", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
-    t.string "effort"
-    t.string "model"
     t.string "name", null: false
     t.integer "stage_type", null: false
     t.datetime "updated_at", null: false

@@ -18,9 +18,7 @@ module Stages
         log_path: log_path,
         mcp_config: mcp_config,
         env: env,
-        disallowed_tools: disallowed_tools,
-        model: template&.model.presence,
-        effort: template&.effort.presence
+        disallowed_tools: disallowed_tools
       )
 
       workflow.update!(
@@ -34,10 +32,6 @@ module Stages
     end
 
     private
-
-    def template
-      stage.effective_template
-    end
 
     attr_reader :workflow, :stage, :project, :runner, :logs
   end

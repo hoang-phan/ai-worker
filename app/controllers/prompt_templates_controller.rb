@@ -44,6 +44,6 @@ class PromptTemplatesController < ApplicationController
   end
 
   def prompt_template_params
-    params.require(:prompt_template).permit(:name, :stage_type, :model, :effort, :body)
+    params.require(:prompt_template).permit(:name, :stage_type, :body)
   end
 end

@@ -33,36 +33,12 @@ RSpec.describe Stages::AiRunLauncher, type: :service do
 
     expect(runner.arguments).to eq [
       [ local_directory, "run this" ],
-      { log_path: "/tmp/workflow-#{workflow.id}.log", mcp_config: "/tmp/mcp.json", env: { "TOKEN" => "value" }, disallowed_tools: [ "Bash" ],
-        model: nil, effort: nil }
+      { log_path: "/tmp/workflow-#{workflow.id}.log", mcp_config: "/tmp/mcp.json", env: { "TOKEN" => "value" }, disallowed_tools: [ "Bash" ] }
     ]
     expect(workflow.reload).to have_attributes(
       processing: true, ai_pid: 4242, ai_log_path: "/tmp/workflow-#{workflow.id}.log", ai_log_offset: 0
     )
     expect(workflow.ai_started_at).to be_present
     expect(stage.stage_runs.reorder(:id).pluck(:action)).to eq [ "conflict_resolution_started" ]
-  end
-
-  describe "agent model and effort" do
-    def launch
-      described_class.new(workflow: workflow, stage: stage, project: project, runner: runner, logs: logs).call("run this")
-      runner.arguments.last
-    end
-
-    it "passes the template's model and effort to the runner" do
-      PromptTemplate.create!(name: "Specialist", stage_type: :implementation, body: "Do {TASK}", model: "claude-opus-5-5", effort: "high")
-
-      expect(launch).to include(model: "claude-opus-5-5", effort: "high")
-    end
-
-    it "passes nil when the template fields are blank" do
-      PromptTemplate.create!(name: "Plain", stage_type: :implementation, body: "Do {TASK}", model: "", effort: "")
-
-      expect(launch).to include(model: nil, effort: nil)
-    end
-
-    it "passes nil when there is no template" do
-      expect(launch).to include(model: nil, effort: nil)
-    end
   end
 end

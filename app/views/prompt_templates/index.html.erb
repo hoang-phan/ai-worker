@@ -11,8 +11,6 @@
       <tr>
         <th>Name</th>
         <th>Stage type</th>
-        <th>Model</th>
-        <th>Effort</th>
         <th></th>
       </tr>
     </thead>
@@ -21,8 +19,6 @@
         <tr>
           <td><%= link_to template.name, template %></td>
           <td><%= template.stage_type %></td>
-          <td><%= template.model.presence || "-" %></td>
-          <td><%= template.effort.presence || "-" %></td>
           <td>
             <div class="actions-cell">
               <%= link_to "Edit", edit_prompt_template_path(template), class: "link-action" %>
