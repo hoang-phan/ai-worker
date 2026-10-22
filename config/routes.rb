@@ -33,7 +33,9 @@ Rails.application.routes.draw do
   end
 
   resources :prompt_templates
-  resource :settings, only: %i[show update]
+  resource :settings, only: %i[show update] do
+    resource :rotation, only: :update, module: :settings
+  end
 
   root "projects#index"
 end

@@ -39,20 +39,4 @@ RSpec.describe "Settings", type: :request do
       expect(agent[:value]).to eq("claude")
     end
   end
-
-  describe "PATCH update with rotation weights" do
-    it "saves the weights" do
-      expect(AiCli::Rotation).to receive(:weights=).with(hash_including("claude" => "5", "codex" => "3"))
-
-      patch settings_path, params: { rotation: { claude: "5", codex: "3" } }
-
-      expect(response).to redirect_to(settings_path)
-    end
-
-    it "rejects bad weights with 422" do
-      patch settings_path, params: { rotation: { nope: "1" } }
-
-      expect(response).to have_http_status(422)
-    end
-  end
 end

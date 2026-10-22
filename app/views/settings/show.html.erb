@@ -6,7 +6,7 @@
   <%= form_with url: settings_path, method: :patch do |f| %>
     <div class="field">
       <%= f.label :agent, "Agent" %>
-      <%= f.select :agent, AiCli::Runner.available_agents, selected: @agent %>
+      <%= f.select :agent, AiCli::AgentSetting.available, selected: @agent %>
       <p class="text-muted">The CLI used for all runs. Takes effect on the next run; runs already in progress keep their agent. Falls back to the AGENT env var until set here.</p>
     </div>
 
@@ -18,7 +18,7 @@
 
 <div class="card form-card">
   <h2>Workflow round robin</h2>
-  <%= form_with url: settings_path, method: :patch do |f| %>
+  <%= form_with url: settings_rotation_path, method: :patch do |f| %>
     <% @rotation.each do |name, weight| %>
       <div class="field">
         <%= label_tag "rotation_#{name}", name %>
