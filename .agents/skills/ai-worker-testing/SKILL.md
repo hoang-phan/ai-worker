@@ -21,7 +21,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 
 - Never invoke real `claude`, `gh`, or `git` against the network. Stub `Open3.capture3`, `Process.spawn`, `AiCli::Runner.start` / `.poll`.
 - Services that spawn agents (`AiCli::DetachedRun`, `Brainstorm::RunLifecycle`) take an injectable `runner:`; pass a fake/`instance_double` instead of stubbing `AiCli::Runner` globally.
-- For `Git::BranchService`, use a scratch local git repo created in a tmpdir (no remote), and remove only that tmpdir afterwards.
+- For `Git::BranchService`, use `GitRepoHelper`'s bare-origin fixtures (`build_git_fixture`, `build_other_clone`) under `Dir.mktmpdir`, and remove only that tmpdir afterwards.
 
 ## Design
 
