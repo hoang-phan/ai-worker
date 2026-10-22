@@ -19,14 +19,14 @@ Rails.application.routes.draw do
     resources :workflows, except: :index do
       post :log_time, on: :collection, to: "workflow_time_logs#create"
       member do
-        post :start
-        post :run_stage
-        post :clone
-        post :move
-        post :advance
-        post :resume
-        post :rollback_to_review
-        delete "images/:name", action: :destroy_image, as: :image, constraints: { name: /[^\/]+/ }
+        post :start, to: "workflow_transitions#start"
+        post :resume, to: "workflow_transitions#resume"
+        post :rollback_to_review, to: "workflow_transitions#rollback_to_review"
+        post :run_stage, to: "workflow_runbooks#run_stage"
+        post :advance, to: "workflow_runbooks#advance"
+        post :clone, to: "workflow_runbooks#clone"
+        post :move, to: "workflow_positions#move"
+        delete "images/:name", to: "workflow_images#destroy_image", as: :image, constraints: { name: /[^\/]+/ }
       end
       resources :stages, only: %i[new create edit update destroy]
     end

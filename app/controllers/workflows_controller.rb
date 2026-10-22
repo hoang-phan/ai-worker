@@ -1,7 +1,8 @@
 class WorkflowsController < ApplicationController
   include ProjectScoped
+  include WorkflowScoped
 
-  before_action :set_workflow, only: %i[show edit update destroy start run_stage clone move advance resume rollback_to_review destroy_image]
+  before_action :set_workflow, only: %i[show edit update destroy]
 
   def show
     @stage_runs = StageRun.history_for(@workflow)
@@ -39,88 +40,7 @@ class WorkflowsController < ApplicationController
     redirect_to @project, notice: "Workflow deleted."
   end
 
-  def destroy_image
-    @workflow.remove_image(params[:name])
-    redirect_back_or_to edit_project_workflow_path(@project, @workflow), notice: "Image removed."
-  end
-
-  def start
-    # Started from the project list: go back to it with the status filter kept.
-    fallback = params[:status].present? ? project_path(@project, status: params[:status]) : project_workflow_path(@project, @workflow)
-    if @workflow.start!
-      redirect_to fallback, notice: "Workflow started."
-    else
-      redirect_to fallback, alert: "Workflow has already been started."
-    end
-  end
-
-  # The runbook's Clone button: a fresh pending runbook (see Workflows::RunbookClone), opened for editing.
-  def clone
-    result = Workflows::RunbookClone.new(@workflow).call
-    case result.status
-    when :not_runbook
-      redirect_to project_workflow_path(@project, @workflow), alert: "Only runbooks can be cloned."
-    when :created
-      redirect_to edit_project_workflow_path(@project, result.copy), notice: "Cloned with #{result.copy.stages.count} stages. Check the variables, then Start."
-    else
-      redirect_to project_workflow_path(@project, @workflow), alert: result.error
-    end
-  end
-
-  # Up/down arrows on the project page: reorders the priority list (the scheduler works through workflows by position).
-  def move
-    direction = params[:direction].to_s
-    return redirect_to @project, alert: "Unknown direction." unless %w[up down].include?(direction)
-
-    Projects::WorkflowReorder.new(@project).move(@workflow, direction)
-    redirect_to project_path(@project, status: params[:status].presence)
-  end
-
-  # The runbook's "Run stage" button: starts the current stage (also retries a failed one) and lets the
-  # scheduler carry on through the following stages until one needs a person.
-  def run_stage
-    if @workflow.request_stage_run!
-      WorkflowSchedulerJob.perform_later(@workflow.id)
-      redirect_to project_workflow_path(@project, @workflow), notice: "Running stage."
-    else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow has no stage ready to run."
-    end
-  end
-
-  # The runbook's Next button: only valid while a finished stage is waiting for it.
-  def advance
-    if @workflow.can_advance?
-      @workflow.advance!
-      WorkflowSchedulerJob.perform_later(@workflow.id) if @workflow.auto_run?
-      redirect_to project_workflow_path(@project, @workflow), notice: @workflow.done? ? "Runbook finished." : "Moved on to the next stage."
-    else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow is not waiting for Next."
-    end
-  end
-
-  def resume
-    if @workflow.resume!
-      redirect_to project_workflow_path(@project, @workflow), notice: "Workflow resumed."
-    else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Workflow is not errored."
-    end
-  end
-
-  # Manually sends a finished workflow back to the review stage so the next
-  # scheduler tick re-inspects the PR and fixes outstanding findings/checks.
-  def rollback_to_review
-    if @workflow.rollback_to_review!
-      redirect_to project_workflow_path(@project, @workflow), notice: "Workflow rolled back to review."
-    else
-      redirect_to project_workflow_path(@project, @workflow), alert: "Only done workflows with a pull request can be rolled back."
-    end
-  end
-
   private
-
-  def set_workflow
-    @workflow = @project.workflows.find(params[:id])
-  end
 
   def workflow_params
     params.require(:workflow).permit(:jira_ticket, :branch_name, :github_reviewer, :skills, :pr_skills, :task_description, :position, :variables_text, :copy_stages_from_id, :slack_review_thread_ts)
