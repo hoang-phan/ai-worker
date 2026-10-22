@@ -15,6 +15,52 @@ RSpec.describe Brainstorm::Planner do
 
   after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
+  describe "#wait_reason" do
+    let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
+
+    def add_workflow(**attrs)
+      project.workflows.create!({ task_description: "do it", branch_name: "b-#{SecureRandom.hex(3)}", github_reviewer: "someone" }.merge(attrs))
+    end
+
+    it "is nil when nothing is pending" do
+      expect(planner.wait_reason).to be_nil
+    end
+
+    it "names the number of pending development workflows" do
+      2.times { add_workflow(status: :pending) }
+
+      expect(planner.wait_reason).to eq("2 workflow(s) still pending; start or delete them first.")
+    end
+
+    it "ignores implementing and runbook workflows" do
+      add_workflow(status: :implementing)
+      add_workflow(kind: :runbook, status: :pending)
+
+      expect(planner.wait_reason).to be_nil
+    end
+  end
+
+  describe "#record_start!" do
+    let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
+
+    it "stamps brainstorm_last_run_at with the current time" do
+      freeze_time do
+        planner.record_start!
+
+        expect(project.reload.brainstorm_last_run_at).to eq(Time.current)
+      end
+    end
+
+    it "uses an injected clock" do
+      at = Time.zone.local(2026, 1, 2, 3, 4, 5)
+      clock = double("clock", current: at)
+
+      described_class.new(project, clock: clock).record_start!
+
+      expect(project.reload.brainstorm_last_run_at).to eq(at)
+    end
+  end
+
   describe "run orchestration" do
     it "supplies project prompt and history inputs to the lifecycle when starting" do
       expect(planner.start).to be(true)

@@ -73,9 +73,12 @@ RSpec.describe "Projects", type: :request do
   end
 
   describe "POST brainstorm" do
-    let(:planner) { instance_double(Brainstorm::Planner, blockers: [], queued_count: 0, start: true) }
+    let(:planner) { Brainstorm::Planner.new(project) }
 
-    before { allow(Brainstorm::Planner).to receive(:new).and_return(planner) }
+    before do
+      allow(planner).to receive_messages(blockers: [], queued_count: 0, start: true)
+      allow(Brainstorm::Planner).to receive(:new).and_return(planner)
+    end
 
     it "reports the blockers" do
       allow(planner).to receive(:blockers).and_return([ "brainstorm is off" ])

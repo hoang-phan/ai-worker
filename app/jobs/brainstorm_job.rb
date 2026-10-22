@@ -15,10 +15,10 @@ class BrainstormJob < ApplicationJob
         summary: ->(result) { result.summary },
         persist: ->(_result, summary) { project.update(brainstorm_last_result: summary) },
         idle: -> { !planner.running? },
-        due: -> { planner.queued_count.zero? },
+        due: -> { planner.wait_reason.nil? },
         blockers: -> { planner.blockers },
         start: -> { planner.start },
-        after_start: -> { project.update(brainstorm_last_run_at: Time.current) },
+        after_start: -> { planner.record_start! },
         persist_failure: ->(message) { project.update(brainstorm_last_result: message) }
       )
     end

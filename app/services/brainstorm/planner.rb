@@ -31,8 +31,9 @@ module Brainstorm
       ENV["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
     end
 
-    def initialize(project)
+    def initialize(project, clock: Time)
       @project = project
+      @clock = clock
       @dir = ROOT.join(project.id.to_s)
     end
 
@@ -47,6 +48,17 @@ module Brainstorm
     # Pending workflows; brainstorming waits until this is zero.
     def queued_count
       project.workflows.queued.count
+    end
+
+    # Why brainstorming must wait right now (nil when it may run): pending workflows have to be started or deleted first.
+    def wait_reason
+      queued = queued_count
+      "#{queued} workflow(s) still pending; start or delete them first." if queued.positive?
+    end
+
+    # Stamps the project's last-run time; callers invoke it after a successful `start`.
+    def record_start!
+      project.update!(brainstorm_last_run_at: clock.current)
     end
 
     def running?
@@ -74,7 +86,7 @@ module Brainstorm
 
     private
 
-    attr_reader :project, :dir
+    attr_reader :project, :dir, :clock
 
     def lifecycle
       @lifecycle ||= RunLifecycle.new(dir: dir, stale_after: STALE_AFTER)
@@ -118,6 +130,5 @@ module Brainstorm
     def history_file
       dir.join("history.md")
     end
-
   end
 end

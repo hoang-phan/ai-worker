@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe BrainstormJob, type: :job do
   let(:dirs) { [] }
-  let(:planner) { instance_double(Brainstorm::Planner, poll: nil, running?: false, queued_count: 0, blockers: blockers, start: nil) }
+  let(:planner) { Brainstorm::Planner.new(project) }
   let(:blockers) { [] }
   let(:enabled) { true }
   let!(:project) { create_project(brainstorm_enabled: enabled) }
@@ -14,6 +14,7 @@ RSpec.describe BrainstormJob, type: :job do
   end
 
   before do
+    allow(planner).to receive_messages(poll: nil, running?: false, queued_count: 0, blockers: blockers, start: nil)
     allow(Brainstorm::Planner).to receive(:new).and_return(planner)
     allow(Rails.logger).to receive(:warn)
   end
@@ -89,7 +90,7 @@ RSpec.describe BrainstormJob, type: :job do
 
   describe "errors" do
     let!(:other) { create_project(brainstorm_enabled: true) }
-    let(:other_planner) { instance_double(Brainstorm::Planner, poll: nil, running?: false, queued_count: 0, blockers: [], start: nil) }
+    let(:other_planner) { instance_double(Brainstorm::Planner, poll: nil, running?: false, wait_reason: nil, blockers: [], start: nil, record_start!: true) }
 
     before do
       allow(Rails.logger).to receive(:error)

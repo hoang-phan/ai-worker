@@ -65,12 +65,9 @@ class ProjectsController < ApplicationController
     planner = Brainstorm::Planner.new(@project)
     result = AgentRuns::ManualStart.call(
       blockers: -> { planner.blockers },
-      skip_reason: -> {
-        queued = planner.queued_count
-        "#{queued} workflow(s) still pending; start or delete them first." if queued.positive?
-      },
+      skip_reason: -> { planner.wait_reason },
       start: -> { planner.start },
-      after_start: -> { @project.update(brainstorm_last_run_at: Time.current) },
+      after_start: -> { planner.record_start! },
       rescue_errors: [ AiCli::CommandError ]
     )
     redirect_after_manual_start(
