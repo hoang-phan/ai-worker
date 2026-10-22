@@ -4,7 +4,7 @@ module Slack
   # Reads back the posting runs started by Slack::ReviewNotifier: walks tmp/slack_pings/<workflow_id>/<started_at>/,
   # and the first permalink found in a finished run's agent.log becomes Workflow#slack_review_thread_ts when blank.
   class PingCollector
-    def initialize(root: ReviewNotifier::ROOT, poller: AiCli::Runner.method(:poll))
+    def initialize(root: PingRun::ROOT, poller: AiCli::Runner.method(:poll))
       @root = Pathname(root)
       @poller = poller
     end
@@ -39,9 +39,10 @@ module Slack
     # Returns :running while the run is fresh and alive; otherwise reads its permalink and returns :finished.
     # A finished run with a permalink is removed; one without is logged and kept.
     def collect_run(workflow, dir)
-      return :running if running?(dir)
+      run = PingRun.new(dir)
+      return :running if running?(run)
 
-      link = permalink(dir)
+      link = run.permalink
       if link.blank?
         Rails.logger.warn("[Slack::ReviewNotifier] workflow=#{workflow.id} ping gave no permalink; see #{dir}")
       else
@@ -52,15 +53,9 @@ module Slack
     end
 
     # Fresh and still alive; stale runs count as finished.
-    def running?(dir)
-      pid_file = dir.join("pid")
-      state = pid_file.exist? ? poller.call(pid_file.read.to_i) : [ :completed, nil ]
-      state == :running && Time.zone.at(dir.basename.to_s.to_i) > ReviewNotifier::STALE_AFTER.ago
-    end
-
-    def permalink(dir)
-      log = dir.join("agent.log")
-      log.exist? ? log.read[ReviewNotifier::PERMALINK] : nil
+    def running?(run)
+      state = run.pid_file.exist? ? poller.call(run.pid_file.read.to_i) : [ :completed, nil ]
+      state == :running && !run.stale?
     end
 
     def remove_if_empty(workflow_dir)
