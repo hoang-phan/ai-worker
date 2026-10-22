@@ -72,6 +72,32 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
       handoff.notify_reviewers!
     end
 
+    it "falls back to the PR URL when there is no Jira ticket and the title is blank" do
+      workflow.update_column(:jira_ticket, nil)
+      allow(github).to receive(:pr_title).with(pr_url).and_return("")
+      expect(notifier).to receive(:notify!).with(hash_including(label: pr_url))
+
+      handoff.notify_reviewers!
+    end
+
+    it "labels with the title alone when there is no Jira ticket" do
+      workflow.update_column(:jira_ticket, nil)
+      allow(github).to receive(:pr_title).with(pr_url).and_return("Fix handoff")
+      expect(notifier).to receive(:notify!).with(hash_including(label: "Fix handoff"))
+
+      handoff.notify_reviewers!
+    end
+
+    it "posts into the thread_ts recorded by the ping collection" do
+      allow(github).to receive(:pr_title).with(pr_url).and_return("Fix handoff")
+      allow(notifier).to receive(:collect) { workflow.update_column(:slack_review_thread_ts, "collected-thread") }
+      expect(notifier).to receive(:notify!).with(hash_including(thread_ts: "collected-thread"))
+
+      handoff.notify_reviewers!
+
+      expect(stage.stage_runs.last.action).to eq("slack_review_notified")
+    end
+
     [ Slack::NotifyError, Github::CommandError ].each do |error_class|
       it "logs #{error_class} without raising" do
         if error_class == Slack::NotifyError

@@ -14,13 +14,10 @@ module Stages
       return unless notifier.enabled? && reviewers.any?
 
       pr_url = workflow.github_pr_url
-      title = github.pr_title(pr_url).presence
-      label = review_label(pr_url, title)
-      notifier.collect(workflow)
-      thread_ts = workflow.reload.slack_review_thread_ts.presence
+      label = pr_label(pr_url)
       notifier.notify!(
         workflow: workflow, pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
-        thread_ts: thread_ts
+        thread_ts: current_thread_ts
       )
       stage.log_run!("slack_review_notified")
     rescue Slack::NotifyError, Github::CommandError => e
@@ -42,8 +39,15 @@ module Stages
 
     attr_reader :workflow, :stage, :project, :notifier, :github
 
-    def review_label(pr_url, title)
+    def pr_label(pr_url)
+      title = github.pr_title(pr_url).presence
       [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
+    end
+
+    # Collect finished pings first: collecting may record the review thread on the workflow.
+    def current_thread_ts
+      notifier.collect(workflow)
+      workflow.reload.slack_review_thread_ts.presence
     end
   end
 end
