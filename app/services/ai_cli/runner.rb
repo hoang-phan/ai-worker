@@ -54,8 +54,9 @@ module AiCli
     # `Bash(gh workflow run:*)`). Deny rules win even over --dangerously-skip-permissions. Other agents have no
     # equivalent, so the prompt has to say it.
     #
-    # model / effort (claude only): `--model` / `--effort` for this run instead of the CLI's defaults, e.g. a stronger
-    # model for brainstorming. Other agents ignore them.
+    # model / effort: select the model and reasoning level for this run instead of the CLI's defaults, e.g. a stronger
+    # model for brainstorming. Claude receives `--model` / `--effort`; Codex receives `--model` and
+    # `-c model_reasoning_effort=...`. Cursor ignores them.
     def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 

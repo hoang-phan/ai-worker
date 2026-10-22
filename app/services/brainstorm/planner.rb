@@ -15,7 +15,7 @@ module Brainstorm
   class Planner
     ROOT = Rails.root.join("tmp", "brainstorms")
     STALE_AFTER = 45.minutes
-    DEFAULT_MODEL = "claude-opus-5-5".freeze
+    DEFAULT_MODEL = "gpt-6-sol".freeze
     DEFAULT_EFFORT = "high".freeze
     TASK_LENGTH = ProposalNormalizer::TASK_LENGTH
     # Read-only: the agent may look at the code and git history, and write the result file, nothing else.

@@ -1,7 +1,7 @@
 module AiCli
   class Command
-    # Builds the Claude-specific argv. Claude is the only supported agent with
-    # per-run tool, model, effort, and verbose-output flags.
+    # Builds the Claude-specific argv. Claude has per-run tool and verbose-output
+    # flags; model and effort are also supported by Codex through its own syntax.
     class Claude
       def initialize(prompt:, allowed_tools:, mcp_config:, disallowed_tools:, model:, effort:, verbose:)
         @prompt = prompt

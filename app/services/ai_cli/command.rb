@@ -53,7 +53,7 @@ module AiCli
         Claude.new(prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
                    disallowed_tools: disallowed_tools, model: model, effort: effort, verbose: verbose)
       when "codex"
-        Codex.new(prompt: prompt, mcp_config: mcp_config)
+        Codex.new(prompt: prompt, mcp_config: mcp_config, model: model, effort: effort)
       when "cursor"
         Cursor.new(prompt: prompt, mcp_config: mcp_config, executable_check: executable_check, help_probe: help_probe)
       else

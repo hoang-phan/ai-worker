@@ -16,4 +16,13 @@ RSpec.describe AiCli::Command::Codex do
                         "-c", 'mcp_servers.b.env={"A" = "1"}',
                         "--dangerously-bypass-approvals-and-sandbox", "p" ])
   end
+
+  it "selects a model and configures reasoning effort" do
+    cmd = described_class.new(prompt: "p", mcp_config: nil, model: "gpt-6-sol", effort: "high").to_a
+
+    expect(cmd).to eq([ "codex", "exec",
+                        "-c", 'model_reasoning_effort="high"',
+                        "--dangerously-bypass-approvals-and-sandbox",
+                        "--model", "gpt-6-sol", "p" ])
+  end
 end

@@ -15,6 +15,12 @@ RSpec.describe Brainstorm::Planner do
 
   after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
+  describe ".model" do
+    it "defaults brainstorms to gpt-6-sol" do
+      expect(described_class.model).to eq("gpt-6-sol")
+    end
+  end
+
   describe "#wait_reason" do
     let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
 
