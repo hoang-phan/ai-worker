@@ -1,7 +1,7 @@
 class BugsnagSyncsController < ApplicationController
   include ManualStartFlash
+  include ProjectScoped
 
-  before_action :set_project
   before_action :set_bugsnag_sync, only: %i[edit update destroy run]
 
   def new
@@ -50,10 +50,6 @@ class BugsnagSyncsController < ApplicationController
   end
 
   private
-
-  def set_project
-    @project = Project.find(params[:project_id])
-  end
 
   def set_bugsnag_sync
     @bugsnag_sync = @project.bugsnag_syncs.find(params[:id])

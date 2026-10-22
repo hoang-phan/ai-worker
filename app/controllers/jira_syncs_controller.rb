@@ -1,7 +1,7 @@
 class JiraSyncsController < ApplicationController
   include ManualStartFlash
+  include ProjectScoped
 
-  before_action :set_project
   before_action :set_jira_sync, only: %i[edit update destroy run]
 
   def new
@@ -50,10 +50,6 @@ class JiraSyncsController < ApplicationController
   end
 
   private
-
-  def set_project
-    @project = Project.find(params[:project_id])
-  end
 
   def set_jira_sync
     @jira_sync = @project.jira_syncs.find(params[:id])

@@ -20,6 +20,14 @@ RSpec.describe "Workflows", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
+  describe "unknown project" do
+    it "404s for a nested route" do
+      get project_workflow_path(project_id: 0, id: 0)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe "GET show" do
     it "renders the stages table and stage run history" do
       workflow.stages.first.stage_runs.create!(action: "started", output: "Started the implementation")

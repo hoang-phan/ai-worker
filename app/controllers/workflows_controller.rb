@@ -1,5 +1,6 @@
 class WorkflowsController < ApplicationController
-  before_action :set_project
+  include ProjectScoped
+
   before_action :set_workflow, only: %i[show edit update destroy start run_stage clone move advance resume rollback_to_review destroy_image]
 
   def show
@@ -127,10 +128,6 @@ class WorkflowsController < ApplicationController
   end
 
   private
-
-  def set_project
-    @project = Project.find(params[:project_id])
-  end
 
   def set_workflow
     @workflow = @project.workflows.find(params[:id])

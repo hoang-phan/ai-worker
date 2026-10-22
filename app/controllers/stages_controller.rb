@@ -1,4 +1,6 @@
 class StagesController < ApplicationController
+  include ProjectScoped
+
   before_action :set_workflow
   before_action :set_stage, only: %i[edit update destroy]
   before_action :require_runbook, only: %i[new create destroy]
@@ -40,7 +42,6 @@ class StagesController < ApplicationController
   private
 
   def set_workflow
-    @project = Project.find(params[:project_id])
     @workflow = @project.workflows.find(params[:workflow_id])
   end
 
