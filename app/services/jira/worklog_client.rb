@@ -98,22 +98,33 @@ module Jira
       (data["issues"] || []).map { |issue| issue["key"] }
     end
 
-    # The one place that builds the request, authenticates, checks the status (the block builds the
-    # failure message from the code), parses JSON and maps transport errors to WorklogError.
+    # Build -> send -> check the status (the block builds the failure message from the code) -> parse JSON,
+    # mapping transport errors to WorklogError.
     def request(method, path, params: {}, body: nil, expect:)
-      uri = URI("#{base_url}#{path}")
-      uri.query = URI.encode_www_form(params) if params.any?
-      headers = { "Accept" => "application/json" }
-      headers["Content-Type"] = "application/json" if body
-      req = Net::HTTP.const_get(method.to_s.capitalize).new(uri, headers)
-      req.basic_auth(email, token)
-      req.body = body.to_json if body
-      response = transport.call(req, uri)
+      uri = uri_for(path, params)
+      response = transport.call(build_request(method, uri, body), uri)
       raise WorklogError, yield(response.code) unless response.code.to_i == expect
 
-      response.body.present? ? JSON.parse(response.body) : nil
+      parse_body(response)
     rescue JSON::ParserError, SystemCallError, Timeout::Error, SocketError, OpenSSL::SSL::SSLError => e
       raise WorklogError, "Jira request failed: #{e.message}"
+    end
+
+    def uri_for(path, params)
+      URI("#{base_url}#{path}").tap { |uri| uri.query = URI.encode_www_form(params) if params.any? }
+    end
+
+    def build_request(method, uri, body)
+      headers = { "Accept" => "application/json" }
+      headers["Content-Type"] = "application/json" if body
+      Net::HTTP.const_get(method.to_s.capitalize).new(uri, headers).tap do |req|
+        req.basic_auth(email, token)
+        req.body = body.to_json if body
+      end
+    end
+
+    def parse_body(response)
+      response.body.present? ? JSON.parse(response.body) : nil
     end
   end
 end
