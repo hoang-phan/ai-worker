@@ -20,7 +20,8 @@ Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_to
 - `app/services/stages/conflict_resolution_finish.rb` — verifies a conflict-resolution run committed its merge, aborts and raises if not, otherwise clears its run and immediately launches the review-fix prompt.
 - `app/services/stages/failure_handler.rb` — aborts a resolving merge, clears run state without auto-run, logs `failed`, and parks workflows at the supplied consecutive-failure threshold.
 - `app/services/stages/implementation_finish.rb` — delegates a successful implementation result to `PrOpenedFinish` with the implementation action.
-- `app/services/stages/jira_lifecycle_finish.rb` — parses Jira/UAT result markers and completes `jira_update` or `uat_test`, optionally scheduling delayed UAT.
+- `app/services/stages/jira_update_finish.rb` — parses `JIRA_RESULT` and completes `jira_update`, optionally scheduling delayed UAT.
+- `app/services/stages/uat_test_finish.rb` — parses `UAT_RESULT` and completes `uat_test`.
 - `app/services/stages/local_test_finish.rb` — parses a local-test result, applies retry policy and feedback, completes into review, then best-effort enables auto-merge or notifies reviewers.
 - `app/services/stages/local_test_policy.rb` — holds pure local-test retest, exhaustion, auto-merge, and feedback fallback decisions.
 - `app/services/stages/merge_check.rb` — on idle scheduler ticks, marks a merged tracked PR workflow as `merged`; logs GitHub lookup failures without raising.

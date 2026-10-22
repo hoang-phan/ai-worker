@@ -82,14 +82,14 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "jira_update" do
     let(:stage_type) { :jira_update }
-    let(:jira_lifecycle_finish) { instance_double(Stages::JiraLifecycleFinish, call: nil) }
+    let(:jira_update_finish) { instance_double(Stages::JiraUpdateFinish, call: nil) }
 
-    it "delegates to JiraLifecycleFinish" do
-      allow(Stages::JiraLifecycleFinish).to receive(:new).and_return(jira_lifecycle_finish)
+    it "delegates to JiraUpdateFinish" do
+      allow(Stages::JiraUpdateFinish).to receive(:new).and_return(jira_update_finish)
       handle
 
-      expect(Stages::JiraLifecycleFinish).to have_received(:new).with(workflow: workflow, stage: stage, project: project)
-      expect(jira_lifecycle_finish).to have_received(:call).with(output)
+      expect(Stages::JiraUpdateFinish).to have_received(:new).with(workflow: workflow, stage: stage, project: project)
+      expect(jira_update_finish).to have_received(:call).with(output)
     end
 
     it "propagates a missing JIRA_RESULT error" do
@@ -99,14 +99,14 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
   describe "uat_test" do
     let(:stage_type) { :uat_test }
-    let(:jira_lifecycle_finish) { instance_double(Stages::JiraLifecycleFinish, call: nil) }
+    let(:uat_test_finish) { instance_double(Stages::UatTestFinish, call: nil) }
 
-    it "delegates to JiraLifecycleFinish" do
-      allow(Stages::JiraLifecycleFinish).to receive(:new).and_return(jira_lifecycle_finish)
+    it "delegates to UatTestFinish" do
+      allow(Stages::UatTestFinish).to receive(:new).and_return(uat_test_finish)
       handle
 
-      expect(Stages::JiraLifecycleFinish).to have_received(:new).with(workflow: workflow, stage: stage, project: project)
-      expect(jira_lifecycle_finish).to have_received(:call).with(output)
+      expect(Stages::UatTestFinish).to have_received(:new).with(workflow: workflow, stage: stage)
+      expect(uat_test_finish).to have_received(:call).with(output)
     end
 
     it "completes with a UAT_RESULT line" do
