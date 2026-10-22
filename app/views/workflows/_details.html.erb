@@ -55,7 +55,7 @@
   </div>
   <% if project.jira? && workflow.development? %>
     <div class="field">
-      <label>Log time (<%= logged_hours(workflow.logged_seconds) %> h logged in Jira<%= " — synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at %>)</label>
+      <label>Log time (<%= logged_hours(workflow.logged_seconds) %> h logged in Jira<%= " — #{jira_synced_phrase(workflow)}" if jira_synced_phrase(workflow) %>)</label>
       <%= form_with url: log_time_project_workflows_path(project), method: :post, class: "batch-bar" do %>
         <%= hidden_field_tag "workflow_ids[]", workflow.id %>
         <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>

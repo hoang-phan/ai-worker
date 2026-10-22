@@ -25,6 +25,36 @@ module WorkflowsHelper
     content_tag(:span, workflow.status, class: "badge #{workflow_status_badge_class(workflow)}")
   end
 
+  # "synced 5 minutes ago", or nil when hours have never been synced from Jira.
+  def jira_synced_phrase(workflow)
+    "synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at
+  end
+
+  # "review" / "runbook" badges shown beside a workflow's label.
+  def workflow_kind_badges(workflow)
+    safe_join([
+      (content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review?),
+      (content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook?)
+    ].compact)
+  end
+
+  # Logged-hours badge for development workflows; nil for other kinds.
+  def workflow_logged_time_badge(workflow, seconds)
+    return unless workflow.development?
+
+    if seconds.to_i.positive?
+      title = [ "Hours you have logged in Jira", jira_synced_phrase(workflow) ].compact.join(", ")
+      content_tag(:span, "#{logged_hours(seconds)} h", class: "badge badge-success", title: title)
+    else
+      content_tag(:span, "Not logged", class: "badge badge-neutral")
+    end
+  end
+
+  # Only rows with nothing logged yet are targets of the header select-all checkbox.
+  def time_log_checkbox_data(seconds)
+    seconds.to_i.positive? ? {} : { select_all_target: "row" }
+  end
+
   def stage_runnable?(workflow, stage, current_stage = workflow.current_stage)
     workflow.runbook? && workflow.implementing? && !workflow.processing? && current_stage == stage
   end

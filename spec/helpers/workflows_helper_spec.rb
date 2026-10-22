@@ -109,4 +109,67 @@ RSpec.describe WorkflowsHelper, type: :helper do
       expect(helper.runbook_copy_source_options(project)).to eq([])
     end
   end
+
+  describe "workflow row helpers" do
+    let(:project) { build_jira_project }
+    let(:workflow) { build_jira_workflow(project) }
+
+    describe "#jira_synced_phrase" do
+      it "is nil when never synced" do
+        expect(helper.jira_synced_phrase(workflow)).to be_nil
+      end
+
+      it "says how long ago hours were synced" do
+        workflow.jira_logged_synced_at = 5.minutes.ago
+        expect(helper.jira_synced_phrase(workflow)).to eq("synced 5 minutes ago")
+      end
+    end
+
+    describe "#workflow_kind_badges" do
+      it "is empty for a development workflow" do
+        expect(helper.workflow_kind_badges(workflow)).to be_blank
+      end
+
+      it "badges runbooks" do
+        runbook = project.workflows.create!(kind: :runbook)
+        expect(helper.workflow_kind_badges(runbook)).to eq('<span class="badge badge-neutral">runbook</span>')
+      end
+
+      it "badges PR reviews" do
+        allow(workflow).to receive(:pr_review?).and_return(true)
+        expect(helper.workflow_kind_badges(workflow)).to eq('<span class="badge badge-neutral">review</span>')
+      end
+    end
+
+    describe "#workflow_logged_time_badge" do
+      it "is nil for non-development workflows" do
+        runbook = project.workflows.create!(kind: :runbook)
+        expect(helper.workflow_logged_time_badge(runbook, 3600)).to be_nil
+      end
+
+      it "shows Not logged without seconds" do
+        expect(helper.workflow_logged_time_badge(workflow, nil)).to eq('<span class="badge badge-neutral">Not logged</span>')
+      end
+
+      it "shows hours with a plain title when never synced" do
+        expect(helper.workflow_logged_time_badge(workflow, 5400)).to eq('<span class="badge badge-success" title="Hours you have logged in Jira">1.5 h</span>')
+      end
+
+      it "adds the synced phrase to the title" do
+        workflow.jira_logged_synced_at = 2.hours.ago
+        expect(helper.workflow_logged_time_badge(workflow, 3600)).to include('title="Hours you have logged in Jira, synced about 2 hours ago"')
+      end
+    end
+
+    describe "#time_log_checkbox_data" do
+      it "marks unlogged rows as select-all targets" do
+        expect(helper.time_log_checkbox_data(0)).to eq(select_all_target: "row")
+        expect(helper.time_log_checkbox_data(nil)).to eq(select_all_target: "row")
+      end
+
+      it "leaves logged rows out" do
+        expect(helper.time_log_checkbox_data(3600)).to eq({})
+      end
+    end
+  end
 end

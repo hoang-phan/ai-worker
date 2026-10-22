@@ -46,46 +46,7 @@
     </thead>
     <tbody>
       <% @workflows.each do |workflow| %>
-        <tr>
-          <% if @project.jira? %>
-            <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: (@logged_seconds[workflow.jira_key].to_i.positive? ? {} : { select_all_target: "row" }), aria: { label: "Select #{workflow.label}" } %><% end %></td>
-          <% end %>
-          <td class="numeric">
-            <%= workflow.position %>
-            <%= button_to "↑", move_project_workflow_path(@project, workflow, direction: "up"), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == @workflows.first, form: { style: "display:inline" } %>
-            <%= button_to "↓", move_project_workflow_path(@project, workflow, direction: "down"), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == @workflows.last, form: { style: "display:inline" } %>
-          </td>
-          <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(@project, workflow)) %><%= content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review? %><%= content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook? %></td>
-          <% if @project.jira? %>
-            <td>
-              <% if workflow.development? && @logged_seconds[workflow.jira_key].to_i.positive? %>
-                <span class="badge badge-success" title="Hours you have logged in Jira<%= ", synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at %>"><%= logged_hours(@logged_seconds[workflow.jira_key]) %> h</span>
-              <% elsif workflow.development? %>
-                <span class="badge badge-neutral">Not logged</span>
-              <% end %>
-            </td>
-          <% end %>
-          <td>
-            <%= workflow_status_badge(workflow) %>
-          </td>
-          <% unless @project.personal? %>
-            <td>
-              <% if workflow.github_pr_url.present? %>
-                <%= link_to workflow.github_pr_url, target: "_blank", rel: "noopener", class: "icon-button", aria: { label: "Open pull request for #{workflow.label}" }, title: "Open pull request" do %>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42L17.59 5H14V3Zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7Z"/></svg>
-                <% end %>
-              <% end %>
-            </td>
-          <% end %>
-          <td class="actions-cell">
-            <% if workflow.pending? %>
-              <%= button_to "Start", start_project_workflow_path(@project, workflow), method: :post, class: "link-action", form: { style: "display:inline" } %>
-            <% end %>
-            <%= link_to edit_project_workflow_path(@project, workflow), class: "icon-button", aria: { label: "Edit #{workflow.label}" }, title: "Edit workflow" do %>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>
-            <% end %>
-          </td>
-        </tr>
+        <%= render "projects/workflow_row", project: @project, workflow: workflow, logged_seconds: @logged_seconds[workflow.jira_key], first: workflow == @workflows.first, last: workflow == @workflows.last %>
       <% end %>
     </tbody>
   </table>
