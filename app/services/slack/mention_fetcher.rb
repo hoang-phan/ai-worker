@@ -32,17 +32,12 @@ module Slack
       Write
     ].freeze
 
-    def initialize(project)
+    delegate :running?, :last_started_at, to: :run
+
+    def initialize(project, root: ROOT, run: nil)
       @project = project
-      @dir = ROOT.join(project.id.to_s)
-    end
-
-    def running?
-      run.running?
-    end
-
-    def last_started_at
-      run.last_started_at
+      @dir = Pathname(root).join(project.id.to_s)
+      @run = run || AiCli::DetachedRun.new(dir: dir, result_name: "mentions.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
     # No-op (returns false) if a fetch process is still alive.
@@ -59,11 +54,7 @@ module Slack
 
     private
 
-    attr_reader :project, :dir
-
-    def run
-      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "mentions.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
+    attr_reader :project, :dir, :run
 
     def prompt(since)
       Slack::MentionPrompt.new(

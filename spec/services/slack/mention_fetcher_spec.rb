@@ -1,10 +1,34 @@
 require "rails_helper"
 
 RSpec.describe Slack::MentionFetcher do
+
+  # Records the keyword args `start` receives and yields canned rows to `poll`.
+  let(:fake_run_class) do
+    Class.new do
+      attr_reader :started
+      attr_accessor :last_started_at, :rows
+
+      def start(**kwargs)
+        @started = kwargs
+      end
+
+      def running?
+        false
+      end
+
+      def poll
+        yield rows
+      end
+    end
+  end
+  let(:run) { fake_run_class.new }
+  let(:project) { double(id: 1, slack_mention: "@me", repo_full_name: "acme/app") }
+  let(:root) { Pathname("/tmp/slack-root") }
+  let(:fetcher) { described_class.new(project, root: root, run: run) }
+
   it "needs slack_url and at least one matching PR URL" do
     Dir.mktmpdir do |tmp|
-      stub_const("Slack::MentionFetcher::ROOT", Pathname(tmp))
-      fetcher = described_class.new(double(id: 1))
+      fetcher = described_class.new(project, root: Pathname(tmp))
       FileUtils.mkdir_p(Pathname(tmp).join("1"))
       Pathname(tmp).join("1", "pid").write("1")
       pr = "https://github.com/acme/app/pull/7"
@@ -18,5 +42,60 @@ RSpec.describe Slack::MentionFetcher do
 
       expect(fetcher.poll).to eq([ { "slack_url" => "https://x.slack.com/archives/C1/p1", "pr_urls" => [ pr ] } ])
     end
+  end
+
+  describe "#start" do
+    it "runs in the project dir with ALLOWED_TOOLS and a prompt naming mentions.json" do
+      fetcher.start
+
+      expect(run.started[:cwd]).to eq(root.join("1"))
+      expect(run.started[:allowed_tools]).to eq(described_class::ALLOWED_TOOLS)
+      expect(run.started[:prompt]).to include(root.join("1", "mentions.json").to_s)
+    end
+
+    it "looks back FIRST_LOOKBACK when it never ran" do
+      now = Time.utc(2026, 5, 1, 12)
+      expected = nil
+      allow(Slack::MentionPrompt).to receive(:new).and_wrap_original do |m, **kw|
+        expected = kw[:since]
+        m.call(**kw)
+      end
+
+      travel_to(now) { fetcher.start }
+
+      expect(expected).to eq(now - described_class::FIRST_LOOKBACK)
+    end
+
+    it "starts OVERLAP before the last start otherwise" do
+      last = Time.utc(2026, 5, 1, 8)
+      run.last_started_at = last
+      since = nil
+      allow(Slack::MentionPrompt).to receive(:new).and_wrap_original do |m, **kw|
+        since = kw[:since]
+        m.call(**kw)
+      end
+
+      fetcher.start
+
+      expect(since).to eq(last - described_class::OVERLAP)
+    end
+  end
+
+  describe "#poll" do
+    it "passes rows through MentionRows" do
+      pr = "https://github.com/acme/app/pull/7"
+      run.rows = [ { "slack_url" => "https://x.slack.com/archives/C1/p1", "pr_urls" => [ pr ] }, { "slack_url" => "" }, "junk" ]
+
+      expect(fetcher.poll).to eq([ { "slack_url" => "https://x.slack.com/archives/C1/p1", "pr_urls" => [ pr ] } ])
+    end
+  end
+
+  it "delegates running? and last_started_at to the run" do
+    time = Time.utc(2026, 1, 1)
+    run.last_started_at = time
+    allow(run).to receive(:running?).and_return(false)
+
+    expect(fetcher.running?).to be(false)
+    expect(fetcher.last_started_at).to eq(time)
   end
 end

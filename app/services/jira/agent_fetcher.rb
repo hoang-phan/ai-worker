@@ -13,18 +13,13 @@ module Jira
     ROOT = Rails.root.join("tmp", "jira_sync")
     STALE_AFTER = 15.minutes
 
-    def initialize(jira_sync)
+    delegate :running?, :last_started_at, to: :run
+
+    def initialize(jira_sync, root: ROOT, run: nil)
       @jira_sync = jira_sync
       @project = jira_sync.project
-      @dir = ROOT.join(jira_sync.id.to_s)
-    end
-
-    def running?
-      run.running?
-    end
-
-    def last_started_at
-      run.last_started_at
+      @dir = Pathname(root).join(jira_sync.id.to_s)
+      @run = run || AiCli::DetachedRun.new(dir: dir, result_name: "tickets.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
     # No-op (returns false) if a fetch process is still alive.
@@ -40,11 +35,7 @@ module Jira
 
     private
 
-    attr_reader :jira_sync, :project, :dir
-
-    def run
-      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "tickets.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
+    attr_reader :jira_sync, :project, :dir, :run
 
     def prompt
       Jira::FetchPrompt.new(

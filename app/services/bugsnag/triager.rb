@@ -44,22 +44,17 @@ module Bugsnag
       added.any? ? "#{added.size} new ticket(s): #{added.join(', ')}" : "nothing new"
     end
 
-    def initialize(bugsnag_sync)
+    delegate :running?, :last_started_at, to: :run
+
+    def initialize(bugsnag_sync, root: ROOT, run: nil)
       @sync = bugsnag_sync
       @project = bugsnag_sync.project
-      @dir = ROOT.join(bugsnag_sync.id.to_s)
+      @dir = Pathname(root).join(bugsnag_sync.id.to_s)
+      @run = run || AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
     end
 
     def blockers
       Projects::RunBlockers.new(project).messages(:jira_kind, :jira_site_url, :local_directory)
-    end
-
-    def running?
-      run.running?
-    end
-
-    def last_started_at
-      run.last_started_at
     end
 
     def start
@@ -81,11 +76,7 @@ module Bugsnag
 
     private
 
-    attr_reader :sync, :project, :dir
-
-    def run
-      @run ||= AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: STALE_AFTER, error_class: FetchError)
-    end
+    attr_reader :sync, :project, :dir, :run
 
     def prompt
       TriagePrompt.new(

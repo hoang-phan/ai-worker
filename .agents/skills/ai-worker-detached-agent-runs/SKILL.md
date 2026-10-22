@@ -27,7 +27,7 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 ## Checklist for a new one
 
 1. Domain first (`ai-worker-domain`): migration + model fields for the trigger/last-result columns (and a ledger if you need cross-run dedupe); add any new `StageRun` action to `StageRun::ACTIONS` before anything logs it.
-2. Fetcher: `module X; class FetchError`, `ROOT` under `tmp/<name>`, `STALE_AFTER` (15 min for lookups, 45 for runs that read code), `run` = `AiCli::DetachedRun.new(...)`, `start`/`poll`/`running?`/`last_started_at` delegating to it, `filter` for the row shape.
+2. Fetcher: `module X; class FetchError`, `ROOT` under `tmp/<name>`, `STALE_AFTER` (15 min for lookups, 45 for runs that read code), constructor `initialize(record, root: ROOT, run: nil)` building the default `AiCli::DetachedRun.new(...)` from `root`, `delegate :running?, :last_started_at, to: :run`, `start`/`poll` calling it, `filter` for the row shape.
 3. Least privilege: pass an `ALLOWED_TOOLS` array with only the read/search tools the run needs plus `Write` for the result file. Nothing that posts, reacts, transitions or edits unless the feature is exactly that (Bugsnag's `createJiraIssue`/`editJiraIssue` are the only writes). Access goes through the agent's MCP connectors — never add tokens to the app.
 4. Prompt: say what is read-only, spell out the absolute result path (`dir.join("<name>.json")`), give an example row, say `[]` for none and "do NOT create the file if the lookup fails", ask for one short reply line. User free text (assignee, mention, project) is passed as data for the agent to resolve; never interpolate it into a shell string, and never put secrets in it.
 5. Sync wrapper: `blockers` listing every missing precondition, `fetcher`, idempotent `import` (skip what already exists, one failed row must not stop the rest).
@@ -38,7 +38,7 @@ Scope: the services that start the agent CLI detached, read a JSON array back fr
 ## Spec recipe
 
 - `spec/services/ai_cli/detached_run_spec.rb` is the model: `Dir.mktmpdir` state dir, pass a fake `runner:` (`instance_double`; `start` returns `4242`, `poll` returns `:running` or `[ :completed, nil ]`), write a fake `pid` and result file by hand, then call `poll`.
-- Fetcher specs (`spec/services/{jira,slack,bugsnag}/*_spec.rb`): `stub_const("X::ROOT", Pathname(tmp))`, write a result file with good and junk rows, assert `poll` returns only the filtered rows; also cover missing file, bad JSON, non-array, and staleness (pid alive and `started_at` older than `STALE_AFTER` raises `FetchError` and clears the pid).
+- Fetcher specs (`spec/services/{jira,slack,bugsnag}/*_spec.rb`): pass `root: Pathname(tmp)` (no `stub_const`); for `start`/`poll` pass a fake `run:` that records `start`'s kwargs and assert cwd, allowed_tools and the result file named in the prompt, write a result file with good and junk rows, assert `poll` returns only the filtered rows; also cover missing file, bad JSON, non-array, and staleness (pid alive and `started_at` older than `STALE_AFTER` raises `FetchError` and clears the pid).
 - Sync specs: each `blockers` reason, `import` creating records, idempotent re-import, a row that fails validation landing in `failed`.
 - Job specs (`spec/jobs/*_sync_job_spec.rb`): stub the fetcher; assert import-before-start, no start while running or blocked, FetchError recorded as `"failed: ..."`.
 - Run with `RAILS_ENV=test bundle exec rspec`.
