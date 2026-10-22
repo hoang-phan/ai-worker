@@ -65,7 +65,7 @@ Concretely, when onboarding a project:
    `docs/PROMPT_TEMPLATES.md`) — that's what keeps an unattended run from
    reading the whole target codebase.
 
-This repo's own `.agents/skills/` (symlinked from `.claude/skills`) (`ai-worker-domain`,
-`ai-worker-orchestration`, `ai-worker-ui`, `ai-worker-review`)
+This repo's own `.agents/skills/` (symlinked from `.claude/skills`) (e.g. `ai-worker-domain`,
+`ai-worker-orchestration`, `ai-worker-ui`, `ai-worker-review`, `ai-worker-brainstorm`)
 follow the identical pattern, scoped to `ai-worker`'s own subsystems —
 use them as a second worked example.
