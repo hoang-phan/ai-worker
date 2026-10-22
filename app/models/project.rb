@@ -74,6 +74,8 @@ class Project < ApplicationRecord
     Projects::SlackUserMap.new(slack_user_map).slack_id_for(github_login)
   end
 
+  def skill_catalog = Projects::SkillCatalog.new(local_directory)
+
   def uat_test_ready?
     uat_test_enabled? && uat_url.present?
   end

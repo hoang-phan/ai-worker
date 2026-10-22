@@ -1,4 +1,5 @@
-<% skill_names = project_skill_names(project) %>
+<% skill_catalog = project.skill_catalog %>
+<% skill_names = skill_catalog.names %>
 <% if skill_names.any? %>
   <div class="placeholder-list">
     <% skill_names.each do |skill| %>
@@ -7,5 +8,5 @@
   </div>
   <p class="field-hint">Click a skill to insert it at the cursor.</p>
 <% else %>
-  <p class="field-hint">No skills found in <code><%= File.join(File.expand_path(project.local_directory.to_s), ".agents", "skills") %></code>.</p>
+  <p class="field-hint">No skills found in <code><%= skill_catalog.dir %></code>.</p>
 <% end %>
