@@ -12,7 +12,13 @@ module AiCli
     # Playwright MCP, pinned: headless, throwaway profile, `devtools` capability for the video/trace tools.
     PLAYWRIGHT_MCP_PACKAGE = "@playwright/mcp@0.0.83".freeze
 
-    KINDS = %i[uat local].freeze
+    # Per kind: the label used in error messages, the directory under the root and the env-variable prefix.
+    KIND_SETTINGS = {
+      uat: { label: "UAT", dir_name: "uat_runs", env_prefix: "UAT" }.freeze,
+      local: { label: "local", dir_name: "local_test_runs", env_prefix: "LOCAL" }.freeze
+    }.freeze
+
+    KINDS = KIND_SETTINGS.keys.freeze
 
     def initialize(project, workflow, kind:, root: Rails.root.join("tmp"))
       raise ArgumentError, "unknown browser test kind #{kind.inspect}" unless KINDS.include?(kind)
@@ -39,25 +45,22 @@ module AiCli
       @output_dir ||= @root.join(dir_name, @workflow.id.to_s, Time.current.to_i.to_s)
     end
 
+    # The Playwright MCP config for this run. Pure: touches neither the filesystem nor credentials.
+    def mcp_config
+      { mcpServers: { playwright: { command: "npx",
+        args: [ "-y", PLAYWRIGHT_MCP_PACKAGE, "--headless", "--isolated", "--caps", "devtools", "--output-dir", output_dir.to_s ] } } }
+    end
+
     # Writes the Playwright MCP config into the output dir and returns its path.
     def mcp_config_path
       FileUtils.mkdir_p(output_dir)
       path = output_dir.join("mcp.json")
-      config = { mcpServers: { playwright: { command: "npx",
-        args: [ "-y", PLAYWRIGHT_MCP_PACKAGE, "--headless", "--isolated", "--caps", "devtools", "--output-dir", output_dir.to_s ] } } }
-      File.write(path, JSON.pretty_generate(config))
+      File.write(path, JSON.pretty_generate(mcp_config))
       path.to_s
     end
 
     def env
-      case @kind
-      when :uat
-        { "UAT_USERNAME" => username, "UAT_PASSWORD" => password, "UAT_OUTPUT_DIR" => output_dir.to_s,
-          "JIRA_BASE_URL" => @project.jira_base_url }
-      when :local
-        { "LOCAL_USERNAME" => username, "LOCAL_PASSWORD" => password, "LOCAL_URL" => url,
-          "LOCAL_OUTPUT_DIR" => output_dir.to_s }
-      end
+      credential_env.merge(extra_env)
     end
 
     def disallowed_tools
@@ -66,12 +69,30 @@ module AiCli
 
     private
 
+    def settings
+      KIND_SETTINGS.fetch(@kind)
+    end
+
     def label
-      @kind == :uat ? "UAT" : "local"
+      settings[:label]
     end
 
     def dir_name
-      @kind == :uat ? "uat_runs" : "local_test_runs"
+      settings[:dir_name]
+    end
+
+    def credential_env
+      prefix = settings[:env_prefix]
+      { "#{prefix}_USERNAME" => username, "#{prefix}_PASSWORD" => password }
+    end
+
+    def extra_env
+      case @kind
+      when :uat
+        { "UAT_OUTPUT_DIR" => output_dir.to_s, "JIRA_BASE_URL" => @project.jira_base_url }
+      when :local
+        { "LOCAL_URL" => url, "LOCAL_OUTPUT_DIR" => output_dir.to_s }
+      end
     end
 
     def url

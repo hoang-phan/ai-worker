@@ -68,6 +68,22 @@ RSpec.describe AiCli::BrowserTestRun do
     end
   end
 
+  describe "#mcp_config" do
+    it "returns the Playwright server config without touching the filesystem" do
+      run = run_for(:uat)
+      expect(run.mcp_config).to eq(
+        mcpServers: { playwright: { command: "npx",
+          args: [ "-y", "@playwright/mcp@0.0.83", "--headless", "--isolated", "--caps", "devtools",
+                  "--output-dir", run.output_dir.to_s ] } }
+      )
+      expect(run.output_dir).not_to exist
+    end
+
+    it "does not include credentials" do
+      expect(run_for(:local).mcp_config.to_s).not_to include("lp")
+    end
+  end
+
   describe "#mcp_config_path" do
     it "writes the Playwright MCP config into the output dir" do
       run = run_for(:uat)
