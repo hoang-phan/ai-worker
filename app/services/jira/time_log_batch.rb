@@ -26,17 +26,33 @@ module Jira
 
     def call(workflows, hours)
       logged = []
-      begin
-        workflows.map { |workflow| workflow.project.jira_base_url.presence }.compact.uniq.each { |base_url| @hours_sync.recent(base_url) }
-      rescue WorklogError => e
-        return Result.new(logged: logged, failure: e.message)
+      with_failure_result(logged) do
+        refresh_recent(workflows)
+        log_each(workflows, hours, logged)
       end
-      workflows.each do |workflow|
-        logged << @logger.log(workflow, hours)
-      rescue WorklogError => e
-        return Result.new(logged: logged, failure: e.message)
-      end
+    end
+
+    private
+
+    # Runs the block and returns a successful Result, or a failed one carrying the worklogs logged so far.
+    def with_failure_result(logged)
+      yield
       Result.new(logged: logged, failure: nil)
+    rescue WorklogError => e
+      Result.new(logged: logged, failure: e.message)
+    end
+
+    def site_urls(workflows)
+      workflows.map { |workflow| workflow.project.jira_base_url.presence }.compact.uniq
+    end
+
+    def refresh_recent(workflows)
+      site_urls(workflows).each { |base_url| @hours_sync.recent(base_url) }
+    end
+
+    # Appends to +logged+ as it goes so a mid-batch failure still reports earlier worklogs.
+    def log_each(workflows, hours, logged)
+      workflows.each { |workflow| logged << @logger.log(workflow, hours) }
     end
   end
 end

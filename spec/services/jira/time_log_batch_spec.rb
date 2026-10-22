@@ -37,12 +37,29 @@ RSpec.describe Jira::TimeLogBatch do
     expect(hours_sync).to have_received(:recent).with("https://acme.atlassian.net").once
   end
 
+  it "refreshes each distinct site once, in order, skipping blank base URLs" do
+    sites = [ "https://a.atlassian.net", "", nil, "https://b.atlassian.net", "https://a.atlassian.net" ]
+    mixed = sites.each_with_index.map do |url, index|
+      instance_double(Workflow, label: "w#{index}", project: instance_double(Project, jira_base_url: url))
+    end
+    mixed.each { |workflow| allow(logger).to receive(:log).with(workflow, 1.5).and_return(instance_double(TimeLog)) }
+
+    refreshed = []
+    allow(hours_sync).to receive(:recent) { |url| refreshed << url }
+
+    result = batch.call(mixed, 1.5)
+
+    expect(result).to be_success
+    expect(refreshed).to eq([ "https://a.atlassian.net", "https://b.atlassian.net" ])
+  end
+
   it "logs nothing when the refresh from Jira fails" do
     allow(hours_sync).to receive(:recent).and_raise(Jira::WorklogError, "Jira is down")
 
     result = batch.call(workflows, 1.5)
 
     expect(result.failure).to eq("Jira is down")
+    expect(result.logged).to eq([])
     expect(logger).not_to have_received(:log)
   end
 
