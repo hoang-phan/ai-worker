@@ -45,26 +45,28 @@ module Jira
       result = Result.new(synced: 0, failed: [])
       workflow_by_key = workflows.select(&:jira_key).index_by(&:jira_key)
       keys.uniq.each do |key|
-        replace_logs(key, client(base_url).my_worklogs(key), workflow_by_key[key])
+        mirror.replace(key, client(base_url).my_worklogs(key), workflow: workflow_by_key[key])
         result.synced += 1
       rescue WorklogError => e
         raise if e.message.include?("are not set")
 
         result.failed << "#{key}: #{e.message}"
       end
-      workflows.each { |workflow| workflow.update_columns(jira_logged_synced_at: Time.current) if workflow.jira_key && result.failed.none? { |f| f.start_with?("#{workflow.jira_key}:") } }
+      stamp_synced(workflows, result.failed)
       result
     end
 
-    def replace_logs(key, worklogs, workflow)
-      TimeLog.transaction do
-        TimeLog.where(ticket_key: key).where.not(jira_worklog_id: worklogs.map { |w| w[:id] }).delete_all
-        worklogs.each do |worklog|
-          log = TimeLog.find_or_initialize_by(ticket_key: key, jira_worklog_id: worklog[:id])
-          log.workflow ||= workflow
-          log.update!(started_at: worklog[:started], seconds: worklog[:seconds])
-        end
+    def stamp_synced(workflows, failed)
+      workflows.each do |workflow|
+        next unless workflow.jira_key
+        next if failed.any? { |message| message.start_with?("#{workflow.jira_key}:") }
+
+        workflow.update_columns(jira_logged_synced_at: Time.current)
       end
+    end
+
+    def mirror
+      @mirror ||= TimeLogMirror.new
     end
 
     def client(base_url)
