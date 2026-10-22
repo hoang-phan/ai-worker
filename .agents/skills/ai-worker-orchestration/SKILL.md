@@ -29,7 +29,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 
 **Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, Brainstorm, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill. `app/services/slack/web_client.rb` is a minimal bot-token `chat.postMessage` client with no caller in `app/` (only its spec), so don't route new Slack work through it.
 
-**Jira worklogs** (REST, not the agent: `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN` env, unlike the MCP-backed fetchers) — `app/services/jira/worklog_client.rb` (`Jira::WorklogClient`: `add_worklog`, `my_worklogs`; maps failures to `Jira::WorklogError`), `jira/time_logger.rb` (`TimeLogger#log(workflow, hours)`: validates via `jira/worklog_target.rb`, picks a start with `jira/time_slot_planner.rb`, creates the Jira worklog, then records a `TimeLog`, so a failed Jira call leaves no phantom time), `jira/time_log_batch.rb` (`TimeLogBatch#call(workflows, hours)`: syncs this month via `jira/hours_sync.rb` first, stops at the first `WorklogError`, keeps and reports earlier worklogs), `jira/ticket_ref.rb` (pure ticket URL/key helpers). Callers are `WorkflowsController` and views; no job logs time. Specs stub the client factory — never call Jira.
+**Jira worklogs** (REST with `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN`: `Jira::WorklogClient`, `TimeLogger`, `TimeLogBatch`, `HoursSync`, `JiraHoursSyncJob`, `TimeLog`) — the file map, data flow and conventions live in the `ai-worker-jira-worklogs` skill.
 - `app/jobs/application_job.rb` — Rails default base class.
 
 ## Conventions
