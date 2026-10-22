@@ -24,7 +24,7 @@
     <div class="field">
       <%= f.label :body %>
       <div class="placeholder-list">
-        <% PromptTemplate::PLACEHOLDERS.each do |placeholder| %>
+        <% Prompts::Renderer::BUILT_IN_TOKENS.each do |placeholder| %>
           <span class="placeholder-chip"><%= placeholder %></span>
         <% end %>
       </div>

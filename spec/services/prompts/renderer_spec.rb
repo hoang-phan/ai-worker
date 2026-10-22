@@ -26,6 +26,17 @@ RSpec.describe Prompts::Renderer do
     FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
+  describe "BUILT_IN_TOKENS" do
+    it "lists exactly the built-in tokens placeholders_for substitutes" do
+      expect(described_class::BUILT_IN_TOKENS).to be_frozen
+      expect(described_class::BUILT_IN_TOKENS).to match_array(described_class.placeholders_for(workflow).keys)
+    end
+
+    it "includes every project placeholder token" do
+      expect(described_class::BUILT_IN_TOKENS).to include(*Prompts::ProjectPlaceholders::TOKENS)
+    end
+  end
+
   describe ".render" do
     it "substitutes every built-in token" do
       allow(workflow).to receive(:image_paths).and_return(%w[/a.png /b.png])

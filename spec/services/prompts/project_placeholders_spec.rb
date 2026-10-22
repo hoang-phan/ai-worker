@@ -9,6 +9,11 @@ RSpec.describe Prompts::ProjectPlaceholders do
     )
   end
 
+  it "lists every token it substitutes in TOKENS" do
+    expect(described_class::TOKENS).to be_frozen
+    expect(described_class::TOKENS).to match_array(described_class.for(project).keys)
+  end
+
   it "maps each project field to its token" do
     expect(described_class.for(project)).to eq(
       "{TESTER}" => "tess",

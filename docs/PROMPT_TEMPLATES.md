@@ -19,6 +19,10 @@ substituted by `Prompts::Renderer` at execution time:
 | `{UAT_INSTRUCTIONS}` | `project.uat_instructions` | Free-text, per-project instructions for the UAT test (login quirks, test data, a guide to read); blank if none (`uat_test` stages). |
 | `{SLACK}` | `workflow.slack_url` | permalink of the Slack message that mentioned the PR (`pr_review` stages only) |
 | `{IMAGES}` | `workflow.image_paths.join(", ")` | absolute paths of the reference images uploaded on the workflow (plain files under `tmp/workflow_images/<workflow id>/`, deleted with the workflow); blank if none |
+| `{TASK}` | `workflow.task_description` | The free-text task description; blank if none. |
+| `{STARTED_ON}` | `workflow.created_at` | Date the workflow was created, dd/mm/yyyy, Brisbane time. |
+| `{STAGE_NAME}` | `workflow.current_stage.display_name` | Name of the current stage. |
+| `{PREV_OUTPUT}` | previous runbook stage's output | Last 3000 characters of what the previous stage's agent printed (runbook workflows). |
 
 Exactly one `PromptTemplate` per `stage_type` should have `active: true` —
 that's the default a `Stage` uses when it doesn't have a `prompt_template_id`

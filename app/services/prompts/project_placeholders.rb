@@ -1,6 +1,11 @@
 module Prompts
   # The project-derived prompt tokens, token => value. Takes only a project.
   class ProjectPlaceholders
+    TOKENS = %w[
+      {TESTER} {UAT_URL} {TEST_INSTRUCTIONS} {UAT_INSTRUCTIONS} {LOCAL_URL} {LOCAL_INSTRUCTIONS}
+      {CI_INSTRUCTIONS} {CI_VERIFY_INSTRUCTIONS} {PR_INSTRUCTIONS} {CI_COMMAND}
+    ].freeze
+
     def self.for(project)
       new(project).to_h
     end

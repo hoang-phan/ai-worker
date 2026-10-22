@@ -7,6 +7,14 @@ module Prompts
     # Time zone the {STARTED_ON} date is shown in.
     STARTED_ON_TIME_ZONE = "Australia/Brisbane"
 
+    # Every token the renderer substitutes without custom variables, for UI cheatsheets.
+    # Guarded by renderer_spec against `built_ins` drifting from this list.
+    BUILT_IN_TOKENS = (
+      %w[{JIRA} {PR} {REVIEWER} {SKILLS} {PR_SKILLS} {IMAGES} {TASK} {SLACK}] +
+      ProjectPlaceholders::TOKENS +
+      %w[{CI_OUTPUT} {CI_STATUS} {STARTED_ON} {STAGE_NAME} {PREV_OUTPUT}]
+    ).freeze
+
     def self.render(template_body, workflow)
       new(template_body, workflow).render
     end
