@@ -56,16 +56,7 @@ module Github
     # pending change request.
     def review_decision(pr_url, reviewers)
       out = run!([ "gh", "pr", "view", pr_url, "--json", "latestReviews" ])
-      wanted = reviewers.map(&:downcase)
-      states = JSON.parse(out)["latestReviews"].to_a.filter_map do |review|
-        login = review.dig("author", "login").to_s.downcase
-        review["state"] if wanted.empty? || wanted.include?(login)
-      end
-
-      return "APPROVED" if states.include?("APPROVED")
-      return "CHANGES_REQUESTED" if states.include?("CHANGES_REQUESTED")
-
-      nil
+      ReviewDecision.call(JSON.parse(out)["latestReviews"].to_a, reviewers)
     end
 
     # True if any GitHub check on the PR has finished in a failing state.
@@ -85,11 +76,7 @@ module Github
       repo = repo.presence || project.repo_full_name
       out = run!([ "gh", "run", "list", "--workflow", workflow, "--limit", "20", "--json", "status,conclusion,createdAt,url" ],
                  repo: repo)
-      run = JSON.parse(out).select { |r| Time.zone.parse(r["createdAt"].to_s) >= since }.max_by { |r| r["createdAt"] }
-      return { state: :none } unless run
-      return { state: :pending, url: run["url"] } unless run["status"].to_s.casecmp?("completed")
-
-      { state: run["conclusion"].to_s.casecmp?("success") ? :success : :failed, url: run["url"], conclusion: run["conclusion"] }
+      WorkflowRunState.call(JSON.parse(out), since: since)
     end
 
     private
