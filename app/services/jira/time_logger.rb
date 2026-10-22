@@ -11,16 +11,13 @@ module Jira
 
     # Raises Jira::WorklogError when the workflow can't be logged or Jira rejects it.
     def log(workflow, hours)
-      project = workflow.project
-      raise WorklogError, "#{workflow.label}: only Jira development workflows can log time" unless project.jira? && workflow.development?
-      raise WorklogError, "#{workflow.label}: Jira site URL is not set on the project" if project.jira_base_url.blank?
+      target = WorklogTarget.new(workflow)
+      raise WorklogError, "#{workflow.label}: #{target.problem}" if target.problem
 
-      key = TicketRef.key_for(workflow.jira_ticket)
-      raise WorklogError, "#{workflow.label}: no Jira ticket key found" if key.blank?
-
+      key = target.key
       seconds = (hours.to_f * 3600).round
       started_at = @planner.next_start(seconds)
-      worklog_id = @client_factory.call(project.jira_base_url).add_worklog(key, started_at: started_at, seconds: seconds)
+      worklog_id = @client_factory.call(target.base_url).add_worklog(key, started_at: started_at, seconds: seconds)
       workflow.time_logs.create!(ticket_key: key, started_at: started_at, seconds: seconds, jira_worklog_id: worklog_id)
     end
   end

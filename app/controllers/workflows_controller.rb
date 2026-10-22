@@ -132,10 +132,7 @@ class WorkflowsController < ApplicationController
 
   # Current hours in Jira for the ticket (read live). A Jira failure only hides the figure; the local ledger total still shows.
   def load_jira_logged_seconds
-    return unless @project.jira? && @workflow.development? && @project.jira_base_url.present?
-
-    key = Jira::TicketRef.key_for(@workflow.jira_ticket)
-    @jira_logged_seconds = Jira::WorklogClient.new(@project.jira_base_url).logged_seconds(key) if key.present?
+    @jira_logged_seconds = Jira::LoggedTime.new.seconds_for(@workflow)
   rescue Jira::WorklogError => e
     @jira_logged_error = e.message
   end
