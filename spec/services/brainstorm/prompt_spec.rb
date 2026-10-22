@@ -34,6 +34,13 @@ RSpec.describe Brainstorm::Prompt do
     expect(text).not_to include("older ones")
   end
 
+  it "describes the optional skills key" do
+    text = build
+    expect(text).to include('"skills"')
+    expect(text).to include(".agents/skills/*/SKILL.md")
+    expect(text).to include("omit the key when none fit")
+  end
+
   it "interpolates max_workflows and the summary length" do
     text = build
     expect(text).to include("propose up to 4 new")

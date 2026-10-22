@@ -26,6 +26,34 @@ RSpec.describe Brainstorm::ProposalNormalizer do
       end
     end
 
+    describe "skills" do
+      def skills_for(value)
+        described_class.call([ { "summary" => "A", "task" => "B", "skills" => value } ]).first["skills"]
+      end
+
+      it "joins an array" do
+        expect(skills_for([ "ruby", "ai-worker-testing" ])).to eq("ruby, ai-worker-testing")
+      end
+
+      it "splits a comma string" do
+        expect(skills_for("ruby, ai-worker-testing")).to eq("ruby, ai-worker-testing")
+      end
+
+      it "drops invalid names and duplicates" do
+        expect(skills_for([ "ok", "bad name", "$(rm)", "", nil, 3, "ok", "ns:skill.v1/x" ])).to eq("ok, ns:skill.v1/x")
+      end
+
+      it "caps at six" do
+        expect(skills_for((1..9).map { |i| "s#{i}" })).to eq("s1, s2, s3, s4, s5, s6")
+      end
+
+      it "omits the key when absent or empty" do
+        [ nil, [], "", " , ", [ "bad name" ] ].each do |value|
+          expect(described_class.call([ { "summary" => "A", "task" => "B", "skills" => value } ]).first).not_to have_key("skills")
+        end
+      end
+    end
+
     it "truncates summary and task to their limits" do
       row = { "summary" => "s" * (summary_limit + 50), "task" => "t" * (task_limit + 50) }
       result = described_class.call([ row ]).first

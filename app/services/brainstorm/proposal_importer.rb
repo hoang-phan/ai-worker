@@ -55,10 +55,18 @@ module Brainstorm
 
     def build(proposal)
       project.workflows.new(
-        summary: proposal["summary"], task_description: proposal["task"], skills: project.default_skills,
+        summary: proposal["summary"], task_description: proposal["task"], skills: skills_for(proposal),
         status: project.brainstorm_auto_start? ? :implementing : :pending,
         position: project.next_workflow_position
       )
+    end
+
+    # Default skills first, then the proposal's own, deduped; the defaults alone when the proposal names none.
+    def skills_for(proposal)
+      extra = proposal["skills"].to_s
+      return project.default_skills if extra.blank?
+
+      [ project.default_skills, extra ].flat_map { |list| list.to_s.split(",").map(&:strip) }.reject(&:blank?).uniq.join(", ")
     end
 
     def normalize(text)
