@@ -10,7 +10,9 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
 
   def actions(stage) = stage.stage_runs.reorder(:id).pluck(:action)
 
-  def finish(output) = described_class.new(workflow: workflow, stage: stage, project: project).call(output)
+  let(:handoff) { double("Stages::ReviewHandoff", notify_reviewers!: nil) }
+
+  def finish(output) = described_class.new(workflow: workflow, stage: stage, project: project, handoff: handoff).call(output)
 
   it "fails the stage visibly without a verdict line" do
     expect { finish("no verdict") }.to raise_error(AiCli::CommandError, /CI_VERDICT/)
@@ -44,17 +46,27 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
     expect(actions(stage)).to eq %w[ci_verify_failed ci_rounds_exhausted]
   end
 
-  it "opens the PR stage on PASSED" do
+  it "goes on to review and pings the reviewers on PASSED (the PR is already open)" do
     finish("CI_VERDICT: PASSED")
 
-    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET.merge(status: "opening_pr"))
+    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET.merge(status: "reviewing"))
     expect(actions(stage)).to eq %w[ci_verify_passed]
+    expect(handoff).to have_received(:notify_reviewers!)
+  end
+
+  it "goes on to local testing without pinging reviewers on PASSED when the project is local-test ready" do
+    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+
+    finish("CI_VERDICT: PASSED")
+
+    expect(workflow.reload.status).to eq "local_testing"
+    expect(handoff).not_to have_received(:notify_reviewers!)
   end
 
   it "uses the last verdict line when the log echoes the prompt's example first" do
     finish("CI_VERDICT: PASSED|FAILED example\nCI_VERDICT: FAILED\nmore\nCI_VERDICT: PASSED")
 
-    expect(workflow.reload.status).to eq "opening_pr"
+    expect(workflow.reload.status).to eq "reviewing"
     expect(actions(stage)).to eq %w[ci_verify_passed]
   end
 

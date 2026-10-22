@@ -9,10 +9,10 @@ RSpec.describe Stages::SimpleImplementationFinish, type: :service do
 
   def actions(stage) = stage.stage_runs.reorder(:id).pluck(:action)
 
-  it "moves on to the check without looking for a PR" do
+  it "moves on to the PR stage without looking for a PR" do
     described_class.new(workflow: workflow, stage: stage).call("out")
 
-    expect(workflow.reload).to have_attributes(status: "ci_checking", github_pr_url: nil)
+    expect(workflow.reload).to have_attributes(status: "opening_pr", github_pr_url: nil)
     expect(actions(stage)).to eq %w[ran_implementation]
   end
 

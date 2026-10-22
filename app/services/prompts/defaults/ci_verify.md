@@ -19,7 +19,9 @@ separate step reruns it after you. Only run the failing tests or linters on thei
    first on PATH, or install it with the project's version manager; never globally, and never by editing the
    repo's code. A load or timing failure (e.g. a timeout) is rerun on its own and, if it passes, needs no change.
 4. Check each fix by running only the failing files/examples/linters on their own (one worker, no other load).
-   Commit every fix (nothing may stay uncommitted: the next check runs on the committed HEAD).
+   Commit every fix (nothing may stay uncommitted: the next check runs on the committed HEAD), then push it
+   (`git push origin HEAD`, never force-push). The check posts its result to GitHub for the pushed commit, so it can
+   only report after the new commit is on the remote. If the push is rejected, say so and finish with FAILED.
 5. Finish with a short summary of what failed and what you changed, then exactly one last line:
    `CI_VERDICT: PASSED` only if the check passed, or `CI_VERDICT: FAILED` otherwise (also when you fixed failures:
    the check then runs again to prove the fixes). Never claim a command you did not run.
