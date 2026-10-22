@@ -96,20 +96,11 @@ class Workflow < ApplicationRecord
     github_reviewer.to_s.split(/[,\s]+/).reject(&:blank?).uniq
   end
 
-  # One short line for compact listings (the brainstorm agent's backlog), however the workflow was made.
-  def brief
-    Workflows::Label.new(self).brief
-  end
+  # brief / heading text lives in Workflows::Label.
+  delegate :brief, :heading, to: :workflow_label
 
   # "org/repo#123" for PR-review workflows, otherwise the Jira ticket / task.
-  def label
-    Workflows::Label.new(self).value
-  end
-
-  # The page heading on the workflow show screen.
-  def heading
-    Workflows::Label.new(self).heading
-  end
+  def label = workflow_label.value
 
   def variables
     super || {}
@@ -138,30 +129,17 @@ class Workflow < ApplicationRecord
   def finish_ai_run!(**attrs) = update!(AI_RUN_RESET.merge(attrs))
 
   # The manual lifecycle transitions live in Workflows::Transitions.
-  def start! = Workflows::Transitions.new(self).start!
-
-  def resume! = Workflows::Transitions.new(self).resume!
-
-  def resume_status = Workflows::Transitions.new(self).resume_status
-
-  def can_rollback_to_review? = Workflows::Transitions.new(self).can_rollback_to_review?
-
-  def rollback_to_review! = Workflows::Transitions.new(self).rollback_to_review!
-
-  def can_run_stage? = Workflows::Transitions.new(self).can_run_stage?
-
-  def request_stage_run! = Workflows::Transitions.new(self).request_stage_run!
-
-  def can_advance? = Workflows::Transitions.new(self).can_advance?
+  delegate :start!, :resume!, :resume_status, :can_rollback_to_review?, :rollback_to_review!, :can_run_stage?,
+           :request_stage_run!, :can_advance?, to: :transitions
 
   # The runbook state machine lives in Workflows::RunbookNavigator.
-  def start_runbook! = Workflows::RunbookNavigator.new(self).start!
+  def start_runbook! = runbook_navigator.start!
 
-  def advance! = Workflows::RunbookNavigator.new(self).advance!
+  def advance! = runbook_navigator.advance!
 
-  def next_runbook_stage = Workflows::RunbookNavigator.new(self).next_stage
+  def next_runbook_stage = runbook_navigator.next_stage
 
-  def previous_runbook_stage = Workflows::RunbookNavigator.new(self).previous_stage
+  def previous_runbook_stage = runbook_navigator.previous_stage
 
   def current_stage = Workflows::CurrentStage.new(self).call
 
@@ -177,6 +155,13 @@ class Workflow < ApplicationRecord
   end
 
   private
+
+  # Built per call, not memoized: Transitions reads live state.
+  def transitions = Workflows::Transitions.new(self)
+
+  def workflow_label = Workflows::Label.new(self)
+
+  def runbook_navigator = Workflows::RunbookNavigator.new(self)
 
   def comma_list(value)
     value.to_s.split(",").map(&:strip).reject(&:blank?)
