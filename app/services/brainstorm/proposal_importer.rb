@@ -18,23 +18,11 @@ module Brainstorm
       result = Result.new(created: [], skipped: [])
       return result if project.workflows.queued.exists?
 
-      known = in_flight.map { |workflow| normalize(workflow.brief) }.to_set
+      known = known_keys
       proposals.each do |proposal|
-        break if result.created.size >= project.brainstorm_max_workflows
+        break if full?(result)
 
-        key = normalize(proposal["summary"])
-        if known.include?(key)
-          result.skipped << proposal["summary"]
-          next
-        end
-
-        workflow = build(proposal)
-        if workflow.save
-          known << key
-          result.created << workflow.summary
-        else
-          result.skipped << "#{proposal['summary']} (#{workflow.errors.full_messages.to_sentence})"
-        end
+        import_proposal(proposal, known, result)
       end
       result
     end
@@ -42,6 +30,28 @@ module Brainstorm
     private
 
     attr_reader :project, :in_flight
+
+    def known_keys
+      in_flight.map { |workflow| normalize(workflow.brief) }.to_set
+    end
+
+    # Only created workflows count towards the maximum; skipped proposals don't.
+    def full?(result)
+      result.created.size >= project.brainstorm_max_workflows
+    end
+
+    def import_proposal(proposal, known, result)
+      key = normalize(proposal["summary"])
+      return result.skipped << proposal["summary"] if known.include?(key)
+
+      workflow = build(proposal)
+      if workflow.save
+        known << key
+        result.created << workflow.summary
+      else
+        result.skipped << "#{proposal['summary']} (#{workflow.errors.full_messages.to_sentence})"
+      end
+    end
 
     def build(proposal)
       project.workflows.new(
