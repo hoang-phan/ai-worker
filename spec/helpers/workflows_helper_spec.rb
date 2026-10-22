@@ -84,4 +84,29 @@ RSpec.describe WorkflowsHelper, type: :helper do
       expect(helper.current_stage_badge(workflow, Object.new, stage)).to be_nil
     end
   end
+
+  describe "#runbook_copy_source_options" do
+    let(:project) { build_jira_project }
+
+    it "is empty without runbooks" do
+      build_jira_workflow(project)
+      expect(helper.runbook_copy_source_options(project)).to eq([])
+    end
+
+    it "lists only runbooks, newest first, as [label, id]" do
+      older = project.workflows.create!(kind: :runbook)
+      build_jira_workflow(project)
+      newer = project.workflows.create!(kind: :runbook, status: :implementing)
+
+      expect(helper.runbook_copy_source_options(project)).to eq([
+        [ "##{newer.id} #{newer.label} (implementing)", newer.id ],
+        [ "##{older.id} #{older.label} (pending)", older.id ]
+      ])
+    end
+
+    it "ignores other projects' runbooks" do
+      build_jira_project.workflows.create!(kind: :runbook)
+      expect(helper.runbook_copy_source_options(project)).to eq([])
+    end
+  end
 end

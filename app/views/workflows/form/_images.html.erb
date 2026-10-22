@@ -1,0 +1,12 @@
+<div class="field">
+  <%= f.label :images, "Reference images (available to the agent via {IMAGES})" %>
+  <%= f.file_field :images, multiple: true, accept: "image/*" %>
+  <% if workflow.persisted? %>
+    <% workflow.image_paths.each do |path| %>
+      <p>
+        <%= File.basename(path) %>
+        <%= link_to "Remove", image_project_workflow_path(project, workflow, name: File.basename(path)), class: "link-danger", data: { turbo_method: :delete } %>
+      </p>
+    <% end %>
+  <% end %>
+</div>

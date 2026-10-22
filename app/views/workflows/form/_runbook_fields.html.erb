@@ -1,0 +1,16 @@
+<%= hidden_field_tag "workflow[kind]", "runbook" %>
+<div class="field">
+  <%= f.label :variables_text, "Variables (one NAME=value per line)" %>
+  <%= f.text_area :variables_text, rows: 5, placeholder: "VERSION=\nENV=prod\nRELEASE_DATE=" %>
+  <p class="field-hint">Each name becomes a <code>{NAME}</code> placeholder in stage prompts and messages. Stages can also set them while running.</p>
+</div>
+<% unless workflow.persisted? %>
+  <% sources = runbook_copy_source_options(project) %>
+  <% if sources.any? %>
+    <div class="field">
+      <%= f.label :copy_stages_from_id, "Start with the stages of" %>
+      <%= f.select :copy_stages_from_id, sources, include_blank: "Nothing (add stages afterwards)" %>
+      <p class="field-hint">Copies the stage list so each deployment keeps its own; edit it freely afterwards.</p>
+    </div>
+  <% end %>
+<% end %>

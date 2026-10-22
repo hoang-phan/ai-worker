@@ -14,79 +14,15 @@
     <% if workflow.pr_review? %>
       <p class="field-hint">Review workflows are created from Slack mentions: <%= workflow.label %>.</p>
     <% elsif workflow.runbook? %>
-      <%= hidden_field_tag "workflow[kind]", "runbook" %>
-      <div class="field">
-        <%= f.label :variables_text, "Variables (one NAME=value per line)" %>
-        <%= f.text_area :variables_text, rows: 5, placeholder: "VERSION=\nENV=prod\nRELEASE_DATE=" %>
-        <p class="field-hint">Each name becomes a <code>{NAME}</code> placeholder in stage prompts and messages. Stages can also set them while running.</p>
-      </div>
-      <% unless workflow.persisted? %>
-        <% sources = project.workflows.runbook.order(id: :desc) %>
-        <% if sources.any? %>
-          <div class="field">
-            <%= f.label :copy_stages_from_id, "Start with the stages of" %>
-            <%= f.select :copy_stages_from_id, sources.map { |source| [ "##{source.id} #{source.label} (#{source.status})", source.id ] }, include_blank: "Nothing (add stages afterwards)" %>
-            <p class="field-hint">Copies the stage list so each deployment keeps its own; edit it freely afterwards.</p>
-          </div>
-        <% end %>
-      <% end %>
+      <%= render "workflows/form/runbook_fields", f: f, workflow: workflow, project: project %>
     <% elsif project.personal? %>
-      <div class="field">
-        <%= f.label :task_description, "What needs to be done" %>
-        <%= render "shared/skill_hints", project: project %>
-        <%= f.text_area :task_description, rows: 6, data: { skill_insert_target: "input" } %>
-      </div>
+      <%= render "workflows/form/task_fields", f: f, workflow: workflow, project: project %>
     <% else %>
-      <div class="field">
-        <%= f.label :jira_ticket %>
-        <%= f.text_field :jira_ticket %>
-      </div>
-
-      <div class="field">
-        <%= f.label :branch_name %>
-        <%= f.text_field :branch_name %>
-      </div>
-
-      <div class="field">
-        <%= f.label :github_reviewer, "GitHub reviewers (usernames, comma-separated; any one approval completes review)" %>
-        <%= f.text_field :github_reviewer %>
-      </div>
-
-      <div class="field">
-        <%= f.label :skills, "Skills to use (comma-separated)" %>
-        <%= render "shared/skill_hints", project: project %>
-        <%= f.text_area :skills, rows: 3, data: { skill_insert_target: "input" } %>
-      </div>
-
-      <% if project.ci_loop_ready? %>
-        <div class="field" data-controller="skill-insert">
-          <%= f.label :pr_skills, "PR skills (comma-separated)" %>
-          <%= render "shared/skill_hints", project: project %>
-          <%= f.text_area :pr_skills, rows: 2, data: { skill_insert_target: "input" } %>
-          <p class="field-hint">Only the PR stage uses these (<code>{PR_SKILLS}</code>).</p>
-        </div>
-      <% end %>
-
-      <div class="field">
-        <%= f.label :slack_review_thread_ts, "Slack review thread (optional)" %>
-        <%= f.text_field :slack_review_thread_ts, placeholder: "https://workspace.slack.com/archives/C0B5XFY2F0T/p1760000000123456" %>
-        <p class="field-hint">Paste a Slack message link to use an existing thread: review requests and re-reviews are posted as replies in it. Left empty, the first review message starts the thread and is saved here. Replies go to the project's review channel, so the thread must be in it.</p>
-      </div>
+      <%= render "workflows/form/jira_fields", f: f, workflow: workflow, project: project %>
     <% end %>
 
     <% unless workflow.pr_review? || workflow.runbook? %>
-      <div class="field">
-        <%= f.label :images, "Reference images (available to the agent via {IMAGES})" %>
-        <%= f.file_field :images, multiple: true, accept: "image/*" %>
-        <% if workflow.persisted? %>
-          <% workflow.image_paths.each do |path| %>
-            <p>
-              <%= File.basename(path) %>
-              <%= link_to "Remove", image_project_workflow_path(project, workflow, name: File.basename(path)), class: "link-danger", data: { turbo_method: :delete } %>
-            </p>
-          <% end %>
-        <% end %>
-      </div>
+      <%= render "workflows/form/images", f: f, workflow: workflow, project: project %>
     <% end %>
 
     <div class="field">

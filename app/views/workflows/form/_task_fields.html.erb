@@ -1,0 +1,5 @@
+<div class="field">
+  <%= f.label :task_description, "What needs to be done" %>
+  <%= render "shared/skill_hints", project: project %>
+  <%= f.text_area :task_description, rows: 6, data: { skill_insert_target: "input" } %>
+</div>

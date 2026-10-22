@@ -39,4 +39,9 @@ module WorkflowsHelper
 
     workflow.waiting? ? "waiting for Next" : "current"
   end
+
+  # [[label, id], ...] for the new-runbook "Start with the stages of" select, newest runbook first.
+  def runbook_copy_source_options(project)
+    project.workflows.runbook.order(id: :desc).map { |source| [ "##{source.id} #{source.label} (#{source.status})", source.id ] }
+  end
 end

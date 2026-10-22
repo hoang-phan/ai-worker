@@ -28,6 +28,36 @@ RSpec.describe "Workflows", type: :request do
     end
   end
 
+  describe "GET new / edit forms" do
+    it "renders the Jira fields for a development workflow" do
+      get edit_project_workflow_path(project, workflow)
+      expect(response.body).to include("workflow[jira_ticket]", "workflow[branch_name]", "workflow[github_reviewer]",
+                                       "workflow[skills]", "workflow[slack_review_thread_ts]", "workflow[images][]",
+                                       "workflow[position]")
+      expect(response.body).not_to include("workflow[task_description]")
+    end
+
+    it "renders the task field for a personal project" do
+      personal = build_personal_project
+      get new_project_workflow_path(personal)
+      expect(response.body).to include("workflow[task_description]", "workflow[images][]")
+      expect(response.body).not_to include("workflow[jira_ticket]")
+    end
+
+    it "renders the runbook fields with a copy select when a runbook exists" do
+      source = project.workflows.create!(kind: :runbook)
+      get new_project_workflow_path(project, kind: "runbook")
+      expect(response.body).to include("workflow[variables_text]", "workflow[copy_stages_from_id]", "##{source.id} ")
+      expect(response.body).not_to include("workflow[images][]")
+    end
+
+    it "omits the copy select without runbooks" do
+      get new_project_workflow_path(project, kind: "runbook")
+      expect(response.body).to include("workflow[variables_text]")
+      expect(response.body).not_to include("workflow[copy_stages_from_id]")
+    end
+  end
+
   describe "GET show" do
     it "renders the stages table and stage run history" do
       workflow.stages.first.stage_runs.create!(action: "started", output: "Started the implementation")
