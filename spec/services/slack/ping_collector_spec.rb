@@ -75,6 +75,27 @@ RSpec.describe Slack::PingCollector do
     expect(workflow_dir).to exist
   end
 
+  it "removes the workflow dir when it is empty and nothing runs" do
+    FileUtils.mkdir_p(workflow_dir)
+    expect(collector.collect(workflow)).to be(false)
+    expect(workflow_dir).not_to exist
+  end
+
+  it "keeps the workflow dir when a finished ping without a permalink remains" do
+    ping(log: "nothing")
+    allow(Rails.logger).to receive(:warn)
+    collector.collect(workflow)
+    expect(workflow_dir).to exist
+  end
+
+  it "keeps a fresh running dir even when it already has a permalink" do
+    path = ping(log: link)
+    allow(poller).to receive(:call).with(42).and_return(:running)
+    expect(workflow).not_to receive(:update!)
+    expect(collector.collect(workflow)).to be(true)
+    expect(path).to exist
+  end
+
   it "returns false on Errno::ENOENT" do
     ping(log: link)
     allow(workflow).to receive(:update!).and_raise(Errno::ENOENT)
