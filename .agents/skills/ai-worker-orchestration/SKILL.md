@@ -21,7 +21,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 
 **Git / GitHub** — see the `ai-worker-git-github` skill (Git::Shell, Git::BranchService, Github::Client → Reader/Writer/PrLocator/Runner).
 
-**Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, Brainstorm, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill. `app/services/slack/web_client.rb` is a minimal bot-token `chat.postMessage` client with no caller in `app/` (only its spec), so don't route new Slack work through it.
+**Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, Brainstorm, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill.
 
 **Jira worklogs** (REST with `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN`: `Jira::WorklogClient`, `TimeLogger`, `TimeLogBatch`, `HoursSync`, `JiraHoursSyncJob`, `TimeLog`) — the file map, data flow and conventions live in the `ai-worker-jira-worklogs` skill.
 - `app/jobs/application_job.rb` — Rails default base class.
