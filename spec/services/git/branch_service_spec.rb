@@ -56,6 +56,16 @@ RSpec.describe Git::BranchService do
       expect(described_class.merge_in_progress?(project)).to be(false)
     end
 
+    it "creates the branch from origin when it does not exist locally" do
+      git(clone, "push", "origin", "feature/x")
+      git(clone, "checkout", "main")
+      git(clone, "branch", "-D", "feature/x")
+
+      expect(described_class.update_with_main!(project, "feature/x")).to eq(:merged)
+      expect(current_branch).to eq("feature/x")
+      expect(File.read(File.join(clone, "README.md"))).to eq("branch change\n")
+    end
+
     it "returns :conflict and leaves the merge in progress" do
       commit_file(other, "README.md", "main change\n")
       git(other, "push", "origin", "main")

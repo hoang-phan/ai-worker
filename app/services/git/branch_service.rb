@@ -15,34 +15,6 @@ module Git
       new(project, branch_name).update_with_main!
     end
 
-    def initialize(project, branch_name)
-      @project = project
-      @branch_name = branch_name
-      @shell = Shell.new(project.local_directory)
-    end
-
-    def create!
-      checkout_and_pull_main
-
-      if branch_exists_locally?
-        shell.checkout!([ "git", "checkout", branch_name ])
-      else
-        shell.checkout!([ "git", "checkout", "-b", branch_name ])
-      end
-    end
-
-    def update_with_main!
-      checkout_and_pull_main
-
-      if branch_exists_locally?
-        shell.checkout!([ "git", "checkout", branch_name ])
-      else
-        shell.checkout!([ "git", "checkout", "-b", branch_name, "origin/#{branch_name}" ])
-      end
-
-      merge_main!
-    end
-
     # Review flow: put the clone on a PR's head branch, up to date with origin,
     # so the agent can read the code in context. Never discards local commits
     # (fast-forward only) — a diverged branch fails the stage. A dirty tree that
@@ -51,21 +23,43 @@ module Git
       new(project, branch_name).checkout_remote!
     end
 
-    def checkout_remote!
-      shell.run!([ "git", "fetch", "origin", branch_name ])
-      if branch_exists_locally?
-        shell.checkout!([ "git", "checkout", branch_name ])
-        shell.run!([ "git", "pull", "--ff-only", "origin", branch_name ])
-      else
-        shell.checkout!([ "git", "checkout", "-b", branch_name, "origin/#{branch_name}" ])
-      end
-    end
-
     # Task flow: publish whatever the agent committed on the current branch.
     # Returns :pushed, or :up_to_date when there is nothing ahead of origin.
     # A rejected push (origin moved) is retried once after a rebase; never forces.
     def self.push_current!(project)
       new(project, nil).push_current!
+    end
+
+    def self.merge_in_progress?(project)
+      new(project, nil).merge_in_progress?
+    end
+
+    # Aborts an unfinished merge (agent failed to resolve) so the clone is clean.
+    def self.abort_merge!(project)
+      new(project, nil).abort_merge!
+    end
+
+    def initialize(project, branch_name)
+      @project = project
+      @branch_name = branch_name
+      @shell = Shell.new(project.local_directory)
+    end
+
+    def create!
+      checkout_and_pull_main
+      checkout_branch!
+    end
+
+    def update_with_main!
+      checkout_and_pull_main
+      checkout_branch!(start_point: "origin/#{branch_name}")
+      merge_main!
+    end
+
+    def checkout_remote!
+      shell.run!([ "git", "fetch", "origin", branch_name ])
+      existed = checkout_branch!(start_point: "origin/#{branch_name}")
+      shell.run!([ "git", "pull", "--ff-only", "origin", branch_name ]) if existed
     end
 
     def push_current!
@@ -79,15 +73,6 @@ module Git
       :pushed
     end
 
-    def self.merge_in_progress?(project)
-      new(project, nil).merge_in_progress?
-    end
-
-    # Aborts an unfinished merge (agent failed to resolve) so the clone is clean.
-    def self.abort_merge!(project)
-      new(project, nil).abort_merge!
-    end
-
     def merge_in_progress?
       shell.success?(%w[git rev-parse -q --verify MERGE_HEAD])
     end
@@ -97,6 +82,20 @@ module Git
     end
 
     private
+
+    attr_reader :project, :branch_name, :shell
+
+    # Checks out the branch, creating it (from start_point when given) if it
+    # isn't local yet. Returns true when the branch already existed locally.
+    def checkout_branch!(start_point: nil)
+      if branch_exists_locally?
+        shell.checkout!([ "git", "checkout", branch_name ])
+        true
+      else
+        shell.checkout!([ "git", "checkout", "-b", branch_name, *start_point ])
+        false
+      end
+    end
 
     # Commits not on origin/<branch> (all of them when the branch isn't on origin yet).
     def ahead_count(branch)
@@ -125,8 +124,6 @@ module Git
     def conflicted_files
       shell.run!(%w[git diff --name-only --diff-filter=U]).split("\n")
     end
-
-    attr_reader :project, :branch_name, :shell
 
     def branch_exists_locally?
       shell.success?([ "git", "rev-parse", "--verify", "--quiet", branch_name ])
