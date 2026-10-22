@@ -2,14 +2,11 @@ require "rails_helper"
 
 RSpec.describe Stages::FailureHandler, type: :service do
   let(:local_directory) { Dir.mktmpdir("failure-handler-spec") }
-  let(:project) do
-    Project.create!(name: "Failure handler #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "FAIL-1", branch_name: "failure-handler", github_reviewer: "octocat", status: :implementing,
-                              processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                              ai_started_at: Time.current, ai_log_offset: 42, auto_run: true)
+    build_jira_workflow(project, jira_ticket: "FAIL-1", branch_name: "failure-handler", status: :implementing,
+                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
+                                 ai_started_at: Time.current, ai_log_offset: 42, auto_run: true)
   end
   let(:stage) { workflow.stages.create!(stage_type: :implementation) }
   let(:error) { AiCli::CommandError.new("boom") }

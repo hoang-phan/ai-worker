@@ -1,13 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Stages::ConflictResolutionFinish, type: :service do
-  let(:project) do
-    Project.create!(name: "Conflict finish #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: Dir.tmpdir)
-  end
+  let(:project) { build_jira_project }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "CRF-1", branch_name: "conflict-finish", github_reviewer: "octocat", status: :implementing,
-                              processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_log_offset: 5)
+    build_jira_workflow(project, jira_ticket: "CRF-1", branch_name: "conflict-finish", status: :implementing,
+                                 processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_log_offset: 5)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
   let(:git) { double("Git::BranchService", merge_in_progress?: false, abort_merge!: nil) }

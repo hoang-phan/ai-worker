@@ -2,10 +2,7 @@ require "rails_helper"
 
 RSpec.describe Stages::RunbookStepFinish, type: :service do
   let(:local_directory) { Dir.mktmpdir("runbook-step-finish-spec") }
-  let(:project) do
-    Project.create!(name: "Runbook step finish #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     project.workflows.create!(kind: :runbook, status: :implementing, processing: true, ai_pid: 123,
                               ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)

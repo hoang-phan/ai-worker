@@ -2,13 +2,10 @@ require "rails_helper"
 
 RSpec.describe Stages::ReviewHandoff, type: :service do
   let(:local_directory) { Dir.mktmpdir("review-handoff-spec") }
-  let(:project) do
-    Project.create!(name: "Review handoff #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "REV-1", branch_name: "review-handoff",
-                              github_reviewer: reviewers, github_pr_url: pr_url, status: :reviewing)
+    build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "review-handoff",
+                                 github_reviewer: reviewers, github_pr_url: pr_url, status: :reviewing)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_check) }
   let(:pr_url) { "https://github.com/acme/widgets/pull/12" }

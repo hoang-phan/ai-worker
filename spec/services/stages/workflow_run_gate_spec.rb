@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::WorkflowRunGate, type: :service do
-  let(:project) { Project.create!(name: "Gate #{SecureRandom.hex(4)}", kind: :jira, repo_full_name: "acme/widgets", local_directory: "/tmp/gate-spec") }
+  let(:project) { build_jira_project(local_directory: "/tmp/gate-spec") }
   let(:workflow) { project.workflows.create!(kind: :runbook, status: :implementing, variables: { "REPO" => "acme/other" }) }
   let!(:previous) { workflow.stages.create!(stage_type: :runbook_step, name: "One", position: 1) }
   let(:wait_for) { "deploy.yml" }

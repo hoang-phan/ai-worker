@@ -1,13 +1,9 @@
 require "rails_helper"
 
 RSpec.describe Stages::PrCheckRun, type: :service do
-  let(:project) do
-    Project.create!(name: "Pr check run #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: Dir.tmpdir)
-  end
+  let(:project) { build_jira_project }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "PRC-1", branch_name: "pr-check-run", github_reviewer: "octocat",
-                              github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
+    build_jira_workflow(project, jira_ticket: "PRC-1", branch_name: "pr-check-run", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
   let(:github) { double("Github::Client", merged?: false, review_decision: "CHANGES_REQUESTED", checks_failing?: false) }

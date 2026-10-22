@@ -2,14 +2,11 @@ require "rails_helper"
 
 RSpec.describe Stages::PrReviewFinish, type: :service do
   let(:local_directory) { Dir.mktmpdir("pr-review-finish-spec") }
-  let(:project) do
-    Project.create!(name: "PR review finish #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "REV-1", branch_name: "pr-review-finish", github_reviewer: "octocat", status: :implementing,
-                              processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                              ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "pr-review-finish", status: :implementing,
+                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
+                                 ai_started_at: Time.current, ai_log_offset: 42)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_review, name: "pr_review") }
 

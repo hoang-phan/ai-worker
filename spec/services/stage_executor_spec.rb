@@ -2,13 +2,10 @@ require "rails_helper"
 
 RSpec.describe StageExecutor, type: :service do
   let(:local_directory) { Dir.mktmpdir("stage-executor-spec") }
-  let(:project) do
-    Project.create!(name: "Executor #{SecureRandom.hex(4)}", kind: :jira, repo_full_name: "acme/widgets",
-                    local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "EXEC-1", branch_name: "executor", github_reviewer: "octocat", status: :implementing, processing: true,
-                              ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
+    build_jira_workflow(project, jira_ticket: "EXEC-1", branch_name: "executor", status: :implementing, processing: true,
+                                 ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
   end
   let(:stage) { workflow.stages.create!(stage_type: :task) }
   let(:handler) { instance_double(Stages::CompletionHandler, call: nil) }
@@ -80,7 +77,7 @@ RSpec.describe StageExecutor, type: :service do
   end
 
   describe "starting a stage" do
-    let(:workflow) { project.workflows.create!(jira_ticket: "EXEC-2", branch_name: "executor", github_reviewer: "octocat", status: :implementing) }
+    let(:workflow) { build_jira_workflow(project, jira_ticket: "EXEC-2", branch_name: "executor", status: :implementing) }
     let(:github) { double("Github::Client", merged?: false, review_decision: "CHANGES_REQUESTED", pr_info: { "state" => "OPEN", "head_ref" => "feature" }, checkout_pr!: nil) }
     let(:browser_run) { instance_double(AiCli::BrowserTestRun, mcp_config_path: "/tmp/mcp.json", env: {}, disallowed_tools: []) }
 

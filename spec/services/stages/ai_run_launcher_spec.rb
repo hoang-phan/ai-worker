@@ -2,11 +2,9 @@ require "rails_helper"
 
 RSpec.describe Stages::AiRunLauncher, type: :service do
   let(:local_directory) { Dir.mktmpdir("ai-run-launcher-spec") }
-  let(:project) do
-    Project.create!(name: "Launcher #{SecureRandom.hex(4)}", kind: :jira, repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "LAUNCH-1", branch_name: "launcher", github_reviewer: "octocat", status: :implementing)
+    build_jira_workflow(project, jira_ticket: "LAUNCH-1", branch_name: "launcher", status: :implementing)
   end
   let(:stage) { workflow.stages.create!(stage_type: :implementation, name: "implementation") }
   let(:runner) do

@@ -3,13 +3,10 @@ require "rails_helper"
 RSpec.describe Stages::JiraLifecycleFinish, type: :service do
   let(:local_directory) { Dir.mktmpdir("jira-lifecycle-finish-spec") }
   let(:project_attributes) { {} }
-  let(:project) do
-    Project.create!({ name: "Jira lifecycle finish #{SecureRandom.hex(4)}", kind: :jira,
-                      repo_full_name: "acme/widgets", local_directory: local_directory }.merge(project_attributes))
-  end
+  let(:project) { build_jira_project(**{ local_directory: local_directory }.merge(project_attributes)) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "JLF-1", branch_name: "jira-lifecycle", github_reviewer: "octocat", status: :implementing, processing: true, ai_pid: 123,
-                              ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, processing: true, ai_pid: 123,
+                                 ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
   end
   let(:stage_type) { :jira_update }
   let(:stage) { workflow.stages.create!(stage_type: stage_type, name: stage_type.to_s) }

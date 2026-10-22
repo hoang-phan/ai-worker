@@ -2,14 +2,11 @@ require "rails_helper"
 
 RSpec.describe Stages::TaskFinish, type: :service do
   let(:local_directory) { Dir.mktmpdir("task-finish-spec") }
-  let(:project) do
-    Project.create!(name: "Task finish #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "TASK-1", branch_name: "task-finish", github_reviewer: "octocat", status: :implementing,
-                              processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                              ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing,
+                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
+                                 ai_started_at: Time.current, ai_log_offset: 42)
   end
   let(:stage) { workflow.stages.create!(stage_type: :task, name: "task") }
   let(:git) { class_double(Git::BranchService, push_current!: :pushed) }

@@ -2,13 +2,9 @@ require "rails_helper"
 
 RSpec.describe Stages::StartHandler, type: :service do
   let(:local_directory) { Dir.mktmpdir("start-handler-spec") }
-  let(:project) do
-    Project.create!(name: "Start handler #{SecureRandom.hex(4)}", kind: :jira,
-                    repo_full_name: "acme/widgets", local_directory: local_directory)
-  end
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "START-1", branch_name: "start-handler", github_reviewer: "octocat",
-                              github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
+    build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
   end
   let(:stage_type) { :implementation }
   let(:stage) { workflow.stages.create!(stage_type: stage_type, name: stage_type.to_s) }
