@@ -20,4 +20,4 @@
 - Enum-backed selects use `Model.enum_name.keys`, not a hardcoded string list.
 
 ## Docs
-- If a placeholder (`PromptTemplate::PLACEHOLDERS` / `Prompts::Renderer`) or a `StageRun::ACTIONS` value changed, `docs/PROMPT_TEMPLATES.md` is updated to match.
+- If a placeholder (see `ai-worker-prompts`) or a `StageRun::ACTIONS` value changed, `docs/PROMPT_TEMPLATES.md` is updated to match.

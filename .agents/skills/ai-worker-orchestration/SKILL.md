@@ -23,7 +23,7 @@ Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.
 - `app/services/ai_cli/cursor_mcp_file.rb` — writes the run's MCP servers to `<cwd>/.cursor/mcp.json` for the cursor agent and restores the original file when the run ends.
 - `app/services/ai_cli/detached_run.rb` — state machine (pid/start/log/result file in a `tmp/` dir) shared by the detached-agent sync services (see the next entry).
 - `app/services/ai_cli/output.rb` — parses the agent's final output for the marker lines stages rely on (`VAR:`, `JIRA_RESULT`, `UAT_RESULT`, `LOCAL_TEST_RESULT`, retest/feedback blocks, `POSTED`, fixed summary). `ai_cli/command_error.rb`, `git/command_error.rb`, `github/command_error.rb` — one error class per service.
-- `app/services/prompts/stage_prompt.rb` — builds the final prompt text for a stage (stage prompt, else assigned/default template, else a built-in default; plus conflict prompt, Slack-message wrapper and review-fix additions). `app/services/prompts/renderer.rb` — the only place `{TOKEN}` placeholders and workflow variables are substituted.
+- `app/services/prompts/**` — prompt building and `{TOKEN}` substitution (`StagePrompt`, `Renderer`, `Defaults`): see the `ai-worker-prompts` skill.
 
 **Git / GitHub** — see the `ai-worker-git-github` skill (Git::Shell, Git::BranchService, Github::Client → Reader/Writer/PrLocator/Runner).
 
