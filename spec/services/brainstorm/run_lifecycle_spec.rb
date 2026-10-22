@@ -3,7 +3,8 @@ require "rails_helper"
 RSpec.describe Brainstorm::RunLifecycle do
   let(:root) { Pathname.new(Dir.mktmpdir("brainstorm-run-lifecycle-spec")) }
   let(:dir) { root.join("run") }
-  let(:lifecycle) { described_class.new(dir: dir, stale_after: 45.minutes) }
+  let(:runner) { instance_double(AiCli::Runner.singleton_class) }
+  let(:lifecycle) { described_class.new(dir: dir, stale_after: 45.minutes, runner: runner) }
   let(:launch_inputs) { { cwd: root.to_s, prompt: "brainstorm", allowed_tools: [ "Read" ], model: "opus", effort: "high" } }
   let(:aborted_event) { '{"type":"result","subtype":"error_during_execution","terminal_reason":"aborted_streaming","is_error":true}' }
 
@@ -11,7 +12,7 @@ RSpec.describe Brainstorm::RunLifecycle do
     FileUtils.mkdir_p(dir)
     dir.join("pid").write("123")
     dir.join("started_at").write(Time.current.to_f)
-    allow(AiCli::Runner).to receive(:poll).with(123).and_return([ :completed, nil ])
+    allow(runner).to receive(:poll).with(123).and_return([ :completed, nil ])
   end
 
   after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
@@ -19,10 +20,10 @@ RSpec.describe Brainstorm::RunLifecycle do
   describe "#poll when the agent wrote no result.json" do
     it "retries once when the stream was aborted" do
       dir.join("agent.log").write("#{aborted_event}\n")
-      allow(AiCli::Runner).to receive(:start).and_return(456)
+      allow(runner).to receive(:start).and_return(456)
 
       expect(lifecycle.poll(**launch_inputs)).to be_nil
-      expect(AiCli::Runner).to have_received(:start).with(
+      expect(runner).to have_received(:start).with(
         root.to_s, "brainstorm", log_path: dir.join("agent.log").to_s,
         allowed_tools: [ "Read" ], model: "opus", effort: "high"
       ).once
@@ -40,10 +41,10 @@ RSpec.describe Brainstorm::RunLifecycle do
 
     it "fails without retrying when there is no result event" do
       dir.join("agent.log").write("some plain output\n")
-      allow(AiCli::Runner).to receive(:start)
+      allow(runner).to receive(:start)
 
       expect { lifecycle.poll(**launch_inputs) }.to raise_error(Brainstorm::FetchError, /no result event in the log/)
-      expect(AiCli::Runner).not_to have_received(:start)
+      expect(runner).not_to have_received(:start)
     end
   end
 
@@ -62,7 +63,7 @@ RSpec.describe Brainstorm::RunLifecycle do
       dir.join("agent.log").write("old run")
       dir.join("result.json").write("[]")
       FileUtils.touch(dir.join("retried"))
-      allow(AiCli::Runner).to receive(:start).and_return(789)
+      allow(runner).to receive(:start).and_return(789)
 
       expect(lifecycle.start(**launch_inputs)).to be(true)
       expect(dir.join("agent.log").read).to eq("")

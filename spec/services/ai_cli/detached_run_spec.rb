@@ -4,12 +4,14 @@ RSpec.describe AiCli::DetachedRun do
   let(:error_class) { Class.new(StandardError) }
   let(:tmp) { Dir.mktmpdir("detached_run") }
   let(:dir) { Pathname(tmp).join("run") }
-  let(:run) { described_class.new(dir: dir, result_name: "result.json", stale_after: 15.minutes, error_class: error_class) }
+  let(:runner) { instance_double(AiCli::Runner.singleton_class, start: 4242, poll: :running) }
+  let(:run) do
+    described_class.new(dir: dir, result_name: "result.json", stale_after: 15.minutes, error_class: error_class, runner: runner)
+  end
 
   after { FileUtils.remove_entry(tmp) }
 
   def start_run
-    allow(AiCli::Runner).to receive(:start).and_return(4242)
     run.start(cwd: tmp, prompt: "go")
   end
 
@@ -18,7 +20,7 @@ RSpec.describe AiCli::DetachedRun do
       FileUtils.mkdir_p(dir)
       dir.join("result.json").write("[]")
 
-      expect(AiCli::Runner).to receive(:start)
+      expect(runner).to receive(:start)
         .with(tmp, "go", log_path: dir.join("agent.log").to_s, allowed_tools: [ "Write" ]).and_return(4242)
 
       expect(run.start(cwd: tmp, prompt: "go", allowed_tools: [ "Write" ])).to be(true)
@@ -28,7 +30,7 @@ RSpec.describe AiCli::DetachedRun do
     end
 
     it "passes model and effort through to the runner" do
-      expect(AiCli::Runner).to receive(:start)
+      expect(runner).to receive(:start)
         .with(tmp, "go", log_path: dir.join("agent.log").to_s, allowed_tools: nil, model: "opus", effort: "high").and_return(1)
 
       expect(run.start(cwd: tmp, prompt: "go", model: "opus", effort: "high")).to be(true)
@@ -40,8 +42,8 @@ RSpec.describe AiCli::DetachedRun do
 
     it "does nothing while a process is running" do
       start_run
-      allow(AiCli::Runner).to receive(:poll).with(4242).and_return(:running)
-      expect(AiCli::Runner).not_to receive(:start)
+      allow(runner).to receive(:poll).with(4242).and_return(:running)
+      expect(runner).not_to receive(:start)
 
       expect(run.start(cwd: tmp, prompt: "go")).to be(false)
     end
@@ -55,7 +57,7 @@ RSpec.describe AiCli::DetachedRun do
 
     it "returns nil while running and not stale" do
       start_run
-      allow(AiCli::Runner).to receive(:poll).with(4242).and_return(:running)
+      allow(runner).to receive(:poll).with(4242).and_return(:running)
 
       expect(run).to be_running
       expect(run.poll).to be_nil
@@ -65,7 +67,7 @@ RSpec.describe AiCli::DetachedRun do
     it "raises and clears the pid when stale" do
       start_run
       dir.join("started_at").write(1.hour.ago.to_f)
-      allow(AiCli::Runner).to receive(:poll).with(4242).and_return(:running)
+      allow(runner).to receive(:poll).with(4242).and_return(:running)
 
       expect { run.poll }.to raise_error(error_class, /did not finish/)
       expect(dir.join("pid")).not_to exist
@@ -74,7 +76,7 @@ RSpec.describe AiCli::DetachedRun do
     context "when the process finished" do
       before do
         start_run
-        allow(AiCli::Runner).to receive(:poll).with(4242).and_return([ :completed, nil ])
+        allow(runner).to receive(:poll).with(4242).and_return([ :completed, nil ])
       end
 
       it "parses an array, clears the pid and yields rows to the block" do

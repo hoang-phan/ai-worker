@@ -5,11 +5,12 @@ module Brainstorm
   # project-specific launch inputs; this class keeps the detached-run state and
   # retries one aborted API stream before reporting its terminal reason.
   class RunLifecycle
-    def initialize(dir:, stale_after:, error_class: FetchError, run: nil)
+    def initialize(dir:, stale_after:, error_class: FetchError, run: nil, runner: AiCli::Runner)
       @dir = Pathname(dir)
       @stale_after = stale_after
       @error_class = error_class
       @run = run
+      @runner = runner
     end
 
     def running?
@@ -46,11 +47,12 @@ module Brainstorm
 
     private
 
-    attr_reader :dir, :stale_after, :error_class
+    attr_reader :dir, :stale_after, :error_class, :runner
 
     def run
       @run ||= AiCli::DetachedRun.new(
-        dir: dir, result_name: "result.json", stale_after: stale_after, error_class: error_class
+        dir: dir, result_name: "result.json", stale_after: stale_after, error_class: error_class,
+        runner: runner
       )
     end
 

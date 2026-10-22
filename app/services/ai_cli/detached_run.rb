@@ -6,20 +6,24 @@ module AiCli
   # read a JSON array back from a result file (Jira::AgentFetcher,
   # Slack::MentionFetcher, Bugsnag::Triager).
   #
+  # `runner` is anything responding to start(cwd, prompt, log_path:,
+  # allowed_tools:, **opts) and poll(pid); specs pass a fake.
+  #
   # State lives in `dir`: pid, started_at, agent.log and <result_name>.
   class DetachedRun
-    def initialize(dir:, result_name:, stale_after:, error_class:)
+    def initialize(dir:, result_name:, stale_after:, error_class:, runner: AiCli::Runner)
       @dir = Pathname(dir)
       @result_name = result_name
       @stale_after = stale_after
       @error_class = error_class
+      @runner = runner
     end
 
     # True only while the agent process is actually alive. A leftover pid
     # file from a finished or killed process doesn't count; `poll` still
     # picks it up to read the result.
     def running?
-      pid_file.exist? && AiCli::Runner.poll(pid_file.read.to_i) == :running
+      pid_file.exist? && runner.poll(pid_file.read.to_i) == :running
     end
 
     def last_started_at
@@ -34,7 +38,7 @@ module AiCli
       FileUtils.mkdir_p(dir)
       FileUtils.rm_f(result_file)
       options = { model: model, effort: effort }.compact
-      pid = AiCli::Runner.start(cwd.to_s, prompt, log_path: log_file.to_s, allowed_tools: allowed_tools, **options)
+      pid = runner.start(cwd.to_s, prompt, log_path: log_file.to_s, allowed_tools: allowed_tools, **options)
       pid_file.write(pid)
       started_file.write(Time.current.to_f)
       true
@@ -45,7 +49,7 @@ module AiCli
     def poll
       return unless pid_file.exist?
 
-      if AiCli::Runner.poll(pid_file.read.to_i) == :running
+      if runner.poll(pid_file.read.to_i) == :running
         return unless stale?
 
         clear
@@ -72,7 +76,7 @@ module AiCli
 
     private
 
-    attr_reader :dir, :result_name, :stale_after, :error_class
+    attr_reader :dir, :result_name, :stale_after, :error_class, :runner
 
     def stale?
       last_started_at.nil? || last_started_at < stale_after.ago
