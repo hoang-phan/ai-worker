@@ -16,7 +16,7 @@ Rails.application.routes.draw do
       post :run, on: :member
     end
     resources :workflows, except: :index do
-      post :log_time, on: :collection
+      post :log_time, on: :collection, to: "workflow_time_logs#create"
       member do
         post :start
         post :run_stage
