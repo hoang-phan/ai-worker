@@ -105,6 +105,28 @@ RSpec.describe "Stages", type: :request do
     end
   end
 
+  describe "stage agent" do
+    let(:stage) { development_workflow.stages.find_by!(stage_type: :implementation) }
+
+    it "hides the agent select until the project has agents" do
+      get edit_project_workflow_stage_path(project, development_workflow, stage)
+
+      expect(Nokogiri::HTML(response.body).at_css("#stage_agent_id")).to be_nil
+    end
+
+    it "offers the project's agents and assigns one" do
+      agent = project.agents.create!(name: "billing", description: "Billing")
+
+      get edit_project_workflow_stage_path(project, development_workflow, stage)
+      expect(Nokogiri::HTML(response.body).at_css("#stage_agent_id option[value='#{agent.id}']")).to be_present
+
+      patch project_workflow_stage_path(project, development_workflow, stage), params: { stage: { agent_id: agent.id } }
+
+      expect(response).to redirect_to(project_workflow_path(project, development_workflow))
+      expect(stage.reload.agent).to eq agent
+    end
+  end
+
   describe "DELETE destroy" do
     let!(:current_stage) { runbook.stages.create!(stage_type: :runbook_step, name: "Current", position: 1) }
 

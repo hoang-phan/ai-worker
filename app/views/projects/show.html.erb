@@ -55,6 +55,8 @@
   <% end %>
 </div>
 
+<%= render "projects/agents", project: @project %>
+
 <% if @project.jira? %>
   <%= render "projects/jira_syncs", project: @project %>
 <% end %>

@@ -7,6 +7,14 @@
   <p class="field-hint">Selecting a template fills in the prompt below with this workflow's details &mdash; edit it freely before saving.</p>
 </div>
 
+<% if project.agents.any? %>
+  <div class="field">
+    <%= f.label :agent_id, "Agent" %>
+    <%= f.select :agent_id, stage_agent_options(project), include_blank: "No agent (CLI default model and effort)" %>
+    <p class="field-hint">Runs this stage as the chosen project agent, with its model and effort.</p>
+  </div>
+<% end %>
+
 <div class="field">
   <%= f.label :prompt %>
   <%= render "shared/skill_hints", project: project %>

@@ -18,7 +18,9 @@ module Stages
         log_path: log_path,
         mcp_config: mcp_config,
         env: env,
-        disallowed_tools: disallowed_tools
+        disallowed_tools: disallowed_tools,
+        model: agent&.model.presence,
+        effort: agent&.effort.presence
       )
 
       workflow.update!(
@@ -32,6 +34,10 @@ module Stages
     end
 
     private
+
+    def agent
+      stage.agent
+    end
 
     attr_reader :workflow, :stage, :project, :runner, :logs
   end

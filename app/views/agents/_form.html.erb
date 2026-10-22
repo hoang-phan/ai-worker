@@ -1,0 +1,45 @@
+<div class="card form-card">
+  <%= form_with model: [project, agent] do |f| %>
+    <%= render "shared/error_summary", record: f.object, noun: "agent" %>
+
+    <div class="field">
+      <%= f.label :name %>
+      <%= f.text_field :name, placeholder: "billing-expert" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :description %>
+      <%= f.text_field :description, placeholder: "Knows the invoicing and payments code. Use for anything touching billing." %>
+      <p class="field-hint">Says when to use this agent. Other agents read it to decide whether to hand work over.</p>
+    </div>
+
+    <div class="field">
+      <%= f.label :model %>
+      <%= f.text_field :model, placeholder: "claude-sonnet-5-5 (blank = CLI default)" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :effort %>
+      <%= f.select :effort, Agent::EFFORTS, include_blank: "CLI default" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :instructions %>
+      <%= f.text_area :instructions, rows: 16, placeholder: "What this agent knows: key files, conventions, gotchas for its area of the project." %>
+    </div>
+
+    <% others = project.agents.where.not(id: agent.id).order(:name) %>
+    <% if others.any? %>
+      <div class="field">
+        <%= f.label :delegate_ids, "May hand work to" %>
+        <%= f.collection_check_boxes :delegate_ids, others, :id, :name do |b| %>
+          <label><%= b.check_box %> <%= b.text %></label>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="form-actions">
+      <%= f.submit %>
+    </div>
+  <% end %>
+</div>

@@ -8,4 +8,8 @@ module StagesHelper
   def stage_template_options(stage)
     stage.candidate_templates.map { |template| [ template.name, template.id, { data: { body: template.body } } ] }
   end
+
+  def stage_agent_options(project)
+    project.agents.order(:name).map { |agent| [ agent.name, agent.id ] }
+  end
 end

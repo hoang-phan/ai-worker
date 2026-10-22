@@ -1,0 +1,30 @@
+# A project-specific specialist: knows one project or feature group, runs with its own
+# model/effort and may hand work to the agents it delegates to. Unlike a PromptTemplate
+# (generic text reused across projects) an agent belongs to exactly one project.
+class Agent < ApplicationRecord
+  belongs_to :project
+  has_many :stages, dependent: :nullify
+  has_many :agent_delegations, dependent: :destroy
+  has_many :delegates, through: :agent_delegations
+  has_many :delegating_links, class_name: "AgentDelegation", foreign_key: :delegate_id, dependent: :destroy, inverse_of: :delegate
+
+  EFFORTS = %w[low medium high xhigh max].freeze
+  MODEL_FORMAT = /\A[\w.\-\[\]]+\z/
+  NAME_FORMAT = /\A[a-z0-9]+(-[a-z0-9]+)*\z/
+
+  validates :name, presence: true, uniqueness: { scope: :project_id },
+                   format: { with: NAME_FORMAT, message: "must be lowercase letters, digits and dashes, e.g. billing-expert" }
+  validates :description, presence: true
+  validates :effort, inclusion: { in: EFFORTS }, allow_blank: true
+  validates :model, format: { with: MODEL_FORMAT }, allow_blank: true
+  validate :delegates_belong_to_project
+
+  private
+
+  def delegates_belong_to_project
+    delegates.each do |delegate|
+      errors.add(:delegates, "must belong to the same project") unless delegate.project_id == project_id
+      errors.add(:delegates, "cannot include the agent itself") if delegate == self
+    end
+  end
+end

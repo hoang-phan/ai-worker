@@ -2,6 +2,7 @@ class Project < ApplicationRecord
   has_many :workflows, dependent: :destroy
   has_many :jira_syncs, dependent: :destroy
   has_many :bugsnag_syncs, dependent: :destroy
+  has_many :agents, dependent: :destroy
 
   # How a Jira project's development workflows run. standard: implementation (checks and PR included) then review.
   # ci_loop: implementation without checks or PR, then the PR stage (push, open PR), then a check/verify loop on the
