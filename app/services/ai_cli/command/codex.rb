@@ -35,12 +35,26 @@ module AiCli
       def mcp_overrides
         return [] unless mcp_config.present?
 
-        mcp_servers.call(mcp_config).flat_map do |name, server|
-          overrides = { "command" => server["command"].to_json, "startup_timeout_sec" => 90 }
-          overrides["args"] = Array(server["args"]).to_json if server["args"]
-          overrides["env"] = "{" + server["env"].map { |key, value| "#{key.to_json} = #{value.to_json}" }.join(", ") + "}" if server["env"].present?
-          overrides.flat_map { |key, value| [ "-c", "mcp_servers.#{name}.#{key}=#{value}" ] }
-        end
+        mcp_servers.call(mcp_config).flat_map { |name, server| config_flags(name, server_overrides(server)) }
+      end
+
+      STARTUP_TIMEOUT_SEC = 90
+
+      # TOML-encoded value per mcp_servers.<name>.<key>; args/env only when given.
+      def server_overrides(server)
+        overrides = { "command" => server["command"].to_json, "startup_timeout_sec" => STARTUP_TIMEOUT_SEC }
+        overrides["args"] = Array(server["args"]).to_json if server["args"]
+        overrides["env"] = toml_inline_table(server["env"]) if server["env"].present?
+        overrides
+      end
+
+      # {"K" = "v", ...} with JSON-style quoting (valid TOML basic strings).
+      def toml_inline_table(hash)
+        "{" + hash.map { |key, value| "#{key.to_json} = #{value.to_json}" }.join(", ") + "}"
+      end
+
+      def config_flags(name, overrides)
+        overrides.flat_map { |key, value| [ "-c", "mcp_servers.#{name}.#{key}=#{value}" ] }
       end
     end
   end
