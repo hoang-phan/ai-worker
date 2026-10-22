@@ -101,4 +101,38 @@ RSpec.describe Agent do
 
     expect(stage.reload.agent).to be_nil
   end
+
+  describe "provider" do
+    it "accepts a known agent CLI or blank" do
+      AiCli::Providers.names.each { |name| expect(build_agent(provider: name)).to be_valid }
+      expect(build_agent(provider: "")).to be_valid
+    end
+
+    it "rejects an unknown agent CLI" do
+      agent = build_agent(provider: "gemini")
+
+      expect(agent).not_to be_valid
+      expect(agent.errors[:provider]).to be_present
+    end
+  end
+
+  describe "allowed tools" do
+    it "defaults to no restriction" do
+      expect(build_agent.allowed_tools).to eq []
+    end
+
+    it "is edited as one tool rule per line, dropping blanks and repeats" do
+      agent = build_agent(allowed_tools_text: "Read\n\n  Bash(git log:*) \nRead\n")
+
+      expect(agent.allowed_tools).to eq [ "Read", "Bash(git log:*)" ]
+      expect(agent.allowed_tools_text).to eq "Read\nBash(git log:*)"
+    end
+
+    it "clears the restriction with blank text" do
+      agent = build_agent(allowed_tools: [ "Read" ])
+      agent.allowed_tools_text = ""
+
+      expect(agent.allowed_tools).to eq []
+    end
+  end
 end

@@ -11,6 +11,7 @@
       <tr>
         <th>Name</th>
         <th>Description</th>
+        <th>CLI</th>
         <th>Model</th>
         <th>Effort</th>
         <th>Hands work to</th>
@@ -22,6 +23,7 @@
         <tr>
           <td><%= agent.name %></td>
           <td class="text-muted"><%= agent.description %></td>
+          <td><%= agent.provider.presence || "App-wide" %></td>
           <td><%= agent.model.presence || "CLI default" %></td>
           <td><%= agent.effort.presence || "CLI default" %></td>
           <td class="text-muted"><%= agent.delegates.map(&:name).sort.join(", ") %></td>

@@ -20,7 +20,9 @@ module Stages
         env: env,
         disallowed_tools: disallowed_tools,
         model: agent&.model.presence,
-        effort: agent&.effort.presence
+        effort: agent&.effort.presence,
+        provider: agent&.provider.presence,
+        allowed_tools: agent&.allowed_tools.presence
       )
 
       workflow.update!(
@@ -28,7 +30,8 @@ module Stages
         ai_pid: pid,
         ai_log_path: log_path,
         ai_started_at: Time.current,
-        ai_log_offset: 0
+        ai_log_offset: 0,
+        ai_provider: agent&.provider.presence
       )
       stage.log_run!(action)
     end

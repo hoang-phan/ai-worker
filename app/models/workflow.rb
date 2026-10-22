@@ -33,7 +33,7 @@ class Workflow < ApplicationRecord
   QUEUED_STATUSES = %w[pending].freeze
   SUMMARY_LENGTH = 100
   # Columns cleared when an agent run finishes or fails; merge into the workflow's next update!.
-  AI_RUN_RESET = { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0 }.freeze
+  AI_RUN_RESET = { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, ai_provider: nil }.freeze
 
   scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 

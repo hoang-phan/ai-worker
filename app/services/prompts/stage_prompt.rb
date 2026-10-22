@@ -22,7 +22,7 @@ module Prompts
       text = stage.prompt.presence || stage.effective_template&.body || Prompts::Defaults.for(stage.stage_type)
       raise ArgumentError, "no prompt available for stage #{stage.id}" unless text
 
-      Prompts::Renderer.render(text, workflow) + sections.join
+      agent_brief + Prompts::Renderer.render(text, workflow) + sections.join
     end
 
     # Wraps `message` in the instructions for posting it to the stage's Slack channel.
@@ -45,6 +45,18 @@ module Prompts
 
     def notifier
       @notifier ||= Slack::ReviewNotifier.new(project)
+    end
+
+    # Nothing unless the stage runs as a project agent, so prompts without one are exactly as before.
+    def agent_brief
+      agent = stage.agent
+      return "" unless agent
+
+      provider = AiCli::Providers.find(agent.provider.presence || AiCli::AgentSetting.current)
+      Prompts::StageSections::AgentBrief.new(
+        name: agent.name, description: agent.description, instructions: agent.instructions,
+        allowed_tools: agent.allowed_tools, tools_enforced: provider&.capabilities&.tool_lists
+      ).to_s
     end
 
     def sections

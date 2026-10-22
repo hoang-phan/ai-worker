@@ -81,4 +81,24 @@ RSpec.describe "Agents", type: :request do
       expect(project.agents.count).to eq 0
     end
   end
+
+  describe "provider and allowed tools" do
+    it "saves the agent CLI and one tool per line" do
+      post project_agents_path(project), params: { agent: { name: "invoicing", description: "Knows invoices", provider: "codex", allowed_tools_text: "Read\nGrep\n" } }
+
+      expect(project.agents.find_by!(name: "invoicing")).to have_attributes(provider: "codex", allowed_tools: %w[Read Grep])
+    end
+
+    it "rejects an unknown agent CLI" do
+      post project_agents_path(project), params: { agent: { name: "invoicing", description: "Knows invoices", provider: "gemini" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "offers the available CLIs on the form" do
+      get new_project_agent_path(project)
+
+      expect(Nokogiri::HTML(response.body).css("#agent_provider option").map(&:text)).to include("claude", "cursor", "codex")
+    end
+  end
 end

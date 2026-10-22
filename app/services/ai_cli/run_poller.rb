@@ -4,8 +4,9 @@ module AiCli
   class RunPoller
     attr_reader :log_offset
 
-    def initialize(pid:, log_path:, log_offset:, started_at:, log_tag:, stale_after:, runner: AiCli::Runner, kill: Process.method(:kill))
+    def initialize(pid:, log_path:, log_offset:, started_at:, log_tag:, stale_after:, runner: AiCli::Runner, kill: Process.method(:kill), provider: nil)
       @pid = pid
+      @provider = provider.presence
       @runner = runner
       @log_offset = log_offset
       @log_tail = AiCli::LogTail.new(log_path: log_path, log_tag: log_tag) if log_path
@@ -23,7 +24,7 @@ module AiCli
         # report a run that finished while no tick fired as timed out.
         if stale_run.stale?
           stale_run.terminate!(pid)
-          raise AiCli::CommandError, "#{runner.agent} timed out after #{stale_after.inspect} (pid=#{pid})"
+          raise AiCli::CommandError, "#{agent} timed out after #{stale_after.inspect} (pid=#{pid})"
         end
         return :running
       end
@@ -31,13 +32,18 @@ module AiCli
       _tag, exit_status = result
       tail_log
       output = AiCli::RunVerdict.new(
-        exit_status: exit_status, output: full_log, agent: runner.agent, pid: pid
+        exit_status: exit_status, output: full_log, agent: agent, pid: pid
       ).verify!
 
       [ :finished, output ]
     end
 
     private
+
+    # The CLI this run started with: the provider recorded at launch, else the app-wide agent.
+    def agent
+      @provider || runner.agent
+    end
 
     attr_reader :pid, :log_tail, :stale_after, :stale_run, :runner
 

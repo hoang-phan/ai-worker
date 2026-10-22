@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_140000) do
   create_table "agent_delegations", force: :cascade do |t|
     t.integer "agent_id", null: false
     t.datetime "created_at", null: false
@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_130000) do
   end
 
   create_table "agents", force: :cascade do |t|
+    t.json "allowed_tools", default: [], null: false
     t.datetime "created_at", null: false
     t.string "description", default: "", null: false
     t.string "effort"
@@ -29,6 +30,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_130000) do
     t.string "model"
     t.string "name", null: false
     t.integer "project_id", null: false
+    t.string "provider"
     t.datetime "updated_at", null: false
     t.index ["project_id", "name"], name: "index_agents_on_project_id_and_name", unique: true
     t.index ["project_id"], name: "index_agents_on_project_id"
@@ -164,6 +166,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_130000) do
     t.integer "ai_log_offset", default: 0, null: false
     t.string "ai_log_path"
     t.integer "ai_pid"
+    t.string "ai_provider"
     t.datetime "ai_started_at"
     t.boolean "auto_run", default: false, null: false
     t.boolean "awaiting_next", default: false, null: false

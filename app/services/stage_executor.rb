@@ -49,7 +49,8 @@ class StageExecutor
   def poll_ai_run
     poller = tooling.poller_class.new(
       pid: workflow.ai_pid, log_path: workflow.ai_log_path, log_offset: workflow.ai_log_offset,
-      started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER
+      started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER,
+      provider: workflow.ai_provider
     )
     begin
       state, output = poller.call

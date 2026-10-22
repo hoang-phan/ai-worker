@@ -28,6 +28,15 @@ Exactly one `PromptTemplate` per `stage_type` should have `active: true` —
 that's the default a `Stage` uses when it doesn't have a `prompt_template_id`
 of its own (`Stage#effective_template`).
 
+## Running as a project agent
+
+A stage can be assigned one of the project's agents (a stage's "Agent" select, shown once the project has agents).
+Agents are not templates: an agent belongs to one project and holds what is specific to it. Its model, effort,
+agent CLI and tool allow-list apply to the run, and `Prompts::StageSections::AgentBrief` is **prepended** to the
+prompt (before the template text): the agent's name and description, its instructions as project-owner notes (data,
+not instructions that override the task), and, when the CLI cannot enforce tool lists (codex, cursor), the allowed
+tools stated as text. A stage without an agent gets exactly the prompt described on this page.
+
 ## Appended sections
 
 `Prompts::StagePrompt` appends conditional sections (`Prompts::StageSections`) after the rendered body. One of them,

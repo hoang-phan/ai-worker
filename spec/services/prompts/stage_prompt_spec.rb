@@ -240,4 +240,41 @@ RSpec.describe Prompts::StagePrompt do
       expect(described_class::CONFLICT).to include("git merge main", "Do not push.")
     end
   end
+
+  describe "agent brief" do
+    let(:stage_attrs) { { prompt: "Do {TASK}" } }
+
+    it "leaves the prompt exactly as before when the stage has no agent" do
+      expect(stage_prompt.body).to eq(Prompts::Renderer.render("Do {TASK}", workflow) + Prompts::StageSections::FollowUps.new(stage_type: "task").to_s)
+      expect(stage_prompt.body).not_to include("project agent")
+    end
+
+    it "does not change a stage's prompt just because the project has agents" do
+      before = stage_prompt.body
+      project.agents.create!(name: "billing", description: "Billing", instructions: "Secret notes")
+
+      expect(described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log).body).to eq(before)
+    end
+
+    it "puts the stage agent's brief before the task text" do
+      stage.update!(agent: project.agents.create!(name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing."))
+
+      body = stage_prompt.body
+
+      expect(body).to start_with('You are working as the project agent "billing"')
+      expect(body).to include("Invoices live in app/billing.", "---\n\nDo Do the thing")
+    end
+
+    it "adds the tool allow-list to the prompt for a provider without tool lists" do
+      stage.update!(agent: project.agents.create!(name: "billing", description: "Billing", provider: "codex", allowed_tools: [ "Read" ]))
+
+      expect(stage_prompt.body).to include("Use only these tools and no others: Read.")
+    end
+
+    it "relies on the CLI for the allow-list when the provider enforces it" do
+      stage.update!(agent: project.agents.create!(name: "billing", description: "Billing", provider: "claude", allowed_tools: [ "Read" ]))
+
+      expect(stage_prompt.body).not_to include("Use only these tools")
+    end
+  end
 end

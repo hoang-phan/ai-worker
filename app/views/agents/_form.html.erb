@@ -24,6 +24,17 @@
     </div>
 
     <div class="field">
+      <%= f.label :provider, "Agent CLI" %>
+      <%= f.select :provider, AiCli::Providers.names, include_blank: "App-wide setting (#{AiCli::AgentSetting.current})" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :allowed_tools_text, "Allowed tools" %>
+      <%= f.text_area :allowed_tools_text, rows: 4, placeholder: "One per line, e.g. Read or Bash(git log:*). Blank = no restriction." %>
+      <p class="field-hint">Enforced by claude. Other CLIs only get the list in the prompt.</p>
+    </div>
+
+    <div class="field">
       <%= f.label :instructions %>
       <%= f.text_area :instructions, rows: 16, placeholder: "What this agent knows: key files, conventions, gotchas for its area of the project." %>
     </div>

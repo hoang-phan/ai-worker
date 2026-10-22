@@ -17,7 +17,18 @@ class Agent < ApplicationRecord
   validates :description, presence: true
   validates :effort, inclusion: { in: EFFORTS }, allow_blank: true
   validates :model, format: { with: MODEL_FORMAT }, allow_blank: true
+  validates :provider, inclusion: { in: ->(_) { AiCli::Providers.names } }, allow_blank: true
   validate :delegates_belong_to_project
+
+  # One tool rule per line (e.g. `Read`, `Bash(git log:*)`); blank lines and repeats are dropped. Empty means no
+  # restriction. Only providers with tool lists enforce it; the prompt states it for the others.
+  def allowed_tools_text
+    allowed_tools.join("\n")
+  end
+
+  def allowed_tools_text=(text)
+    self.allowed_tools = text.to_s.lines.map(&:strip).reject(&:empty?).uniq
+  end
 
   private
 

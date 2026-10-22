@@ -36,6 +36,21 @@ RSpec.describe AiCli::RunPoller do
     expect(kill).not_to have_received(:call)
   end
 
+  it "names the run's own provider rather than the app-wide agent in errors" do
+    allow(runner).to receive(:poll).and_return(:running)
+
+    expect { poller(started_at: 4.hours.ago, provider: "codex").call }
+      .to raise_error(AiCli::CommandError, "codex timed out after #{3.hours.inspect} (pid=123)")
+  end
+
+  it "judges a lost exit status by the run's own provider" do
+    allow(runner).to receive(:poll).and_return([ :completed, nil ])
+    allow_any_instance_of(AiCli::LogTail).to receive(:full).and_return(%({"type":"result","is_error":false,"result":"ok"}\n))
+
+    expect { poller(provider: "codex").call }.to raise_error(AiCli::CommandError, /codex exit status unknown/)
+    expect(poller(provider: "").call.first).to eq :finished
+  end
+
   it "kills a stale running run and raises timed out" do
     allow(runner).to receive(:poll).and_return(:running)
 
