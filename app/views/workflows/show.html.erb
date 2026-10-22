@@ -8,13 +8,13 @@
     <% if @workflow.pending? %>
       <%= button_to "Start", start_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
-    <% if @workflow.runbook? && @workflow.awaiting_next? %>
+    <% if @workflow.can_advance? %>
       <%= button_to (@workflow.next_runbook_stage ? "Next: #{@workflow.next_runbook_stage.display_name}" : "Finish"), advance_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
     <% if @workflow.errored? %>
       <%= button_to "Resume", resume_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
-    <% if @workflow.done? && @workflow.development? && @workflow.github_pr_url.present? %>
+    <% if @workflow.can_rollback_to_review? %>
       <%= button_to "Roll back to review", rollback_to_review_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary", form: { data: { turbo_confirm: "Move this workflow back to the review stage?" } } %>
     <% end %>
     <% if @workflow.runbook? %>

@@ -69,7 +69,7 @@ module WorkflowsHelper
   end
 
   def stage_runnable?(workflow, stage, current_stage = workflow.current_stage)
-    workflow.runbook? && workflow.implementing? && !workflow.processing? && current_stage == stage
+    workflow.can_run_stage? && current_stage == stage
   end
 
   # Seconds logged in Jira as hours, e.g. 5400 => "1.5", 3600 => "1".

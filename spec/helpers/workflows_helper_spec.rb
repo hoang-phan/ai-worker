@@ -44,17 +44,19 @@ RSpec.describe WorkflowsHelper, type: :helper do
   end
 
   describe "#stage_runnable?" do
-    let(:stage) { Object.new }
-    let(:workflow) { instance_double(Workflow, runbook?: true, implementing?: true, processing?: false) }
+    let(:project) { build_jira_project }
+    let(:workflow) { project.workflows.create!(kind: :runbook, status: :implementing) }
+    let(:stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Build", position: 1) }
+    let(:other_stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Ship", position: 2) }
 
     it "allows the current stage of an idle implementing runbook" do
       expect(helper.stage_runnable?(workflow, stage, stage)).to be(true)
     end
 
     it "rejects another stage or a workflow that is processing" do
-      expect(helper.stage_runnable?(workflow, Object.new, stage)).to be(false)
+      expect(helper.stage_runnable?(workflow, other_stage, stage)).to be(false)
 
-      allow(workflow).to receive(:processing?).and_return(true)
+      workflow.update!(processing: true)
       expect(helper.stage_runnable?(workflow, stage, stage)).to be(false)
     end
   end

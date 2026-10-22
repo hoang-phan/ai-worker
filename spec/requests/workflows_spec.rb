@@ -67,6 +67,33 @@ RSpec.describe "Workflows", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<h2>Stages</h2>", "<h2>Stage run history</h2>", "Started the implementation")
     end
+
+    describe "state-dependent buttons" do
+      let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
+
+      it "shows Next only for a runbook awaiting Next" do
+        get project_workflow_path(project, runbook)
+        expect(response.body).not_to include(advance_project_workflow_path(project, runbook))
+
+        runbook.update!(awaiting_next: true)
+        get project_workflow_path(project, runbook)
+        expect(response.body).to include(advance_project_workflow_path(project, runbook))
+      end
+
+      it "shows the rollback button only for a done development workflow with a PR" do
+        path = rollback_to_review_project_workflow_path(project, workflow)
+        get project_workflow_path(project, workflow)
+        expect(response.body).not_to include(path)
+
+        workflow.update!(status: :done)
+        get project_workflow_path(project, workflow)
+        expect(response.body).to include(path)
+
+        workflow.update!(github_pr_url: nil)
+        get project_workflow_path(project, workflow)
+        expect(response.body).not_to include(path)
+      end
+    end
   end
 
   describe "GET show stage run history" do
