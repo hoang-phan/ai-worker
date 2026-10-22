@@ -17,15 +17,51 @@ RSpec.describe Slack::ReviewNotifier do
   end
 
   describe "#notify!" do
-    it "starts a restricted detached run and records its pid" do
-      expect(AiCli::Runner).to receive(:start).with(anything, a_string_including("thread_ts: 1.2"), hash_including(allowed_tools: described_class::ALLOWED_TOOLS)).and_return(42)
-      notifier.notify!(workflow: workflow, pr_url: "u", label: "l", reviewers: [], thread_ts: "1.2")
-      expect(Dir.glob(dir.join("*", "pid")).map { |f| File.read(f) }).to eq([ "42" ])
+    let(:tmp_root) { Pathname(Dir.mktmpdir("slack_pings_spec")) }
+    let(:now) { Time.zone.at(1_760_000_000) }
+    let(:runner) { double("runner", start: 42) }
+    let(:notifier) { described_class.new(project, runner: runner, clock: -> { now }, root: tmp_root) }
+    let(:run_dir) { tmp_root.join(workflow.id.to_s, "1760000000") }
+
+    after { FileUtils.remove_entry(tmp_root) if tmp_root.exist? }
+
+    def notify(**opts)
+      notifier.notify!(workflow: workflow, pr_url: "u", label: "l", reviewers: [], **opts)
     end
 
-    it "raises without a channel" do
+    it "starts a restricted detached run" do
+      notify(thread_ts: "1.2")
+      expect(runner).to have_received(:start).with(
+        run_dir.to_s, a_string_including("thread_ts: 1.2"),
+        hash_including(log_path: run_dir.join("agent.log").to_s, allowed_tools: described_class::ALLOWED_TOOLS)
+      )
+    end
+
+    it "names the run dir after the clock" do
+      notify
+      expect(Dir.children(tmp_root.join(workflow.id.to_s))).to eq([ "1760000000" ])
+    end
+
+    it "writes the pid to <dir>/pid" do
+      notify
+      expect(run_dir.join("pid").read).to eq("42")
+    end
+
+    it "wraps a CommandError from the runner in NotifyError" do
+      allow(runner).to receive(:start).and_raise(AiCli::CommandError, "boom")
+      expect { notify }.to raise_error(Slack::NotifyError, /failed to start: boom/)
+    end
+
+    it "wraps a SystemCallError from the runner in NotifyError" do
+      allow(runner).to receive(:start).and_raise(Errno::ENOENT, "claude")
+      expect { notify }.to raise_error(Slack::NotifyError, /failed to start/)
+    end
+
+    it "raises without a channel and spawns nothing" do
       allow(project).to receive(:slack_review_channel).and_return(nil)
-      expect { notifier.notify!(workflow: workflow, pr_url: "u", label: "l", reviewers: []) }.to raise_error(Slack::NotifyError)
+      expect { notify }.to raise_error(Slack::NotifyError, "Slack channel is not set")
+      expect(runner).not_to have_received(:start)
+      expect(Dir.children(tmp_root)).to be_empty
     end
   end
 

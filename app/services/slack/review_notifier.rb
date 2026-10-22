@@ -24,8 +24,11 @@ module Slack
       PingCollector.new.pending_workflow_ids
     end
 
-    def initialize(project)
+    def initialize(project, runner: AiCli::Runner, clock: -> { Time.current }, root: ROOT)
       @project = project
+      @runner = runner
+      @clock = clock
+      @root = Pathname(root)
     end
 
     def enabled?
@@ -49,11 +52,7 @@ module Slack
 
       msg = review_message(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed)
       prompt = msg.prompt(channel: project.slack_review_channel, thread_ts: thread_ts)
-      dir = ROOT.join(workflow.id.to_s, Time.current.to_i.to_s)
-      FileUtils.mkdir_p(dir)
-      pid = AiCli::Runner.start(dir.to_s, prompt, log_path: dir.join("agent.log").to_s,
-                                allowed_tools: ALLOWED_TOOLS, model: MODEL)
-      dir.join("pid").write(pid)
+      spawn(run_dir(workflow), prompt)
     rescue AiCli::CommandError, SystemCallError => e
       raise NotifyError, "Slack ping failed to start: #{e.message}"
     end
@@ -65,7 +64,19 @@ module Slack
 
     private
 
-    attr_reader :project
+    attr_reader :project, :runner, :clock, :root
+
+    # tmp/slack_pings/<workflow_id>/<started_at>/, the layout PingCollector reads back.
+    def run_dir(workflow)
+      root.join(workflow.id.to_s, clock.call.to_i.to_s)
+    end
+
+    def spawn(dir, prompt)
+      FileUtils.mkdir_p(dir)
+      pid = runner.start(dir.to_s, prompt, log_path: dir.join("agent.log").to_s,
+                         allowed_tools: ALLOWED_TOOLS, model: MODEL)
+      dir.join("pid").write(pid)
+    end
 
     def review_message(pr_url:, label:, reviewers:, again:, fixed:)
       ReviewMessage.new(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
