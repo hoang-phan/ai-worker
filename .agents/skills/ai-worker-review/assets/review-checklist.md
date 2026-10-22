@@ -12,7 +12,7 @@
 - Every `StageExecutor` code path that starts a run, finishes one, or reaches a decision (including "no decision yet") writes at least one `StageRun` with an `action` from `StageRun::ACTIONS` — no silent paths, and no action string missing from that list.
 
 ## Data/model
-- New enum values are additive (new members added, existing numeric values never renumbered) — `Stage#stage_type`, `PromptTemplate#stage_type` (same mapping), `Workflow#status`/`#kind` and `Project#kind` are persisted as integers via Rails `enum`, so reordering breaks existing rows.
+- New enum values are additive (new members added, existing numeric values never renumbered) — `Stage#stage_type`, `PromptTemplate#stage_type` (reuses the single `Stage::STAGE_TYPES` mapping), `Workflow#status`/`#kind` and `Project#kind` are persisted as integers via Rails `enum`, so reordering breaks existing rows.
 - New required-for-control-flow columns (status/kind/position/`processing`/enable flags) have `null: false, default:` in their migration.
 
 ## UI

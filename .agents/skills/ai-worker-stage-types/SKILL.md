@@ -18,7 +18,7 @@ ci_loop (`Project#flow` `ci_loop`, gated by `Project#ci_loop_ready?`: Jira proje
 ## Checklist (in order)
 
 1. **Migration/enum values** (see `ai-worker-domain`). Enum integers are stored: append, never renumber.
-   - `Stage` `enum :stage_type` in `app/models/stage.rb` **and the duplicate** `enum :stage_type` in `app/models/prompt_template.rb` (keep identical).
+   - The single `Stage::STAGE_TYPES` mapping in `app/models/stage.rb` (`PromptTemplate` reuses it, so there is one place to edit).
    - `Workflow` `enum :status` in `app/models/workflow.rb` (`local_testing: 11`).
 2. **`StageRun::ACTIONS`** (`app/models/stage_run.rb`): add every action the new code will `log(...)`. Validation rejects unknown actions, so this comes before any handler code (`local_test_completed`, `local_test_failing`, `local_test_retest_scheduled`, `local_test_rounds_exhausted`).
 3. **Stage helpers** (`app/models/stage.rb`): history queries the flow needs, e.g. `completed_local_test_rounds`, `local_test_unfinished?`. Use `last_action` (ordered by id), not the association's default `created_at desc` order.
