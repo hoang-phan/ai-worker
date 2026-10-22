@@ -9,7 +9,7 @@ module Stages
       @project = project
       @runner = runner
       @logs = logs
-      @run_provider = run_provider.override
+      @run_provider = run_provider
     end
 
     def call(prompt_text, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
