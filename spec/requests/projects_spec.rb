@@ -72,6 +72,18 @@ RSpec.describe "Projects", type: :request do
     end
   end
 
+  describe "POST create" do
+    it "re-renders the error summary when invalid" do
+      expect {
+        post projects_path, params: { project: { name: "", kind: "jira" } }
+      }.not_to change(Project, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
+      expect(summary).to include("prevented this project from saving", "Name can't be blank")
+    end
+  end
+
   describe "POST brainstorm" do
     let(:planner) { Brainstorm::Planner.new(project) }
 

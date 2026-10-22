@@ -1,15 +1,6 @@
 <div class="card form-card">
   <%= form_with model: [project, bugsnag_sync] do |f| %>
-    <% if bugsnag_sync.errors.any? %>
-      <div class="error-summary">
-        <strong><%= pluralize(bugsnag_sync.errors.count, "error") %> prevented this sync from saving:</strong>
-        <ul>
-          <% bugsnag_sync.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "shared/error_summary", record: f.object, noun: "sync" %>
 
     <div class="field">
       <%= f.label :bugsnag_project, "Bugsnag project" %>

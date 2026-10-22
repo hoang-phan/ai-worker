@@ -4,16 +4,7 @@
   data-template-fill-placeholders-value="<%= Prompts::Renderer.placeholders_for(workflow).to_json %>"
 >
   <%= form_with model: [project, workflow, stage] do |f| %>
-    <% if stage.errors.any? %>
-      <div class="error-summary">
-        <strong><%= pluralize(stage.errors.count, "error") %> prevented this stage from saving:</strong>
-        <ul>
-          <% stage.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "shared/error_summary", record: f.object %>
 
     <% if workflow.runbook? %>
       <div class="field">

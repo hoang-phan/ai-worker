@@ -1,15 +1,6 @@
 <div class="card form-card">
   <%= form_with model: [project, jira_sync] do |f| %>
-    <% if jira_sync.errors.any? %>
-      <div class="error-summary">
-        <strong><%= pluralize(jira_sync.errors.count, "error") %> prevented this sync from saving:</strong>
-        <ul>
-          <% jira_sync.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "shared/error_summary", record: f.object, noun: "sync" %>
 
     <div class="field">
       <%= f.label :jira_project, "Jira project (optional)" %>

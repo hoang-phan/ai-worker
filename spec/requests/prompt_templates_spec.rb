@@ -51,6 +51,8 @@ RSpec.describe "PromptTemplates", type: :request do
       }.not_to change(PromptTemplate, :count)
 
       expect(response).to have_http_status(422)
+      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
+      expect(summary).to include("prevented this template from saving", "Body can't be blank")
     end
   end
 

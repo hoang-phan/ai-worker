@@ -87,7 +87,8 @@ RSpec.describe "Stages", type: :request do
       end.not_to change(Stage, :count)
 
       expect(response).to have_http_status(:unprocessable_entity)
-      expect(response.body).to include("error prevented this stage from saving")
+      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
+      expect(summary).to include("prevented this stage from saving", "Channel can't be blank")
     end
   end
 
