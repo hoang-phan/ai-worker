@@ -1,0 +1,18 @@
+<div class="field">
+  <label>Branch</label>
+  <p><%= workflow.branch_name %></p>
+</div>
+<div class="field">
+  <label>Reviewer</label>
+  <p><%= workflow.github_reviewer %></p>
+</div>
+<div class="field">
+  <label>Skills</label>
+  <p><%= workflow.skill_list.join(", ") %></p>
+</div>
+<% if workflow.pr_skill_list.any? %>
+  <div class="field">
+    <label>PR skills</label>
+    <p><%= workflow.pr_skill_list.join(", ") %></p>
+  </div>
+<% end %>

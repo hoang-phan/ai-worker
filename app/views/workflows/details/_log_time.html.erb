@@ -1,0 +1,9 @@
+<div class="field">
+  <label>Log time (<%= workflow_logged_time_label(workflow) %>)</label>
+  <%= form_with url: log_time_project_workflows_path(project), method: :post, class: "batch-bar" do %>
+    <%= hidden_field_tag "workflow_ids[]", workflow.id %>
+    <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
+      <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary"><%= hours %> h</button>
+    <% end %>
+  <% end %>
+</div>

@@ -25,6 +25,19 @@ module WorkflowsHelper
     content_tag(:span, workflow.status, class: "badge #{workflow_status_badge_class(workflow)}")
   end
 
+  # Detail partial selected using the same precedence as the workflow details card.
+  def workflow_details_partial(workflow, project)
+    return "workflows/details/pr_review" if workflow.pr_review?
+    return "workflows/details/runbook" if workflow.runbook?
+
+    project.personal? ? "workflows/details/task" : "workflows/details/jira"
+  end
+
+  # "1.5 h logged in Jira — synced 5 minutes ago".
+  def workflow_logged_time_label(workflow)
+    [ "#{logged_hours(workflow.logged_seconds)} h logged in Jira", jira_synced_phrase(workflow) ].compact.join(" — ")
+  end
+
   # "synced 5 minutes ago", or nil when hours have never been synced from Jira.
   def jira_synced_phrase(workflow)
     "synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at

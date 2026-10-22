@@ -1,0 +1,6 @@
+<% if workflow.slack_url.present? %>
+  <div class="field">
+    <label>Slack message</label>
+    <p><%= link_to workflow.slack_url, workflow.slack_url, target: "_blank", rel: "noopener" %></p>
+  </div>
+<% end %>

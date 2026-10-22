@@ -68,6 +68,54 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
   end
 
+  describe "#workflow_details_partial" do
+    it "selects the PR review partial before considering the project kind" do
+      workflow = instance_double(Workflow, pr_review?: true, runbook?: false)
+      project = instance_double(Project, personal?: true)
+
+      expect(helper.workflow_details_partial(workflow, project)).to eq("workflows/details/pr_review")
+    end
+
+    it "selects the runbook partial before considering the project kind" do
+      workflow = instance_double(Workflow, pr_review?: false, runbook?: true)
+      project = instance_double(Project, personal?: true)
+
+      expect(helper.workflow_details_partial(workflow, project)).to eq("workflows/details/runbook")
+    end
+
+    it "selects the task partial for a personal development workflow" do
+      workflow = instance_double(Workflow, pr_review?: false, runbook?: false)
+      project = instance_double(Project, personal?: true)
+
+      expect(helper.workflow_details_partial(workflow, project)).to eq("workflows/details/task")
+    end
+
+    it "selects the Jira partial for a Jira development workflow" do
+      workflow = instance_double(Workflow, pr_review?: false, runbook?: false)
+      project = instance_double(Project, personal?: false)
+
+      expect(helper.workflow_details_partial(workflow, project)).to eq("workflows/details/jira")
+    end
+  end
+
+  describe "#workflow_logged_time_label" do
+    let(:workflow) { build_jira_workflow(build_jira_project, jira_ticket: "TEST-1") }
+
+    before do
+      TimeLog.create!(workflow: workflow, ticket_key: workflow.jira_key, started_at: Time.current, seconds: 5400)
+    end
+
+    it "shows logged hours without a sync phrase when never synced" do
+      expect(helper.workflow_logged_time_label(workflow)).to eq("1.5 h logged in Jira")
+    end
+
+    it "includes how long ago Jira hours were synced" do
+      workflow.jira_logged_synced_at = 5.minutes.ago
+
+      expect(helper.workflow_logged_time_label(workflow)).to eq("1.5 h logged in Jira — synced 5 minutes ago")
+    end
+  end
+
   describe "#current_stage_badge" do
     let(:stage) { Object.new }
 

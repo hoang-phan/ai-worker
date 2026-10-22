@@ -1,43 +1,5 @@
 <div class="card">
-  <% if workflow.pr_review? %>
-    <% if workflow.slack_url.present? %>
-      <div class="field">
-        <label>Slack message</label>
-        <p><%= link_to workflow.slack_url, workflow.slack_url, target: "_blank", rel: "noopener" %></p>
-      </div>
-    <% end %>
-  <% elsif workflow.runbook? %>
-    <% workflow.variables.each do |name, value| %>
-      <div class="field">
-        <label><%= name %></label>
-        <p><%= value %></p>
-      </div>
-    <% end %>
-  <% elsif project.personal? %>
-    <div class="field">
-      <label>Task</label>
-      <p><%= workflow.task_description %></p>
-    </div>
-  <% else %>
-    <div class="field">
-      <label>Branch</label>
-      <p><%= workflow.branch_name %></p>
-    </div>
-    <div class="field">
-      <label>Reviewer</label>
-      <p><%= workflow.github_reviewer %></p>
-    </div>
-    <div class="field">
-      <label>Skills</label>
-      <p><%= workflow.skill_list.join(", ") %></p>
-    </div>
-    <% if workflow.pr_skill_list.any? %>
-      <div class="field">
-        <label>PR skills</label>
-        <p><%= workflow.pr_skill_list.join(", ") %></p>
-      </div>
-    <% end %>
-  <% end %>
+  <%= render workflow_details_partial(workflow, project), workflow: workflow, project: project %>
   <% if workflow.image_paths.any? %>
     <div class="field">
       <label>Reference images</label>
@@ -54,15 +16,7 @@
     <% end %>
   </div>
   <% if project.jira? && workflow.development? %>
-    <div class="field">
-      <label>Log time (<%= logged_hours(workflow.logged_seconds) %> h logged in Jira<%= " — #{jira_synced_phrase(workflow)}" if jira_synced_phrase(workflow) %>)</label>
-      <%= form_with url: log_time_project_workflows_path(project), method: :post, class: "batch-bar" do %>
-        <%= hidden_field_tag "workflow_ids[]", workflow.id %>
-        <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
-          <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary"><%= hours %> h</button>
-        <% end %>
-      <% end %>
-    </div>
+    <%= render "workflows/details/log_time", workflow: workflow, project: project %>
   <% end %>
   <% if workflow.github_pr_url.present? %>
     <div class="field">
