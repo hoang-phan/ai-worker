@@ -25,7 +25,7 @@
   </div>
 </div>
 
-<%= render "details", project: @project, workflow: @workflow %>
+<%= render "details", project: @project, workflow: @workflow, jira_logged_seconds: @jira_logged_seconds, jira_logged_error: @jira_logged_error %>
 
 <%= render "stages", project: @project, workflow: @workflow %>
 

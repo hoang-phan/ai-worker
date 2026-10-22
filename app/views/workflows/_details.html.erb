@@ -55,7 +55,12 @@
   </div>
   <% if project.jira? && workflow.development? %>
     <div class="field">
-      <label>Log time (<%= number_with_precision(workflow.time_logs.sum(:seconds) / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h logged)</label>
+      <label>Log time (<%= number_with_precision(workflow.time_logs.sum(:seconds) / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h logged here)</label>
+      <% if local_assigns[:jira_logged_seconds] %>
+        <p>Jira currently shows <strong><%= number_with_precision(jira_logged_seconds / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h</strong> logged on this ticket (all people).</p>
+      <% elsif local_assigns[:jira_logged_error] %>
+        <p class="text-muted">Could not read hours from Jira: <%= jira_logged_error %></p>
+      <% end %>
       <%= form_with url: log_time_project_workflows_path(project), method: :post, class: "batch-bar" do %>
         <%= hidden_field_tag "workflow_ids[]", workflow.id %>
         <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
