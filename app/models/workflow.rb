@@ -160,20 +160,7 @@ class Workflow < ApplicationRecord
 
   def previous_runbook_stage = Workflows::RunbookNavigator.new(self).previous_stage
 
-  def current_stage
-    return stages.find_by(id: current_stage_id) if runbook?
-
-    stage_type = Workflows::StageResolver.stage_type_for(
-      status: status, kind: kind, personal: project.personal?, ci_loop: development? && project.ci_loop_ready?
-    )
-    return nil unless stage_type
-
-    # The Jira-update and UAT-test stages aren't seeded with the workflow (older workflows
-    # predate it), so create it the first time it's needed.
-    return stages.find_or_create_by!(stage_type: stage_type) if Workflows::StageResolver::LAZY_STAGE_TYPES.include?(stage_type)
-
-    stages.find_by(stage_type: stage_type)
-  end
+  def current_stage = Workflows::CurrentStage.new(self).call
 
   # Jira-project development workflows that got a PR: the ones whose ticket
   # moves to UAT/Releaseable once the PR is merged.
