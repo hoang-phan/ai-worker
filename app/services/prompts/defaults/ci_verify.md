@@ -8,7 +8,10 @@ separate step reruns it after you. Only run the failing tests or linters on thei
 
 1. Read the output cheaply: the file can be huge, so never print it whole. Start with `tail -n 40 {CI_OUTPUT}`, then
    `grep -nE "●|FAIL|Failures:|rspec ./|error|Error" {CI_OUTPUT}` and read narrow ranges around the matches.
-2. If the exit status is 0 and the output shows no failure, stop: the verdict is PASSED. Change nothing.
+2. If the exit status is 0 and the output shows no failure, stop: the verdict is PASSED. Change nothing. A short run
+   is not a cut-off: the gate only runs the steps for areas it places locally and leaves the rest to cloud CI (e.g. a
+   diff touching routes or CI config runs only Preflight and Quality, about 10 minutes). Judge by the exit codes on
+   the last line and the gate's own "passed"/"failed" line, not by how long it took or which steps are missing.
 3. Otherwise fix EVERY failure, every time; never stop at reporting one. A failure caused by this branch's change
    is fixed in the code, without skipping, deleting or weakening tests. An environment problem (a missing or wrong
    tool version such as Python or Node, a tool not on PATH, a module missing because of an old interpreter) is fixed
