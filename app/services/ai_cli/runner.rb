@@ -77,19 +77,7 @@ module AiCli
     end
 
     def poll(pid)
-      _reaped_pid, status = Process.wait2(pid, Process::WNOHANG)
-      status ? [ :completed, status ] : :running
-    rescue Errno::ECHILD
-      # Not our child anymore (e.g. the Sidekiq process restarted mid-run).
-      # Fall back to a liveness check since we can no longer reap it.
-      begin
-        Process.getpgid(pid)
-        :running
-      rescue Errno::ESRCH
-        [ :completed, nil ]
-      end
-    rescue Errno::ESRCH
-      [ :completed, nil ]
+      ProcessStatus.new.call(pid)
     end
   end
 end
