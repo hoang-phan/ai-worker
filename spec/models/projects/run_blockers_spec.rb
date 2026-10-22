@@ -50,7 +50,7 @@ RSpec.describe Projects::RunBlockers do
     it "returns only the failing checks, in the order asked" do
       project.assign_attributes(kind: :personal, jira_base_url: "", jira_assignee: "me")
       expect(blockers.messages(:jira_site_url, :assignee, :jira_kind))
-        .to eq(["Jira site URL is not set", "project kind is not jira"])
+        .to eq([ "Jira site URL is not set", "project kind is not jira" ])
     end
 
     it "returns an empty list when everything passes" do

@@ -1,7 +1,6 @@
 require "rails_helper"
 
 RSpec.describe Slack::MentionFetcher do
-
   # Records the keyword args `start` receives and yields canned rows to `poll`.
   let(:fake_run_class) do
     Class.new do

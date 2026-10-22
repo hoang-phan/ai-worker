@@ -73,7 +73,7 @@ RSpec.describe StageRun, type: :model do
       tie_first = stage.stage_runs.create!(action: "resumed", created_at: now)
       tie_second = stage.stage_runs.create!(action: "failed", created_at: now)
 
-      expect(described_class.history_for(workflow).to_a).to eq([tie_second, tie_first, oldest])
+      expect(described_class.history_for(workflow).to_a).to eq([ tie_second, tie_first, oldest ])
     end
   end
 end
