@@ -13,6 +13,15 @@ class Workflow < ApplicationRecord
   # paused for a person (Next) after each.
   enum :kind, { development: 0, pr_review: 1, runbook: 2 }
 
+  def jira_key
+    Jira::TicketRef.key_for(jira_ticket)
+  end
+
+  # Seconds the Jira user has logged on this workflow's ticket (mirrored in time_logs).
+  def logged_seconds
+    jira_key.present? ? TimeLog.where(ticket_key: jira_key).sum(:seconds) : 0
+  end
+
   # Accepts a Slack thread id (`1760000000.123456`) or a message link (`.../archives/C123/p1760000000123456`).
   def slack_review_thread_ts=(value)
     text = value.to_s.strip

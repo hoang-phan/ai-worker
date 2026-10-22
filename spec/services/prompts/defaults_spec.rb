@@ -32,7 +32,7 @@ RSpec.describe Prompts::Defaults do
     "ci_verify" => {
       marker: "CI_VERDICT",
       placeholders: %w[{JIRA} {CI_COMMAND} {CI_STATUS} {CI_OUTPUT} {CI_VERIFY_INSTRUCTIONS}],
-      sha256: "e6624cc4be0f83083f604d909ce99d502f9fe8e332bebcac87a5f78ef4ab0b80"
+      sha256: "815725e723de0a1992119726b2c326f4c9aea507b8c725a7046fde0ea85e7d4e"
     },
     "pr_create" => {
       marker: nil,

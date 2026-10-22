@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Jira::TimeSlotPlanner do
   let(:project) { Project.create!(name: "Planner spec", kind: :jira, repo_full_name: "org/repo", local_directory: "/tmp") }
   let(:workflow) { project.workflows.create!(jira_ticket: "PLAN-1", branch_name: "plan-1", github_reviewer: "x") }
-  let(:monday) { Date.new(2026, 10, 19) }
+  let(:monday) { Date.new(2027, 2, 1) } # the 1st of the month, a Monday
   let(:planner) { described_class.new(today: monday + 2) }
 
   def log(date, hours, hour: 6)
@@ -24,6 +24,12 @@ RSpec.describe Jira::TimeSlotPlanner do
     days = [ 1.5, 1, 3, 1, 2 ].map { |hours| place(hours).to_date }
 
     expect(days).to eq([ monday + 1, monday + 2, monday + 2, monday + 3, monday + 3 ])
+  end
+
+  it "starts from the first available day of the month, not the current week" do
+    planner = described_class.new(today: Date.new(2026, 10, 22))
+
+    expect(planner.next_start(3600).to_date).to eq(Date.new(2026, 10, 1))
   end
 
   it "skips weekends" do

@@ -32,28 +32,13 @@ RSpec.describe "Workflows", type: :request do
   end
 
   describe "GET show with Jira hours" do
-    let(:client) { instance_double(Jira::WorklogClient) }
-
-    before do
-      project.update!(jira_base_url: "https://example.atlassian.net")
-      allow(Jira::WorklogClient).to receive(:new).and_return(client)
-    end
-
-    it "shows the hours currently logged in Jira" do
-      allow(client).to receive(:logged_seconds).with("SPEC-1").and_return(5400)
+    it "shows the hours mirrored from Jira" do
+      workflow.update!(jira_logged_synced_at: 5.minutes.ago)
+      TimeLog.create!(ticket_key: "SPEC-1", jira_worklog_id: "1", started_at: Time.current, seconds: 5400)
 
       get project_workflow_path(project, workflow)
 
-      expect(response.body).to include("Jira currently shows <strong>1.5 h</strong>")
-    end
-
-    it "still renders when Jira can't be read" do
-      allow(client).to receive(:logged_seconds).and_raise(Jira::WorklogError, "Jira is down")
-
-      get project_workflow_path(project, workflow)
-
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Could not read hours from Jira: Jira is down")
+      expect(response.body).to include("1.5 h logged in Jira — synced 5 minutes ago")
     end
   end
 
@@ -178,7 +163,7 @@ RSpec.describe "Workflows", type: :request do
   end
 
   describe "POST log_time" do
-    let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001") }
+    let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", keys_with_my_worklogs_since: []) }
 
     before do
       project.update!(jira_base_url: "https://example.atlassian.net")

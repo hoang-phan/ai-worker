@@ -1,5 +1,5 @@
 module Jira
-  # Picks when the next chunk of logged time goes: the first weekday (starting Monday of the current week)
+  # Picks when the next chunk of logged time goes: the first weekday (starting on the 1st of the current month, so gaps earlier in the month are filled first)
   # whose global total is still under DAILY_TARGET, at a random whole hour between 6AM and 5PM that no
   # existing log that day already starts at (overlapping other entries is fine).
   class TimeSlotPlanner
@@ -14,7 +14,7 @@ module Jira
 
     # Returns the Time the worklog should start at.
     def next_start(seconds)
-      from = @today.beginning_of_week
+      from = @today.beginning_of_month
       logs = TimeLog.where(started_at: from.in_time_zone..).to_a.group_by { |log| log.started_at.in_time_zone.to_date }
       date = from
       date += 1 while weekend?(date) || total(logs[date]) >= DAILY_TARGET

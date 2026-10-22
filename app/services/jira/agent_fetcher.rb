@@ -2,8 +2,6 @@ require "fileutils"
 require "json"
 
 module Jira
-  class FetchError < StandardError; end
-
   # Gets a project's matching Jira tickets via the agent CLI, which uses the
   # Atlassian MCP connector (no Jira API token needed). The agent runs
   # detached, like stage runs, and writes the tickets to a temp file;

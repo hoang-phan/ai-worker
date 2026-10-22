@@ -4,7 +4,6 @@ class WorkflowsController < ApplicationController
 
   def show
     @stage_runs = @workflow.stages.flat_map(&:stage_runs).sort_by(&:created_at).reverse
-    load_jira_logged_seconds
   end
 
   def new
@@ -129,13 +128,6 @@ class WorkflowsController < ApplicationController
   end
 
   private
-
-  # Current hours in Jira for the ticket (read live). A Jira failure only hides the figure; the local ledger total still shows.
-  def load_jira_logged_seconds
-    @jira_logged_seconds = Jira::LoggedTime.new.seconds_for(@workflow)
-  rescue Jira::WorklogError => e
-    @jira_logged_error = e.message
-  end
 
   def set_project
     @project = Project.find(params[:project_id])

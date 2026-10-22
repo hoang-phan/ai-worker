@@ -8,7 +8,8 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    @workflows = @project.workflows.includes(:time_logs).order(:position, :id)
+    @workflows = @project.workflows.order(:position, :id)
+    @logged_seconds = TimeLog.where(ticket_key: @workflows.filter_map(&:jira_key)).group(:ticket_key).sum(:seconds)
   end
 
   def new

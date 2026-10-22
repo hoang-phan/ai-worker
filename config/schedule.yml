@@ -49,3 +49,13 @@ slack_ping:
   cron: "*/5 * * * *"
   class: "SlackPingJob"
   queue: default
+
+jira_hours_sync:
+  cron: "*/10 5-13 * * * Asia/Ho_Chi_Minh"
+  class: "JiraHoursSyncJob"
+  queue: default
+
+jira_hours_sync_off_hours:
+  cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  class: "JiraHoursSyncJob"
+  queue: default

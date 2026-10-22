@@ -2,7 +2,9 @@ require "rails_helper"
 
 RSpec.describe Jira::TimeLogBatch do
   let(:logger) { instance_double(Jira::TimeLogger) }
-  let(:workflows) { %w[a b c].map { |name| instance_double(Workflow, label: name) } }
+  let(:hours_sync) { instance_double(Jira::HoursSync, recent: nil) }
+  let(:project) { instance_double(Project, jira_base_url: "https://acme.atlassian.net") }
+  let(:workflows) { %w[a b c].map { |name| instance_double(Workflow, label: name, project: project) } }
   let(:started_at) { Time.zone.parse("2026-10-21 09:30:00") }
   let(:logs) do
     workflows.each_with_index.to_h do |workflow, index|
@@ -10,7 +12,7 @@ RSpec.describe Jira::TimeLogBatch do
     end
   end
 
-  subject(:batch) { described_class.new(logger: logger) }
+  subject(:batch) { described_class.new(logger: logger, hours_sync: hours_sync) }
 
   before do
     workflows.each { |workflow| allow(logger).to receive(:log).with(workflow, 1.5).and_return(logs[workflow]) }
@@ -27,6 +29,21 @@ RSpec.describe Jira::TimeLogBatch do
       "SPEC-2 #{I18n.l(started_at + 1.hour, format: :short)}, and " \
       "SPEC-3 #{I18n.l(started_at + 2.hours, format: :short)}."
     )
+  end
+
+  it "refreshes this month's worklogs from Jira once per site before logging" do
+    batch.call(workflows, 1.5)
+
+    expect(hours_sync).to have_received(:recent).with("https://acme.atlassian.net").once
+  end
+
+  it "logs nothing when the refresh from Jira fails" do
+    allow(hours_sync).to receive(:recent).and_raise(Jira::WorklogError, "Jira is down")
+
+    result = batch.call(workflows, 1.5)
+
+    expect(result.failure).to eq("Jira is down")
+    expect(logger).not_to have_received(:log)
   end
 
   it "reports the failure when the first workflow fails" do

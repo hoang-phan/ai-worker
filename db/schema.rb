@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_100000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -127,8 +127,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.datetime "started_at", null: false
     t.string "ticket_key", null: false
     t.datetime "updated_at", null: false
-    t.integer "workflow_id", null: false
+    t.integer "workflow_id"
+    t.index ["jira_worklog_id"], name: "index_time_logs_on_jira_worklog_id"
     t.index ["started_at"], name: "index_time_logs_on_started_at"
+    t.index ["ticket_key"], name: "index_time_logs_on_ticket_key"
     t.index ["workflow_id"], name: "index_time_logs_on_workflow_id"
   end
 
@@ -146,6 +148,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_120000) do
     t.integer "current_stage_id"
     t.string "github_pr_url"
     t.string "github_reviewer"
+    t.datetime "jira_logged_synced_at"
     t.string "jira_ticket"
     t.integer "kind", default: 0, null: false
     t.text "local_test_feedback"

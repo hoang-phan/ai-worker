@@ -27,33 +27,59 @@ module Jira
       raise WorklogError, "Jira request failed: #{e.message}"
     end
 
-    # Total seconds logged in Jira on the ticket by everyone (sum of its worklogs, paged like jira_hours_report.py).
-    def logged_seconds(ticket_key)
-      raise WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set" if email.blank? || token.blank?
-
-      total = 0
+    # The authenticated user's (JIRA_EMAIL account) worklogs on a ticket, paged like jira_hours_report.py:
+    # [{ id:, started: Time, seconds: }]. Matched on accountId: Jira Cloud often hides author emails.
+    def my_worklogs(ticket_key)
+      mine = account_id
+      worklogs = []
       start_at = 0
       loop do
         data = get_json("/rest/api/3/issue/#{ticket_key}/worklog", startAt: start_at, maxResults: 1000)
         logs = data["worklogs"] || []
-        total += logs.sum { |log| log["timeSpentSeconds"].to_i }
+        worklogs += logs.select { |log| log.dig("author", "accountId") == mine }
+                        .map { |log| { id: log["id"].to_s, started: Time.zone.parse(log["started"]), seconds: log["timeSpentSeconds"].to_i } }
         start_at += logs.size
         break if logs.empty? || start_at >= data["total"].to_i
       end
-      total
+      worklogs
+    rescue JSON::ParserError, SystemCallError, Timeout::Error, SocketError, OpenSSL::SSL::SSLError => e
+      raise WorklogError, "Jira request failed: #{e.message}"
+    end
+
+    # Keys of the tickets the authenticated user has logged time on since `date`, whether or not the app knows them.
+    def keys_with_my_worklogs_since(date)
+      raise WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set" if email.blank? || token.blank?
+
+      keys = []
+      page_token = nil
+      loop do
+        params = { jql: %(worklogAuthor = currentUser() AND worklogDate >= "#{date.strftime('%Y-%m-%d')}"), fields: "key", maxResults: 100 }
+        params[:nextPageToken] = page_token if page_token
+        data = get_json("/rest/api/3/search/jql", params)
+        keys += (data["issues"] || []).map { |issue| issue["key"] }
+        page_token = data["nextPageToken"]
+        break if page_token.blank? || data["isLast"]
+      end
+      keys
     rescue JSON::ParserError, SystemCallError, Timeout::Error, SocketError, OpenSSL::SSL::SSLError => e
       raise WorklogError, "Jira request failed: #{e.message}"
     end
 
     private
 
+    def account_id
+      raise WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set" if email.blank? || token.blank?
+
+      @account_id ||= get_json("/rest/api/3/myself", {}).fetch("accountId")
+    end
+
     def get_json(path, params)
       uri = URI("#{base_url}#{path}")
-      uri.query = URI.encode_www_form(params)
+      uri.query = URI.encode_www_form(params) if params.any?
       request = Net::HTTP::Get.new(uri, "Accept" => "application/json")
       request.basic_auth(email, token)
       response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 5, read_timeout: 15) { |http| http.request(request) }
-      raise WorklogError, "Jira worklogs for #{path[%r{issue/([^/]+)}, 1]} could not be read (HTTP #{response.code})" unless response.code.to_i == 200
+      raise WorklogError, "Jira #{path[%r{issue/([^/]+)}, 1] || path} could not be read (HTTP #{response.code})" unless response.code.to_i == 200
 
       JSON.parse(response.body)
     end

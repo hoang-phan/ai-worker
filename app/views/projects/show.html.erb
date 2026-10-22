@@ -48,7 +48,7 @@
       <% @workflows.each do |workflow| %>
         <tr>
           <% if @project.jira? %>
-            <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: (workflow.time_logs.any? ? {} : { select_all_target: "row" }), aria: { label: "Select #{workflow.label}" } %><% end %></td>
+            <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: (@logged_seconds[workflow.jira_key].to_i.positive? ? {} : { select_all_target: "row" }), aria: { label: "Select #{workflow.label}" } %><% end %></td>
           <% end %>
           <td class="numeric">
             <%= workflow.position %>
@@ -58,8 +58,8 @@
           <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(@project, workflow)) %><%= content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review? %><%= content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook? %></td>
           <% if @project.jira? %>
             <td>
-              <% if workflow.development? && workflow.time_logs.any? %>
-                <span class="badge badge-success">Time logged</span>
+              <% if workflow.development? && @logged_seconds[workflow.jira_key].to_i.positive? %>
+                <span class="badge badge-success" title="Hours you have logged in Jira<%= ", synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at %>"><%= number_with_precision(@logged_seconds[workflow.jira_key] / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h</span>
               <% elsif workflow.development? %>
                 <span class="badge badge-neutral">Not logged</span>
               <% end %>
