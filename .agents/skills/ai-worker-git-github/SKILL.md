@@ -38,7 +38,7 @@ Every `git` and `gh` subprocess in the app goes through one of these objects, al
 ## Conventions
 
 - **Never interpolate into a shell string.** Build an argv array and pass it with `chdir:` (`Open3.capture3(*argv, chdir: dir)`); never `cd X && ...`, backticks or `system("...#{x}")`. Untrusted text (ticket text, PR titles, branch names, reviewer logins) is an argv element, never part of a command string.
-- **Raise your own `CommandError`.** Each service raises its own class (`Git::CommandError`, `Github::CommandError`) on non-zero exit, with the command and stderr in the message. Don't rescue inside these objects (except deliberate fallbacks like `PrLocator#url_for_head`); `StageExecutor` turns them into a `failed` `StageRun`.
+- **Raise your own `CommandError`.** Each service raises its own class (`Git::CommandError`, `Github::CommandError`) on non-zero exit, with the command and stderr in the message. Don't rescue inside these objects (except deliberate fallbacks like `PrLocator#url_for_head`); `StageExecutor` in `ai-worker-stage-pipeline` turns stage failures into a `failed` `StageRun`.
 - Probes use `success?`/`run`, mutations use `run!`/`checkout!`. Run `git` only through `Git::Shell`, `gh` only through `Github::Runner`.
 
 ## Specs
