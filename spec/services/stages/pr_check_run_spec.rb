@@ -59,6 +59,24 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(start_ai_run).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+    expect(start_ai_run).not_to have_received(:call).with("the prompt")
+  end
+
+  it "logs decision actions before starting the fix run when changes are requested" do
+    stub_decision(:changes_requested, %w[local_test_failing])
+    run
+
+    expect(actions).to eq %w[local_test_failing]
+    expect(start_ai_run).to have_received(:call).with("the prompt")
+  end
+
+  it "logs decision actions before starting conflict resolution" do
+    stub_decision(:changes_requested, %w[local_test_failing])
+    allow(git).to receive(:update_with_main!).and_return(:conflict)
+    run
+
+    expect(actions).to eq %w[local_test_failing]
+    expect(start_ai_run).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
   end
 
   it "logs no_action_pending when nothing is decided" do
@@ -66,6 +84,14 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(actions).to eq %w[no_action_pending]
+    expect(start_ai_run).not_to have_received(:call)
+  end
+
+  it "logs the decision actions then no_action_pending when pending" do
+    stub_decision(:pending, %w[checks_failing])
+    run
+
+    expect(actions).to eq %w[checks_failing no_action_pending]
     expect(start_ai_run).not_to have_received(:call)
   end
 

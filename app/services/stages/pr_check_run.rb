@@ -16,34 +16,45 @@ module Stages
 
     def call
       # A merged PR is done — skip review/check inspection entirely.
-      if github.merged?(workflow.github_pr_url)
-        workflow.update!(status: :merged)
-        return stage.log_run!("pr_merged_closed")
-      end
+      return close_merged if github.merged?(workflow.github_pr_url)
 
-      result = Stages::PrCheckDecision.new(
-        review_decision: github.review_decision(workflow.github_pr_url, handoff.reviewers),
-        local_test_failing: workflow.local_test_feedback.present?,
-        checks_failing: -> { github.checks_failing?(workflow.github_pr_url) }
-      ).call
+      result = decision
       result.actions.each { |action| stage.log_run!(action) }
 
       case result.decision
-      when :approved
-        workflow.update!(status: :done)
-        stage.log_run!("approved_closed")
-      when :changes_requested
-        if git.update_with_main!(project, workflow.branch_name) == :conflict
-          start_ai_run.call(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
-        else
-          start_ai_run.call(prompt.body)
-        end
-      else
-        stage.log_run!("no_action_pending")
+      when :approved then close_approved
+      when :changes_requested then start_fix_run
+      else stage.log_run!("no_action_pending")
       end
     end
 
     private
+
+    def close_merged
+      workflow.update!(status: :merged)
+      stage.log_run!("pr_merged_closed")
+    end
+
+    def decision
+      Stages::PrCheckDecision.new(
+        review_decision: github.review_decision(workflow.github_pr_url, handoff.reviewers),
+        local_test_failing: workflow.local_test_feedback.present?,
+        checks_failing: -> { github.checks_failing?(workflow.github_pr_url) }
+      ).call
+    end
+
+    def close_approved
+      workflow.update!(status: :done)
+      stage.log_run!("approved_closed")
+    end
+
+    def start_fix_run
+      if git.update_with_main!(project, workflow.branch_name) == :conflict
+        start_ai_run.call(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+      else
+        start_ai_run.call(prompt.body)
+      end
+    end
 
     attr_reader :workflow, :stage, :project, :github, :git, :handoff, :prompt, :start_ai_run
   end
