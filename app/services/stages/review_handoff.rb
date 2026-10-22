@@ -1,19 +1,21 @@
 module Stages
   # Best-effort review handoff work that must never make a completed stage fail.
   class ReviewHandoff
-    def initialize(workflow, stage)
+    def initialize(workflow, stage, notifier: Slack::ReviewNotifier.new(workflow.project),
+                   github: Github::Client.new(workflow.project))
       @workflow = workflow
       @stage = stage
       @project = workflow.project
+      @notifier = notifier
+      @github = github
     end
 
     def notify_reviewers!(again: false, fixed: nil)
-      notifier = Slack::ReviewNotifier.new(project)
       return unless notifier.enabled? && reviewers.any?
 
       pr_url = workflow.github_pr_url
-      title = Github::Client.new(project).pr_title(pr_url).presence
-      label = [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
+      title = github.pr_title(pr_url).presence
+      label = review_label(pr_url, title)
       notifier.collect(workflow)
       thread_ts = workflow.reload.slack_review_thread_ts.presence
       returned_thread_ts = notifier.notify!(
@@ -27,7 +29,7 @@ module Stages
     end
 
     def enable_auto_merge!(pr_url)
-      Github::Client.new(project).enable_auto_merge!(pr_url)
+      github.enable_auto_merge!(pr_url)
       stage.log_run!("auto_merge_enabled")
     rescue Github::CommandError => e
       stage.log_run!("auto_merge_failed", error: e.message)
@@ -39,12 +41,15 @@ module Stages
 
     private
 
-    attr_reader :workflow, :stage, :project
+    attr_reader :workflow, :stage, :project, :notifier, :github
 
-    # Slack::ReviewNotifier currently returns the byte count from writing its
-    # detached-run pid. A synchronous notifier may return a thread timestamp,
-    # so accept only a nonblank String and leave the asynchronous collector's
-    # established behavior intact.
+    def review_label(pr_url, title)
+      [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
+    end
+
+    # Slack::ReviewNotifier#notify! returns the byte count of its detached-run
+    # pid write (an Integer), not a thread timestamp. Only a nonblank String is
+    # a usable timestamp, so anything else is ignored here.
     def store_thread_ts(value)
       return unless value.is_a?(String) && value.present?
       return if workflow.slack_review_thread_ts.present?

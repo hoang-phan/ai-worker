@@ -17,12 +17,7 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
   let(:notifier_enabled) { true }
   let(:github) { instance_double(Github::Client) }
 
-  subject(:handoff) { described_class.new(workflow, stage) }
-
-  before do
-    allow(Slack::ReviewNotifier).to receive(:new).with(project).and_return(notifier)
-    allow(Github::Client).to receive(:new).with(project).and_return(github)
-  end
+  subject(:handoff) { described_class.new(workflow, stage, notifier: notifier, github: github) }
 
   after do
     FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
