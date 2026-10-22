@@ -4,8 +4,8 @@
     <% end %>
     <td class="numeric">
       <%= workflow.position %>
-      <%= button_to "↑", move_project_workflow_path(project, workflow, direction: "up"), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == first, form: { style: "display:inline" } %>
-      <%= button_to "↓", move_project_workflow_path(project, workflow, direction: "down"), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == last, form: { style: "display:inline" } %>
+      <%= button_to "↑", move_project_workflow_path(project, workflow, direction: "up", status: status_filter), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == first, form: { style: "display:inline" } %>
+      <%= button_to "↓", move_project_workflow_path(project, workflow, direction: "down", status: status_filter), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == last, form: { style: "display:inline" } %>
     </td>
     <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(project, workflow)) %><%= workflow_kind_badges(workflow) %></td>
     <% if project.jira? %>
@@ -27,7 +27,7 @@
     <% end %>
     <td class="actions-cell">
       <% if workflow.pending? %>
-        <%= button_to "Start", start_project_workflow_path(project, workflow), method: :post, class: "link-action", form: { style: "display:inline" } %>
+        <%= button_to "Start", start_project_workflow_path(project, workflow, status: status_filter), method: :post, class: "link-action", form: { style: "display:inline" } %>
       <% end %>
       <%= link_to edit_project_workflow_path(project, workflow), class: "icon-button", aria: { label: "Edit #{workflow.label}" }, title: "Edit workflow" do %>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>

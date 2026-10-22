@@ -248,5 +248,12 @@ RSpec.describe "Workflows", type: :request do
       expect(flash[:notice]).to eq("Workflow started.")
       expect(workflow.reload).to be_implementing
     end
+
+    it "redirects back to the project list with the status filter kept" do
+      workflow.update!(status: :pending)
+      post start_project_workflow_path(project, workflow, status: "pending")
+
+      expect(response).to redirect_to(project_path(project, status: "pending"))
+    end
   end
 end

@@ -45,10 +45,12 @@ class WorkflowsController < ApplicationController
   end
 
   def start
+    # Started from the project list: go back to it with the status filter kept.
+    fallback = params[:status].present? ? project_path(@project, status: params[:status]) : project_workflow_path(@project, @workflow)
     if @workflow.start!
-      redirect_back_or_to project_workflow_path(@project, @workflow), notice: "Workflow started."
+      redirect_to fallback, notice: "Workflow started."
     else
-      redirect_back_or_to project_workflow_path(@project, @workflow), alert: "Workflow has already been started."
+      redirect_to fallback, alert: "Workflow has already been started."
     end
   end
 
@@ -71,7 +73,7 @@ class WorkflowsController < ApplicationController
     return redirect_to @project, alert: "Unknown direction." unless %w[up down].include?(direction)
 
     Projects::WorkflowReorder.new(@project).move(@workflow, direction)
-    redirect_to @project
+    redirect_to project_path(@project, status: params[:status].presence)
   end
 
   # The runbook's "Run stage" button: starts the current stage (also retries a failed one) and lets the
