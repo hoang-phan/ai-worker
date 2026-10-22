@@ -10,7 +10,7 @@ module Scheduling
     def initialize(queries: WorkflowQueries, execute: ActiveWorkflowRunner::DEFAULT_EXECUTOR,
                    github_factory: DEFAULT_GITHUB_FACTORY, logger: Rails.logger)
       @queries = queries
-      @execute = execute
+      @guarded_executor = GuardedExecutor.new(executor: execute, logger: logger)
       @github_factory = github_factory
       @logger = logger
     end
@@ -20,7 +20,7 @@ module Scheduling
 
       confirm_merges
       workflow = @queries.next_merged
-      execute(workflow) if workflow
+      @guarded_executor.call(workflow) if workflow
     end
 
     private
@@ -36,12 +36,6 @@ module Scheduling
       rescue StandardError => e
         @logger.error("[scheduler] merge check workflow=#{workflow.id} #{e.class}: #{e.message}")
       end
-    end
-
-    def execute(workflow)
-      @execute.call(workflow)
-    rescue StandardError => e
-      @logger.error("[scheduler] workflow=#{workflow.id} #{e.class}: #{e.message}")
     end
   end
 end

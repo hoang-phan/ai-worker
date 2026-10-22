@@ -3,6 +3,10 @@ module Scheduling
   # Stages `git checkout`/`pull`/`merge` in `project.local_directory`, which would
   # corrupt a run in progress on the same clone.
   class Capacity
+    def self.default_max
+      WorkflowSchedulerJob.max_concurrent_agents
+    end
+
     def initialize(busy_clones:, max:)
       @busy_clones = busy_clones.to_a.dup
       @max = max

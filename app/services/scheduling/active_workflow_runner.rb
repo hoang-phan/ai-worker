@@ -11,8 +11,7 @@ module Scheduling
 
     def initialize(queries: WorkflowQueries, executor: DEFAULT_EXECUTOR, logger: Rails.logger, max_capacity: nil)
       @queries = queries
-      @executor = executor
-      @logger = logger
+      @guarded_executor = GuardedExecutor.new(executor: executor, logger: logger)
       @max_capacity = max_capacity
     end
 
@@ -25,28 +24,16 @@ module Scheduling
       running, waiting = workflows.partition(&:processing?)
       waiting = Planner.eligible_waiting(active_workflows: active_workflows, waiting: waiting, run_workflow_id: run_workflow_id)
 
-      running.each { |workflow| execute(workflow) }
+      running.each { |workflow| @guarded_executor.call(workflow) }
 
-      capacity = Capacity.new(busy_clones: @queries.busy_clone_keys, max: max_capacity)
+      capacity = Capacity.new(busy_clones: @queries.busy_clone_keys, max: @max_capacity || Capacity.default_max)
 
       waiting.each do |workflow|
         next unless capacity.can_start?(workflow)
 
-        execute(workflow)
+        @guarded_executor.call(workflow)
         capacity.started!(workflow) if workflow.reload.processing?
       end
-    end
-
-    private
-
-    def max_capacity
-      @max_capacity || WorkflowSchedulerJob.max_concurrent_agents
-    end
-
-    def execute(workflow)
-      @executor.call(workflow)
-    rescue StandardError => e
-      @logger.error("[scheduler] workflow=#{workflow.id} #{e.class}: #{e.message}")
     end
   end
 end

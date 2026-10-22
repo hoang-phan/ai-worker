@@ -7,31 +7,18 @@ module Scheduling
     def initialize(queries: WorkflowQueries, execute: ActiveWorkflowRunner::DEFAULT_EXECUTOR,
                    logger: Rails.logger, max_capacity: nil)
       @queries = queries
-      @execute = execute
-      @logger = logger
+      @guarded_executor = GuardedExecutor.new(executor: execute, logger: logger)
       @max_capacity = max_capacity
     end
 
     def call
-      slots = @queries.free_agent_slots(max: max_capacity)
+      slots = @queries.free_agent_slots(max: @max_capacity || Capacity.default_max)
       return if slots <= 0
 
       @queries.due_uat_tests(limit: slots).each do |workflow|
         workflow.update!(status: :uat_testing) if workflow.uat_waiting?
-        execute(workflow)
+        @guarded_executor.call(workflow)
       end
-    end
-
-    private
-
-    def max_capacity
-      @max_capacity || WorkflowSchedulerJob.max_concurrent_agents
-    end
-
-    def execute(workflow)
-      @execute.call(workflow)
-    rescue StandardError => e
-      @logger.error("[scheduler] workflow=#{workflow.id} #{e.class}: #{e.message}")
     end
   end
 end
