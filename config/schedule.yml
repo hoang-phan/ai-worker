@@ -41,7 +41,7 @@ bugsnag_sync_off_hours:
   queue: default
 
 brainstorm:
-  cron: "*/30 * * * *"
+  cron: "0 */2 * * *"
   class: "BrainstormJob"
   queue: default
 
