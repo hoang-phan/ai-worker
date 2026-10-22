@@ -4,7 +4,9 @@ module Ci
   class CheckPoller
     attr_reader :log_offset
 
-    def initialize(pid:, log_offset:, started_at:, stale_after:, **)
+    def initialize(pid:, log_offset:, started_at:, stale_after:, runner: AiCli::Runner, kill: Process.method(:kill), **)
+      @runner = runner
+      @kill = kill
       @pid = pid
       @log_offset = log_offset
       @started_at = started_at
@@ -13,7 +15,7 @@ module Ci
 
     # :running, or [:finished, exit_status]. Raises AiCli::CommandError on a timeout or when the status is unknown.
     def call
-      result = AiCli::Runner.poll(pid)
+      result = runner.poll(pid)
 
       if result == :running
         return :running unless stale?
@@ -30,14 +32,14 @@ module Ci
 
     private
 
-    attr_reader :pid, :started_at, :stale_after
+    attr_reader :pid, :started_at, :stale_after, :runner, :kill
 
     def stale?
       started_at.present? && started_at < stale_after.ago
     end
 
     def kill_stale_run
-      Process.kill("TERM", -pid)
+      kill.call("TERM", -pid)
     rescue Errno::ESRCH
       nil
     end
