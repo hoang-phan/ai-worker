@@ -70,6 +70,16 @@ RSpec.describe AiCli::Output do
     it("is nil when missing") { expect(output("x").fixed_summary).to be_nil }
   end
 
+  describe "#lessons" do
+    it "returns the lines of the last block without bullets or blank lines" do
+      text = "LESSONS_BEGIN\nexample\nLESSONS_END\nLESSONS_BEGIN\n- Use partial A\n\n  - Prefer B  \nplain C\nLESSONS_END\nLOCAL_RETEST: NO"
+      expect(output(text).lessons).to eq([ "Use partial A", "Prefer B", "plain C" ])
+    end
+
+    it("is empty when missing") { expect(output("x").lessons).to eq([]) }
+    it("is empty for an empty block") { expect(output("LESSONS_BEGIN\nLESSONS_END").lessons).to eq([]) }
+  end
+
   describe "#posted?" do
     it("matches a POSTED line") { expect(output("done\nPOSTED\n").posted?).to be true }
     it("allows surrounding whitespace") { expect(output("done\n   POSTED  \n").posted?).to be true }

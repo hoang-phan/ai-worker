@@ -31,6 +31,19 @@ RSpec.describe "Projects", type: :request do
     end
   end
 
+  describe "agent lessons" do
+    it "shows an editable textarea and saves it" do
+      project.update!(agent_lessons: "Use partial A")
+
+      get edit_project_path(project)
+      expect(response.body).to include('name="project[agent_lessons]"', "Use partial A")
+
+      patch project_path(project), params: { project: { agent_lessons: "Use partial A\nPrefer services" } }
+
+      expect(project.reload.agent_lessons).to eq("Use partial A\nPrefer services")
+    end
+  end
+
   describe "POST create" do
     it "re-renders the error summary when invalid" do
       expect {

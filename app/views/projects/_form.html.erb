@@ -59,6 +59,12 @@
       <p class="field-hint">Shared by UAT and local testing by the agent: how to log in, which data to prepare, a guide to read, things to avoid. Put anything that only works on UAT (e.g. GitHub Actions wrappers for test data) in the UAT-only box below.</p>
     </div>
 
+    <div class="field">
+      <%= f.label :agent_lessons, "Agent lessons (optional)" %>
+      <%= f.text_area :agent_lessons, rows: 6 %>
+      <p class="field-hint">One rule per line. Review-fix runs add the rules they learn (newest 40 kept); implementation and task runs start with them. Remove the ones that are wrong or outdated.</p>
+    </div>
+
     <%= render "projects/form/jira", f: f %>
     <%= render "projects/form/uat_test", f: f %>
     <%= render "projects/form/ci_loop", f: f %>

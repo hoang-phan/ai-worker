@@ -48,6 +48,13 @@ module AiCli
       text.scan(/FIXED_SUMMARY_BEGIN[ \t]*\n(.*?)\n[ \t]*FIXED_SUMMARY_END/m).last&.first.to_s.strip.presence
     end
 
+    # The lines of the last LESSONS_BEGIN/LESSONS_END block (the log may echo the prompt's own example), without
+    # their leading "- " and blank lines.
+    def lessons
+      block = text.scan(/^[ \t]*LESSONS_BEGIN[ \t]*\n(.*?)\n?^[ \t]*LESSONS_END[ \t]*$/m).last&.first.to_s
+      block.lines.map { |line| line.strip.delete_prefix("- ").strip }.reject(&:blank?)
+    end
+
     # A line that is only POSTED.
     def posted?
       text.match?(/^\s*POSTED\s*$/)

@@ -119,6 +119,23 @@ RSpec.describe Prompts::StagePrompt do
       end
     end
 
+    context "with project lessons" do
+      let(:stage_attrs) { { prompt: "Do it" } }
+      let(:project_attrs) { { kind: :personal, agent_lessons: "Use the shared error_summary partial on forms" } }
+
+      it "appends them to a task prompt" do
+        expect(stage_prompt.body).to include("Lessons from earlier reviews of this project", "Use the shared error_summary partial on forms")
+      end
+
+      it "does not append them to a pr_check prompt, which asks for new ones instead" do
+        pr_check = workflow.stages.create!(stage_type: :pr_check, prompt: "Fix")
+        body = described_class.new(workflow, pr_check, notifier: notifier, latest_log: latest_log).body
+
+        expect(body).not_to include("Lessons from earlier reviews")
+        expect(body).to include("LESSONS_BEGIN", "LESSONS_END")
+      end
+    end
+
     context "with a pr_check stage" do
       let(:stage_type) { :pr_check }
       let(:stage_attrs) { { prompt: "Fix the review" } }

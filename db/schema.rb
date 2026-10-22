@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_120000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -39,6 +39,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_110000) do
   end
 
   create_table "projects", force: :cascade do |t|
+    t.text "agent_lessons"
     t.boolean "brainstorm_auto_start", default: false, null: false
     t.boolean "brainstorm_enabled", default: false, null: false
     t.text "brainstorm_goal"
