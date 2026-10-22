@@ -79,9 +79,23 @@ RSpec.describe Jira::HoursSync do
 
     it "aborts when credentials are missing" do
       workflow_for("HRS-5")
-      allow(client).to receive(:my_worklogs).and_raise(Jira::WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set")
+      allow(client).to receive(:my_worklogs).and_raise(Jira::WorklogError.new("JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set", reason: :missing_credentials))
 
       expect { sync.call }.to raise_error(Jira::WorklogError, /not set/)
+    end
+
+    it "treats an ordinary Jira error whose text contains 'are not set' as a per-ticket failure" do
+      bad = workflow_for("HRS-8")
+      good = workflow_for("HRS-9")
+      allow(client).to receive(:my_worklogs).with("HRS-8").and_raise(Jira::WorklogError, "Custom fields are not set")
+      allow(client).to receive(:my_worklogs).with("HRS-9").and_return([ worklog("9", 3600) ])
+
+      result = sync.call
+
+      expect(result.failed).to eq([ "HRS-8: Custom fields are not set" ])
+      expect(result.synced).to eq(1)
+      expect(bad.reload.jira_logged_synced_at).to be_nil
+      expect(good.reload.logged_seconds).to eq(3600)
     end
 
     it "skips projects without a Jira site URL" do

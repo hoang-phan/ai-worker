@@ -44,22 +44,28 @@ module Jira
     def sync_site(base_url, workflows, keys)
       result = Result.new(synced: 0, failed: [])
       workflow_by_key = workflows.select(&:jira_key).index_by(&:jira_key)
-      keys.uniq.each do |key|
-        mirror.replace(key, client(base_url).my_worklogs(key), workflow: workflow_by_key[key])
-        result.synced += 1
-      rescue WorklogError => e
-        raise if e.message.include?("are not set")
-
-        result.failed << "#{key}: #{e.message}"
-      end
-      stamp_synced(workflows, result.failed)
+      failed_keys = keys.uniq.reject { |key| sync_ticket(base_url, key, workflow_by_key[key], result) }
+      stamp_synced(workflows, failed_keys)
       result
     end
 
-    def stamp_synced(workflows, failed)
+    # Mirrors one ticket; returns true on success. A failure is recorded in the result and the ticket keeps its old rows,
+    # except missing credentials, which abort the whole run.
+    def sync_ticket(base_url, key, workflow, result)
+      mirror.replace(key, client(base_url).my_worklogs(key), workflow: workflow)
+      result.synced += 1
+      true
+    rescue WorklogError => e
+      raise if e.missing_credentials?
+
+      result.failed << "#{key}: #{e.message}"
+      false
+    end
+
+    def stamp_synced(workflows, failed_keys)
       workflows.each do |workflow|
         next unless workflow.jira_key
-        next if failed.any? { |message| message.start_with?("#{workflow.jira_key}:") }
+        next if failed_keys.include?(workflow.jira_key)
 
         workflow.update_columns(jira_logged_synced_at: Time.current)
       end

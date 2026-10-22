@@ -68,7 +68,7 @@ module Jira
     attr_reader :base_url, :email, :token, :transport
 
     def ensure_credentials!
-      raise WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set" if email.blank? || token.blank?
+      raise WorklogError.new("JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set", reason: :missing_credentials) if email.blank? || token.blank?
     end
 
     def account_id

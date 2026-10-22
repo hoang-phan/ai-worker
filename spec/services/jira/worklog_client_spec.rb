@@ -37,7 +37,7 @@ RSpec.describe Jira::WorklogClient do
     it "raises WorklogError on a non-201 response" do
       responses << response(400, {})
 
-      expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira worklog for SPEC-1 failed \(HTTP 400\)/)
+      expect { client.add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /Jira worklog for SPEC-1 failed \(HTTP 400\)/) { |e| expect(e.reason).to be_nil }
     end
 
     [ Errno::ECONNREFUSED, Timeout::Error, SocketError ].each do |error|
@@ -49,7 +49,7 @@ RSpec.describe Jira::WorklogClient do
     end
 
     it "raises WorklogError without credentials" do
-      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /not set/)
+      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).add_worklog("SPEC-1", started_at: Time.current, seconds: 60) }.to raise_error(Jira::WorklogError, /not set/) { |e| expect(e.reason).to eq(:missing_credentials) }
     end
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Jira::WorklogClient do
     end
 
     it "raises WorklogError without credentials" do
-      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).my_worklogs("SPEC-1") }.to raise_error(Jira::WorklogError, /not set/)
+      expect { described_class.new("https://x.atlassian.net", email: nil, token: nil).my_worklogs("SPEC-1") }.to raise_error(Jira::WorklogError, /not set/) { |e| expect(e.reason).to eq(:missing_credentials) }
     end
   end
 
