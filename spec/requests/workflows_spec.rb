@@ -163,7 +163,7 @@ RSpec.describe "Workflows", type: :request do
   end
 
   describe "POST log_time" do
-    let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", keys_with_my_worklogs_since: []) }
+    let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", set_original_estimate_if_blank: true, keys_with_my_worklogs_since: []) }
 
     before do
       project.update!(jira_base_url: "https://example.atlassian.net")

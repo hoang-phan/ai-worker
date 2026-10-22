@@ -27,6 +27,25 @@ module Jira
       raise WorklogError, "Jira request failed: #{e.message}"
     end
 
+    # Sets the ticket's original estimate to `seconds` when it is blank or 0 (not estimated); returns true if it was updated.
+    def set_original_estimate_if_blank(ticket_key, seconds)
+      raise WorklogError, "JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set" if email.blank? || token.blank?
+
+      current = get_json("/rest/api/3/issue/#{ticket_key}", fields: "timetracking").dig("fields", "timetracking", "originalEstimateSeconds").to_i
+      return false if current.positive?
+
+      uri = URI("#{base_url}/rest/api/3/issue/#{ticket_key}")
+      request = Net::HTTP::Put.new(uri, "Content-Type" => "application/json", "Accept" => "application/json")
+      request.basic_auth(email, token)
+      request.body = { fields: { timetracking: { originalEstimate: "#{[ (seconds / 60.0).ceil, 1 ].max}m" } } }.to_json
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 5, read_timeout: 15) { |http| http.request(request) }
+      raise WorklogError, "Jira estimate update for #{ticket_key} failed (HTTP #{response.code})" unless response.code.to_i == 204
+
+      true
+    rescue JSON::ParserError, SystemCallError, Timeout::Error, SocketError, OpenSSL::SSL::SSLError => e
+      raise WorklogError, "Jira request failed: #{e.message}"
+    end
+
     # The authenticated user's (JIRA_EMAIL account) worklogs on a ticket, paged like jira_hours_report.py:
     # [{ id:, started: Time, seconds: }]. Matched on accountId: Jira Cloud often hides author emails.
     def my_worklogs(ticket_key)

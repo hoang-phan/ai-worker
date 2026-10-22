@@ -6,7 +6,7 @@ RSpec.describe Jira::TimeLogger do
   let(:project) { Project.create!(name: "Logger spec", kind: kind, repo_full_name: "org/repo", local_directory: "/tmp", jira_base_url: base_url) }
   let(:ticket) { "LOG-1" }
   let(:workflow) { project.workflows.create!(jira_ticket: ticket, branch_name: "log-1", github_reviewer: "x", task_description: "Spec task") }
-  let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001") }
+  let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", set_original_estimate_if_blank: true) }
   let(:factory) { ->(_base_url) { client } }
   let(:started_at) { Time.zone.local(2026, 10, 20, 9) }
   let(:planner) { instance_double(Jira::TimeSlotPlanner, next_start: started_at) }
@@ -19,6 +19,18 @@ RSpec.describe Jira::TimeLogger do
     expect(client).to have_received(:add_worklog).with("LOG-1", started_at: started_at, seconds: 5400)
     expect(log).to be_persisted
     expect(log).to have_attributes(workflow: workflow, ticket_key: "LOG-1", seconds: 5400, started_at: started_at, jira_worklog_id: "10001")
+  end
+
+  it "sets the original estimate to the logged time when unestimated" do
+    logger.log(workflow, 1.5)
+
+    expect(client).to have_received(:set_original_estimate_if_blank).with("LOG-1", 5400)
+  end
+
+  it "still records the log when the estimate update fails" do
+    allow(client).to receive(:set_original_estimate_if_blank).and_raise(Jira::WorklogError, "boom")
+
+    expect { logger.log(workflow, 1) }.to change { TimeLog.where(workflow: workflow).count }.by(1)
   end
 
   context "when the project is not a Jira project" do

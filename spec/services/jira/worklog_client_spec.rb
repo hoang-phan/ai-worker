@@ -38,6 +38,22 @@ RSpec.describe Jira::WorklogClient do
     end
   end
 
+  describe "#set_original_estimate_if_blank" do
+    it "updates the estimate when it is 0 or missing" do
+      allow(Net::HTTP).to receive(:start).and_return(response(200, { fields: { timetracking: {} } }), response(204, nil))
+
+      expect(client.set_original_estimate_if_blank("SPEC-1", 5400)).to be(true)
+      expect(Net::HTTP).to have_received(:start).twice
+    end
+
+    it "leaves an existing estimate alone" do
+      allow(Net::HTTP).to receive(:start).and_return(response(200, { fields: { timetracking: { originalEstimateSeconds: 7200 } } }))
+
+      expect(client.set_original_estimate_if_blank("SPEC-1", 5400)).to be(false)
+      expect(Net::HTTP).to have_received(:start).once
+    end
+  end
+
   describe "#keys_with_my_worklogs_since" do
     it "collects the keys of every result page" do
       allow(Net::HTTP).to receive(:start).and_return(
