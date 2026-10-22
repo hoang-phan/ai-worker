@@ -14,7 +14,16 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
 - `app/services/prompts/workflow_placeholders.rb` — `Prompts::WorkflowPlaceholders`: the workflow-derived tokens (`TOKENS`, `.for(workflow)`, `#to_h`). `{PREV_OUTPUT}` is the last `PREV_OUTPUT_LIMIT` (3000) chars of the previous runbook stage's output (empty for non-runbooks); `{STARTED_ON}` is dd/mm/yyyy in `STARTED_ON_TIME_ZONE` (Brisbane).
 - `app/services/prompts/project_placeholders.rb` — `Prompts::ProjectPlaceholders`: the project-derived tokens (`TOKENS`, `.for(project)`), takes only a project. Renderer spreads it into its built-ins and includes `TOKENS` in `BUILT_IN_TOKENS`.
 - `app/services/prompts/defaults.rb` + `app/services/prompts/defaults/<stage_type>.md` — `Prompts::Defaults.for(stage_type)`: built-in bodies used when no stage prompt or template exists. One `.md` file holding exactly the prompt, plus an entry in `Prompts::Defaults::DESCRIPTIONS` (stage type string => short description); the keys of `DESCRIPTIONS` are the explicit list of stage types with a default, and bodies are read from those names. Currently: pr_review, jira_update, uat_test, local_test, simple_implementation, ci_verify, pr_create.
-- `app/services/prompts/stage_sections.rb` — `Prompts::StageSections::{Retry, LocalFeedback, FixedSummary, CheckOutput}` (plus `AgentBrief`, the one section that is prepended: only when the stage has an `agent`, so a stage without one renders exactly as before): conditional text appended to the body, each taking only keyword values and rendering `""` when it doesn't apply. `CheckOutput`: implementation and pr_check (compact check output advice). `Retry`: implementation/simple_implementation after a `failed` run, points at the previous log. `FixedSummary`: pr_check with Slack pings enabled (`FIXED_SUMMARY_BEGIN/END`). `LocalFeedback`: pr_check on a locally-testable project (failure feedback plus the `LOCAL_RETEST: YES|NO` question). Which sections apply is decided in `StagePrompt#sections`.
+- `app/services/prompts/stage_sections.rb` + `app/services/prompts/stage_sections/<snake_name>.rb` — `Prompts::StageSections` is just the module declaration and its doc comment; each section is its own class in its own file (Zeitwerk), taking only keyword values and rendering `""` when it doesn't apply. Which sections apply is decided in `StagePrompt#sections`.
+  - `CheckOutput` (`check_output.rb`): implementation and pr_check (compact check output advice).
+  - `Retry` (`retry.rb`): implementation/simple_implementation after a `failed` run, points at the previous log.
+  - `FixedSummary` (`fixed_summary.rb`): pr_check with Slack pings enabled (`FIXED_SUMMARY_BEGIN/END`).
+  - `LessonsRequest` (`lessons_request.rb`): pr_check; asks for 0-3 generalisable rules between `LESSONS_BEGIN/END`.
+  - `Lessons` (`lessons.rb`): implementation/simple_implementation/task; lists `project.agent_lessons` as data.
+  - `FollowUps` (`follow_ups.rb`): task; asks for out-of-scope work between `FOLLOW_UPS_BEGIN/END`, queued as workflows by `Stages::TaskFinish`.
+  - `Subagents` (`subagents.rb`): implementation/simple_implementation/pr_check/task; lists the project's `.claude/agents` entries, read by `app/services/prompts/subagent_roster.rb` (`Prompts::SubagentRoster#entries`: name + description from the YAML frontmatter).
+  - `LocalFeedback` (`local_feedback.rb`): pr_check on a locally-testable project (failure feedback plus the `LOCAL_RETEST: YES|NO` question).
+  - `AgentBrief` (`agent_brief.rb`): the one section that is prepended, only when the stage has an `agent`, so a stage without one renders exactly as before.
 - `app/models/prompt_template.rb` — `PromptTemplate`: `name`, `body` (both required), `stage_type` enum reusing `Stage::STAGE_TYPES`, `has_many :stages, dependent: :nullify`. It holds no placeholder list; the UI reads `Prompts::Renderer::BUILT_IN_TOKENS`.
 - `docs/PROMPT_TEMPLATES.md` — the user-facing placeholder table and template examples.
 
@@ -25,6 +34,15 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
 3. `docs/PROMPT_TEMPLATES.md`: add the row (what it's filled with, when it's blank).
 4. Specs: see below. If a default body should carry the token, edit its `.md` and update its entry in `defaults_spec.rb` (placeholders and the sha256 digest, which changes on purpose).
 5. New project column behind the token: also follows `ai-worker-domain` (migration, schema, form permit).
+
+## Adding a section
+
+1. New file `app/services/prompts/stage_sections/<snake_name>.rb` defining `Prompts::StageSections::<Name>` (one class per file, with a comment saying when it applies).
+2. Pure: keyword values in, string out; no model or I/O access.
+3. Guard first: `return "" unless ...` for every case where it doesn't apply.
+4. Wire it in `StagePrompt#sections` (passing only the values it needs).
+5. If it asks for a marker block or line, parse it in `AiCli::Output` (see `ai-worker-stage-types`).
+6. Add `spec/services/prompts/stage_sections/<snake_name>_spec.rb` covering the guards and the text; extend `stage_prompt_spec.rb` for the wiring.
 
 ## Conventions
 
@@ -41,5 +59,5 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
 - `spec/services/prompts/project_placeholders_spec.rb` — project tokens.
 - `spec/services/prompts/defaults_spec.rb` — a new or edited default body (placeholders, marker, digest).
 - `spec/services/prompts/stage_prompt_spec.rb` — precedence, appended sections, `slack_message`; `spec/services/prompts/ci_loop_prompt_spec.rb` for the ci_loop prompts.
-- `spec/services/prompts/stage_sections_spec.rb` — section guards and text.
+- `spec/services/prompts/stage_sections/<snake_name>_spec.rb` — one spec per section: guards and text.
 - `spec/models/prompt_template_spec.rb` — model validations.
