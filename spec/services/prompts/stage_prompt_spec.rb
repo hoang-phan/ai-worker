@@ -171,6 +171,27 @@ RSpec.describe Prompts::StagePrompt do
     end
   end
 
+  describe "subagent roster" do
+    subject(:stage_prompt) do
+      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, subagent_roster: roster)
+    end
+
+    let(:stage_attrs) { { prompt: "Do {TASK}" } }
+    let(:roster) { ->(dir) { dir == local_directory ? [ { name: "reviewer", description: "Reviews diffs" } ] : [] } }
+
+    it "appends the subagents of the project's directory" do
+      expect(stage_prompt.body).to include("- reviewer: Reviews diffs")
+    end
+
+    context "with an empty roster" do
+      let(:roster) { ->(_dir) { [] } }
+
+      it "adds nothing" do
+        expect(stage_prompt.body).to eq("Do Do the thing")
+      end
+    end
+  end
+
   describe "#slack_message" do
     let(:stage_type) { :runbook_step }
     let(:stage_attrs) { { name: "Announce", run_mode: :message, channel: "#deploys-{ENV}" } }

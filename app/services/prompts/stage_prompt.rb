@@ -8,12 +8,14 @@ module Prompts
       `git commit --no-edit`. Make sure the project still builds and its tests pass. Do not push.
     PROMPT
 
-    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) })
+    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) },
+                   subagent_roster: ->(dir) { Prompts::SubagentRoster.new(dir).entries })
       @workflow = workflow
       @stage = stage
       @project = workflow.project
       @notifier = notifier
       @latest_log = latest_log
+      @subagent_roster = subagent_roster
     end
 
     def body
@@ -39,7 +41,7 @@ module Prompts
 
     private
 
-    attr_reader :workflow, :stage, :project, :latest_log
+    attr_reader :workflow, :stage, :project, :latest_log, :subagent_roster
 
     def notifier
       @notifier ||= Slack::ReviewNotifier.new(project)
@@ -65,7 +67,8 @@ module Prompts
           stage_type: stage_type,
           notify_enabled: stage.pr_check? && notifier.enabled?
         ),
-        Prompts::StageSections::CheckOutput.new(stage_type: stage_type)
+        Prompts::StageSections::CheckOutput.new(stage_type: stage_type),
+        Prompts::StageSections::Subagents.new(stage_type: stage_type, entries: subagent_roster.call(project.local_directory))
       ]
     end
   end
