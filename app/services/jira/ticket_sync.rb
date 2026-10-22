@@ -62,12 +62,7 @@ module Jira
     def create_workflow(issue, result)
       url = TicketRef.url_for(project.jira_base_url, issue["key"])
       workflow = project.workflows.new(
-        jira_ticket: url,
-        branch_name: TicketRef.branch_name_for(url),
-        github_reviewer: project.default_reviewers,
-        skills: project.default_skills,
-        pr_skills: project.default_pr_skills,
-        position: project.next_workflow_position
+        Projects::WorkflowDefaults.new(project).attributes(kind: :development).merge(jira_ticket: url, branch_name: TicketRef.branch_name_for(url))
       )
       if workflow.save
         result.created << issue["key"]

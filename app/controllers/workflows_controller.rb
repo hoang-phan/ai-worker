@@ -7,8 +7,7 @@ class WorkflowsController < ApplicationController
   end
 
   def new
-    @workflow = @project.workflows.new(position: @project.next_workflow_position, skills: @project.default_skills, pr_skills: @project.default_pr_skills, github_reviewer: @project.default_reviewers,
-                                       kind: params[:kind] == "runbook" ? :runbook : :development)
+    @workflow = @project.workflows.new(Projects::WorkflowDefaults.new(@project).attributes(kind: params[:kind]))
   end
 
   def edit
@@ -16,7 +15,7 @@ class WorkflowsController < ApplicationController
 
   def create
     @workflow = @project.workflows.new(workflow_params)
-    @workflow.kind = params.dig(:workflow, :kind) == "runbook" ? :runbook : :development
+    @workflow.kind = Projects::WorkflowDefaults.kind_for(params.dig(:workflow, :kind))
     if @workflow.save
       @workflow.add_images(params.dig(:workflow, :images))
       redirect_to project_workflow_path(@project, @workflow), notice: "Workflow created."
