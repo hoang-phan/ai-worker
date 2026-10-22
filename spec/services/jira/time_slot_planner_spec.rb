@@ -44,4 +44,48 @@ RSpec.describe Jira::TimeSlotPlanner do
     expect(starts.map(&:hour).uniq.size).to eq(6)
     expect(starts).to all(satisfy { |t| t.hour >= 6 && t.hour < 17 && t.to_date == monday })
   end
+
+  it "keeps a long duration at or before the last whole hour that leaves room for it" do
+    # 8h => latest start is 17 - 8 = 9, so only 06:00..09:00 qualify
+    log(monday, 0.5, hour: 6)
+    log(monday, 0.5, hour: 7)
+
+    starts = Array.new(20) { planner.next_start(8 * 3600) }
+
+    expect(starts.map { |t| t.strftime("%H:%M") }).to all(satisfy { |hhmm| %w[08:00 09:00].include?(hhmm) })
+  end
+
+  it "falls back to any free whole hour when the long-duration slots are all used" do
+    (6..9).each { |hour| log(monday, 0.5, hour: hour) }
+
+    starts = Array.new(20) { planner.next_start(8 * 3600) }
+
+    expect(starts.map(&:hour)).to all(satisfy { |hour| (10...17).cover?(hour) })
+    expect(starts).to all(satisfy { |t| t.min.zero? })
+  end
+
+  it "falls back to a half hour when every whole hour of the day is used" do
+    (6...17).each { |hour| log(monday, 0.25, hour: hour) }
+
+    start = planner.next_start(3600)
+
+    expect(start.to_date).to eq(monday)
+    expect(start.min).to eq(30)
+    expect(start.hour).to be_between(6, 16)
+  end
+
+  it "uses a seeded random HH:MM when every :00 and :30 is used" do
+    (6...17).each do |hour|
+      log(monday, 0.1, hour: hour)
+      workflow.time_logs.create!(ticket_key: "PLAN-1", started_at: Time.zone.local(2027, 2, 1, hour, 30), seconds: 360)
+    end
+    expected = Random.new(42).then { |r| format("%02d:%02d", r.rand(6...17), r.rand(1..59)) }
+    planner = described_class.new(today: monday + 2, random: Random.new(42))
+
+    start = planner.next_start(3600)
+
+    expect(start.to_date).to eq(monday)
+    expect(start.strftime("%H:%M")).to eq(expected)
+    expect(start.min).to be_between(1, 59)
+  end
 end
