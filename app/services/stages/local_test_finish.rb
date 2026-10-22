@@ -14,10 +14,10 @@ module Stages
 
       outcome = Stages::LocalTestPolicy.outcome(result: result, completed_rounds: stage.completed_local_test_rounds)
       feedback = AiCli::Output.new(output).local_test_feedback_block
-      workflow.update!(Workflow::AI_RUN_RESET.merge(
+      workflow.finish_ai_run!(
         status: :reviewing,
         local_test_feedback: outcome.retest? ? Stages::LocalTestPolicy.feedback(output_block: feedback, pr_url: workflow.github_pr_url) : nil
-      ))
+      )
       stage.log_run!("local_test_completed", output: output)
       stage.log_run!("local_test_rounds_exhausted") if outcome.rounds_exhausted?
       handoff.enable_auto_merge!(workflow.github_pr_url) if outcome.auto_merge?

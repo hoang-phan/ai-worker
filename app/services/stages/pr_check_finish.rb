@@ -19,7 +19,7 @@ module Stages
         feedback_pending: workflow.local_test_feedback.present?,
         retest_requested: parsed_output.retest_requested?
       )
-      workflow.update!(Workflow::AI_RUN_RESET.merge(local_test_feedback: nil, **(retest ? { status: :local_testing } : {})))
+      workflow.finish_ai_run!(local_test_feedback: nil, **(retest ? { status: :local_testing } : {}))
       stage.log_run!("requested_changes_fixed", output: output)
       stage.log_run!("local_test_retest_scheduled") if retest
       handoff.notify_reviewers!(again: true, fixed: parsed_output.fixed_summary) unless retest

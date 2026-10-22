@@ -9,7 +9,7 @@ module Stages
     end
 
     def call(output)
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :done))
+      workflow.finish_ai_run!(status: :done)
       stage.log_run!("task_completed", output: output)
       push_task_commits
     end

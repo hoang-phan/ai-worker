@@ -18,7 +18,7 @@ module Stages
       pr_url = github.find_pr_url(branch_name: workflow.branch_name, jira_ticket: workflow.jira_ticket, output: output)
       testing_locally = workflow.development? && project.local_test_ready?
       next_status = if checks_follow then :ci_checking else (testing_locally ? :local_testing : :reviewing) end
-      workflow.update!(Workflow::AI_RUN_RESET.merge(github_pr_url: pr_url, status: next_status))
+      workflow.finish_ai_run!(github_pr_url: pr_url, status: next_status)
       stage.log_run!(action, output: output)
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.
       handoff.enable_auto_merge!(pr_url) unless testing_locally

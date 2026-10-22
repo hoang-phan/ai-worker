@@ -18,7 +18,7 @@ module Stages
         raise AiCli::CommandError, "#{AiCli::Runner.agent} did not finish resolving merge conflicts with main"
       end
 
-      workflow.update!(Workflow::AI_RUN_RESET)
+      workflow.finish_ai_run!
       stage.log_run!("conflicts_resolved", output: output)
       start_ai_run.call(prompt.body)
     end

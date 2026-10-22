@@ -11,7 +11,7 @@ module Stages
 
     def call(exit_status)
       log_path = workflow.ai_log_path
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :ci_verifying, ci_output_path: log_path, ci_exit_status: exit_status))
+      workflow.finish_ai_run!(status: :ci_verifying, ci_output_path: log_path, ci_exit_status: exit_status)
       stage.log_run!("ci_check_completed", output: "exit status #{exit_status}\n#{tail(log_path)}")
     end
 

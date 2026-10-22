@@ -25,14 +25,14 @@ module Stages
 
     def passed(output)
       testing_locally = workflow.development? && project.local_test_ready?
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: testing_locally ? :local_testing : :reviewing))
+      workflow.finish_ai_run!(status: testing_locally ? :local_testing : :reviewing)
       stage.log_run!("ci_verify_passed", output: output)
       handoff.notify_reviewers! unless testing_locally
     end
 
     def failed(output)
       exhausted = ci_check_stage.completed_ci_rounds >= project.ci_max_rounds
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: exhausted ? :errored : :ci_checking))
+      workflow.finish_ai_run!(status: exhausted ? :errored : :ci_checking)
       stage.log_run!("ci_verify_failed", output: output)
       stage.log_run!("ci_rounds_exhausted") if exhausted
     end

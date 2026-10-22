@@ -29,11 +29,11 @@ module Stages
       # A ticket that went to UAT is tested by the agent after the project's delay, if the project opted in.
       if outcome.casecmp?("UAT") && project.uat_test_ready?
         run_at = project.uat_test_delay_minutes.minutes.from_now
-        workflow.update!(Workflow::AI_RUN_RESET.merge(status: :uat_waiting, uat_test_at: run_at))
+        workflow.finish_ai_run!(status: :uat_waiting, uat_test_at: run_at)
         stage.log_run!("jira_updated", output: output)
         stage.log_run!("uat_test_scheduled", output: "UAT test scheduled for #{run_at.iso8601}")
       else
-        workflow.update!(Workflow::AI_RUN_RESET.merge(status: :jira_updated))
+        workflow.finish_ai_run!(status: :jira_updated)
         stage.log_run!("jira_updated", output: output)
       end
     end
@@ -45,7 +45,7 @@ module Stages
       result = AiCli::Output.new(output).uat_result
       raise AiCli::CommandError, "agent finished without a UAT_RESULT line, treating the UAT test as failed" unless result
 
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :uat_tested))
+      workflow.finish_ai_run!(status: :uat_tested)
       stage.log_run!("uat_test_completed", output: output)
     end
   end

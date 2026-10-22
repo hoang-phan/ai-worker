@@ -37,11 +37,6 @@ class Workflow < ApplicationRecord
 
   scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 
-  # Status -> stage type maps live in Workflows::StageResolver; aliased here for existing callers.
-  STAGE_TYPE_BY_STATUS = Workflows::StageResolver::STAGE_TYPE_BY_STATUS
-  SIMPLE_STAGE_TYPE_BY_STATUS = Workflows::StageResolver::SIMPLE_STAGE_TYPE_BY_STATUS
-  PR_REVIEW_STAGE_TYPE_BY_STATUS = Workflows::StageResolver::PR_REVIEW_STAGE_TYPE_BY_STATUS
-
   validates :jira_ticket, presence: true, if: :jira_development?
   validates :branch_name, presence: true, if: :jira_development?
   validates :github_reviewer, presence: true, if: :jira_development?
@@ -133,6 +128,9 @@ class Workflow < ApplicationRecord
   def variables_text=(text)
     self.variables = Workflows::Variables.parse(text)
   end
+
+  # Ends an agent run: clears the ai_* run columns (AI_RUN_RESET) and applies attrs in the same update.
+  def finish_ai_run!(**attrs) = update!(AI_RUN_RESET.merge(attrs))
 
   # The manual lifecycle transitions live in Workflows::Transitions.
   def start! = Workflows::Transitions.new(self).start!

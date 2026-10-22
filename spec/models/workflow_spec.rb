@@ -31,4 +31,14 @@ RSpec.describe Workflow, type: :model do
       expect(Workflow::AI_RUN_RESET.keys.map(&:to_s)).to match_array(expected)
     end
   end
+
+  describe "#finish_ai_run!" do
+    it "clears the ai run columns and applies the extra attributes in one update" do
+      workflow.update!(processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+
+      workflow.finish_ai_run!(auto_run: false)
+
+      expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, auto_run: false)
+    end
+  end
 end

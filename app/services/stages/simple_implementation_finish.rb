@@ -9,7 +9,7 @@ module Stages
     end
 
     def call(output)
-      workflow.update!(Workflow::AI_RUN_RESET.merge(status: :opening_pr))
+      workflow.finish_ai_run!(status: :opening_pr)
       stage.log_run!("ran_implementation", output: output)
     end
 

@@ -14,11 +14,11 @@ module Stages
         raise AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)"
       end
 
-      workflow.update!(Workflow::AI_RUN_RESET.merge(
+      workflow.finish_ai_run!(
         status: :waiting,
         awaiting_next: true,
         variables: workflow.variables.merge(result.variables)
-      ))
+      )
       stage.log_run!("stage_completed", output: output)
       stage.log_run!("message_sent") if stage.run_message?
       return unless stage.auto_advance?
