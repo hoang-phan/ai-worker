@@ -69,6 +69,29 @@ RSpec.describe "Workflows", type: :request do
     end
   end
 
+  describe "GET show stage run history" do
+    it "lists only this workflow's runs, newest first" do
+      stage = workflow.stages.first
+      now = Time.current.change(usec: 0)
+      stage.stage_runs.create!(action: "started", output: "Older output", created_at: now - 1.hour)
+      stage.stage_runs.create!(action: "resumed", output: "Newer output", created_at: now)
+      other = project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "spec-2", github_reviewer: "someone", status: :pending)
+      other.stages.first.stage_runs.create!(action: "failed", output: "Foreign output")
+
+      get project_workflow_path(project, workflow)
+
+      expect(response.body).to include("Older output", "Newer output")
+      expect(response.body).not_to include("Foreign output")
+      expect(response.body.index("Newer output")).to be < response.body.index("Older output")
+    end
+
+    it "shows the empty state without runs" do
+      get project_workflow_path(project, workflow)
+
+      expect(response.body).to include("No stage runs yet.")
+    end
+  end
+
   describe "GET show with Jira hours" do
     it "shows the hours mirrored from Jira" do
       workflow.update!(jira_logged_synced_at: 5.minutes.ago)

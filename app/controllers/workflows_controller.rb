@@ -4,7 +4,7 @@ class WorkflowsController < ApplicationController
   before_action :set_workflow, only: %i[show edit update destroy start run_stage clone move advance resume rollback_to_review destroy_image]
 
   def show
-    @stage_runs = @workflow.stages.flat_map(&:stage_runs).sort_by(&:created_at).reverse
+    @stage_runs = StageRun.history_for(@workflow)
   end
 
   def new

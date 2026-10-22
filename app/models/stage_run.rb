@@ -46,4 +46,9 @@ class StageRun < ApplicationRecord
   ].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }
+
+  # A workflow's stage run history, newest first; id breaks created_at ties so the order is deterministic.
+  scope :history_for, ->(workflow) {
+    joins(:stage).where(stages: { workflow_id: workflow.id }).reorder(created_at: :desc, id: :desc)
+  }
 end
