@@ -7,12 +7,10 @@ RSpec.describe Slack::ReviewSync do
                     slack_mention: "@reviewer")
   end
   let(:github) { instance_double(Github::Client, current_login: "me", pr_info: nil) }
-  let(:sync) { described_class.new(project) }
+  let(:sync) { described_class.new(project, github: github) }
   let(:pr_url) { "https://github.com/acme/widgets/pull/12" }
   let(:slack_url) { "https://acme.slack.com/archives/C0123456789/p1760000000123456" }
   let(:mention) { { "slack_url" => slack_url, "pr_urls" => [ pr_url ] } }
-
-  before { allow(Github::Client).to receive(:new).and_return(github) }
 
   after do
     project.destroy
@@ -42,7 +40,27 @@ RSpec.describe Slack::ReviewSync do
       result = sync.import([ mention ])
 
       expect(result.blockers).to eq([ "Slack mention is not set" ])
+      expect(github).not_to have_received(:current_login)
+      expect(github).not_to have_received(:pr_info)
+    end
+
+    it "does not build a client when blocked" do
+      project.update_columns(slack_mention: nil)
+      allow(Github::Client).to receive(:new)
+
+      described_class.new(project).import([ mention ])
+
       expect(Github::Client).not_to have_received(:new)
+    end
+
+    it "builds the client lazily when none is injected" do
+      allow(Github::Client).to receive(:new).with(project).and_return(github)
+      stub_pr(pr_url)
+
+      result = described_class.new(project).import([ mention ])
+
+      expect(result.created).to eq([ pr_url ])
+      expect(Github::Client).to have_received(:new).once
     end
 
     it "delegates to ReviewImporter with a fresh result and the GitHub client" do

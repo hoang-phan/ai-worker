@@ -17,8 +17,10 @@ module Slack
       end
     end
 
-    def initialize(project)
+    def initialize(project, github: nil, fetcher: nil)
       @project = project
+      @github = github
+      @fetcher = fetcher
     end
 
     # Everything that would stop reviews from being created automatically.
@@ -27,20 +29,28 @@ module Slack
     end
 
     def fetcher
-      MentionFetcher.new(project)
+      @fetcher ||= MentionFetcher.new(project)
     end
 
     # `mentions` is the array MentionFetcher#poll returns.
     def import(mentions)
       found = blockers
-      return Result.new(blockers: found, created: [], skipped: [], failed: [], skipped_reasons: Hash.new(0)) if found.any?
+      return empty_result(found) if found.any?
 
-      result = Result.new(blockers: [], created: [], skipped: [], failed: [], skipped_reasons: Hash.new(0))
-      ReviewImporter.new(project, github: Github::Client.new(project)).import(mentions, result)
+      result = empty_result
+      ReviewImporter.new(project, github: github).import(mentions, result)
     end
 
     private
 
     attr_reader :project
+
+    def github
+      @github ||= Github::Client.new(project)
+    end
+
+    def empty_result(blockers = [])
+      Result.new(blockers: blockers, created: [], skipped: [], failed: [], skipped_reasons: Hash.new(0))
+    end
   end
 end
