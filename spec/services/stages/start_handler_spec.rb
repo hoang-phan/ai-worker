@@ -74,31 +74,14 @@ RSpec.describe Stages::StartHandler, type: :service do
   describe "pr_review" do
     let(:stage_type) { :pr_review }
 
-    it "checks out the head branch of a same-repo PR and starts the agent" do
-      allow(github).to receive(:pr_info).and_return("state" => "OPEN", "head_ref" => "feature")
+    it "delegates to Stages::PrReviewStart" do
+      starter = instance_double(Stages::PrReviewStart, call: nil)
+      allow(Stages::PrReviewStart).to receive(:new).and_return(starter)
       handler.call
 
-      expect(git).to have_received(:checkout_remote_branch!).with(project, "feature")
-      expect_run_started
-    end
-
-    it "uses gh to check out a cross-repository PR" do
-      allow(github).to receive(:pr_info).and_return("state" => "OPEN", "cross_repository" => true)
-      allow(github).to receive(:checkout_pr!)
-      handler.call
-
-      expect(github).to have_received(:checkout_pr!).with(workflow.github_pr_url)
-      expect(git).not_to have_received(:checkout_remote_branch!)
-      expect_run_started
-    end
-
-    it "marks the workflow done and skips a PR that is not open" do
-      allow(github).to receive(:pr_info).and_return("state" => "MERGED")
-      handler.call
-
-      expect(workflow.reload.status).to eq "done"
-      expect(actions).to eq %w[pr_not_open_skipped]
-      expect(launcher).not_to have_received(:call)
+      expect(Stages::PrReviewStart).to have_received(:new)
+        .with(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher)
+      expect(starter).to have_received(:call)
     end
   end
 
