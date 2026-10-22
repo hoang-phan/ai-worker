@@ -9,9 +9,12 @@ separate step reruns it after you. Only run the failing tests or linters on thei
 1. Read the output cheaply: the file can be huge, so never print it whole. Start with `tail -n 40 {CI_OUTPUT}`, then
    `grep -nE "●|FAIL|Failures:|rspec ./|error|Error" {CI_OUTPUT}` and read narrow ranges around the matches.
 2. If the exit status is 0 and the output shows no failure, stop: the verdict is PASSED. Change nothing.
-3. Otherwise decide for each failure whether it is caused by this branch's change or is load, timing or an
-   environment problem (e.g. a timeout that passes alone, a missing tool). Fix the first kind in the code, without
-   skipping, deleting or weakening tests. For the second kind change nothing and say so.
+3. Otherwise fix EVERY failure, every time; never stop at reporting one. A failure caused by this branch's change
+   is fixed in the code, without skipping, deleting or weakening tests. An environment problem (a missing or wrong
+   tool version such as Python or Node, a tool not on PATH, a module missing because of an old interpreter) is fixed
+   in the environment: find the required version in the repo (CI workflow files, version files), put the right tool
+   first on PATH, or install it with the project's version manager; never globally, and never by editing the
+   repo's code. A load or timing failure (e.g. a timeout) is rerun on its own and, if it passes, needs no change.
 4. Check each fix by running only the failing files/examples/linters on their own (one worker, no other load).
    Commit every fix (nothing may stay uncommitted: the next check runs on the committed HEAD).
 5. Finish with a short summary of what failed and what you changed, then exactly one last line:
