@@ -9,13 +9,15 @@ module Prompts
     PROMPT
 
     def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) },
-                   subagent_roster: ->(dir) { Prompts::SubagentRoster.new(dir).entries })
+                   subagent_roster: ->(dir) { Prompts::SubagentRoster.new(dir).entries },
+                   run_provider: Stages::RunProvider.new(workflow: workflow, stage: stage))
       @workflow = workflow
       @stage = stage
       @project = workflow.project
       @notifier = notifier
       @latest_log = latest_log
       @subagent_roster = subagent_roster
+      @run_provider = run_provider
     end
 
     def body
@@ -41,7 +43,7 @@ module Prompts
 
     private
 
-    attr_reader :workflow, :stage, :project, :latest_log, :subagent_roster
+    attr_reader :workflow, :stage, :project, :latest_log, :subagent_roster, :run_provider
 
     def notifier
       @notifier ||= Slack::ReviewNotifier.new(project)
@@ -52,10 +54,9 @@ module Prompts
       agent = stage.agent
       return "" unless agent
 
-      provider = AiCli::Providers.find(agent.provider.presence || workflow.rotation_provider! || AiCli::AgentSetting.current)
       Prompts::StageSections::AgentBrief.new(
         name: agent.name, description: agent.description, instructions: agent.instructions,
-        allowed_tools: agent.allowed_tools, tools_enforced: provider&.capabilities&.tool_lists
+        allowed_tools: agent.allowed_tools, tools_enforced: run_provider.provider&.capabilities&.tool_lists
       ).to_s
     end
 

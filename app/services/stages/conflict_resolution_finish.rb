@@ -13,9 +13,10 @@ module Stages
     end
 
     def call(output)
+      cli = workflow.ai_provider.presence || AiCli::AgentSetting.current
       if git.merge_in_progress?(project)
         git.abort_merge!(project)
-        raise AiCli::CommandError, "#{AiCli::Runner.agent} did not finish resolving merge conflicts with main"
+        raise AiCli::CommandError, "#{cli} did not finish resolving merge conflicts with main"
       end
 
       workflow.finish_ai_run!

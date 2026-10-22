@@ -27,6 +27,13 @@ RSpec.describe Stages::ConflictResolutionFinish, type: :service do
     expect(start_ai_run).not_to have_received(:call)
   end
 
+  it "names the CLI the run used (the workflow's ai_provider) in the error" do
+    workflow.update!(ai_provider: "codex")
+    allow(git).to receive(:merge_in_progress?).and_return(true)
+
+    expect { finish }.to raise_error(AiCli::CommandError, /\Acodex did not finish/)
+  end
+
   it "resets the run, logs conflicts_resolved and starts the review-fix run once the merge is committed" do
     finish("all good")
 
