@@ -17,6 +17,21 @@ RSpec.describe AiCli::Runner do
     end
   end
 
+  describe ".start" do
+    it "forwards every argument to #start" do
+      runner = instance_double(described_class)
+      allow(described_class).to receive(:new).and_return(runner)
+      expect(runner).to receive(:start).with(
+        tmp, "go", log_path: "x.log", allowed_tools: "Read", mcp_config: "m.json", env: { "A" => "b" },
+        disallowed_tools: [ "Bash" ], model: "opus", effort: "high"
+      ).and_return(7)
+
+      pid = described_class.start(tmp, "go", log_path: "x.log", allowed_tools: "Read", mcp_config: "m.json",
+                                  env: { "A" => "b" }, disallowed_tools: [ "Bash" ], model: "opus", effort: "high")
+      expect(pid).to eq(7)
+    end
+  end
+
   describe "#start" do
     def spawned_env
       captured = nil

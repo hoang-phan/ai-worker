@@ -30,10 +30,7 @@ module AiCli
 
     def self.available_agents = AgentSetting.available
 
-    def self.start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
-      new.start(project_directory, prompt, log_path: log_path, allowed_tools: allowed_tools,
-                    mcp_config: mcp_config, env: env, disallowed_tools: disallowed_tools, model: model, effort: effort)
-    end
+    def self.start(...) = new.start(...)
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].
     def self.poll(pid)
@@ -60,8 +57,9 @@ module AiCli
     def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 
-      command = agent_command(project_directory, prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
-                              disallowed_tools: disallowed_tools, model: model, effort: effort)
+      command_options = { allowed_tools: allowed_tools, mcp_config: mcp_config, disallowed_tools: disallowed_tools,
+                          model: model, effort: effort }
+      command = agent_command(project_directory, prompt, **command_options)
 
       Process.spawn(
         spawn_env(env),
@@ -81,10 +79,10 @@ module AiCli
 
     # Final argv for the selected agent; cursor reads MCP servers from the project's `.cursor/mcp.json`, so its
     # command is wrapped to write that file for the length of the run.
-    def agent_command(project_directory, prompt, allowed_tools: nil, mcp_config: nil, disallowed_tools: [], model: nil, effort: nil)
+    def agent_command(project_directory, prompt, **command_options)
       agent = self.class.agent
-      command = Command.new(agent: agent, prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
-                            disallowed_tools: disallowed_tools, model: model, effort: effort).to_a
+      command = Command.new(agent: agent, prompt: prompt, **command_options).to_a
+      mcp_config = command_options[:mcp_config]
       return command unless agent == "cursor" && mcp_config.present?
 
       CursorMcpFile.new(project_directory, mcp_config).wrap(command)
