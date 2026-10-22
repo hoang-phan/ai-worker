@@ -13,6 +13,14 @@ module Slack
       Dir.glob(root.join("*")).map { |path| File.basename(path).to_i }
     end
 
+    # Collects every workflow with a ping dir; dirs of workflows that no longer exist are removed.
+    def collect_all(find_workflow: ->(id) { Workflow.find_by(id: id) })
+      pending_workflow_ids.each do |id|
+        workflow = find_workflow.call(id)
+        workflow ? collect(workflow) : FileUtils.rm_rf(root.join(id.to_s))
+      end
+    end
+
     # Returns true while a ping of `workflow` is still running.
     def collect(workflow)
       workflow_dir = root.join(workflow.id.to_s)

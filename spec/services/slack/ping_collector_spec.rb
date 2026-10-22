@@ -85,4 +85,27 @@ RSpec.describe Slack::PingCollector do
     FileUtils.mkdir_p(root.join("3"))
     expect(collector.pending_workflow_ids).to eq([ 3 ])
   end
+
+  describe "#collect_all" do
+    it "removes the dir of a workflow that is gone" do
+      ping
+      collector.collect_all(find_workflow: ->(_id) { nil })
+      expect(workflow_dir).not_to exist
+    end
+
+    it "collects an existing workflow" do
+      ping(log: link)
+      expect(workflow).to receive(:update!).with(slack_review_thread_ts: link)
+      collector.collect_all(find_workflow: ->(id) { id == 7 ? workflow : nil })
+      expect(workflow_dir).not_to exist
+    end
+
+    it "keeps a dir that is still running" do
+      path = ping(log: "")
+      allow(poller).to receive(:call).with(42).and_return(:running)
+      expect(workflow).not_to receive(:update!)
+      collector.collect_all(find_workflow: ->(_id) { workflow })
+      expect(path).to exist
+    end
+  end
 end

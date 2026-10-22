@@ -20,10 +20,6 @@ module Slack
     # Headless (`claude -p`) can't prompt: approve only the one tool that posts.
     ALLOWED_TOOLS = %w[mcp__claude_ai_Slack__slack_send_message].freeze
 
-    def self.pending_workflow_ids
-      PingCollector.new.pending_workflow_ids
-    end
-
     def initialize(project, runner: AiCli::Runner, clock: -> { Time.current }, root: ROOT)
       @project = project
       @runner = runner
