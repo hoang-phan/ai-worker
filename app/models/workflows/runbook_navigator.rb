@@ -21,7 +21,7 @@ module Workflows
 
       finished = @workflow.current_stage
       following = next_stage
-      finished&.stage_runs&.create!(action: "advanced")
+      finished&.log_run!("advanced")
       if following
         @workflow.update!(current_stage_id: following.id, status: :implementing, awaiting_next: false, auto_run: true)
       else

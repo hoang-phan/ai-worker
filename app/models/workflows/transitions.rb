@@ -20,7 +20,7 @@ module Workflows
 
       @workflow.transaction do
         @workflow.update!(status: resume_status)
-        @workflow.current_stage&.stage_runs&.create!(action: "resumed")
+        @workflow.current_stage&.log_run!("resumed")
       end
       true
     end
@@ -46,7 +46,7 @@ module Workflows
 
       @workflow.transaction do
         @workflow.update!(status: :reviewing)
-        @workflow.current_stage&.stage_runs&.create!(action: "rolled_back_to_review")
+        @workflow.current_stage&.log_run!("rolled_back_to_review")
       end
       true
     end

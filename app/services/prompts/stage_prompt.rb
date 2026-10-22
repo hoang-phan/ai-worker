@@ -47,7 +47,7 @@ module Prompts
 
     def sections
       stage_type = stage.stage_type
-      last_action = stage.stage_runs.first&.action
+      last_action = stage.last_action
       retrying = (stage.implementation? || stage.simple_implementation?) && last_action == "failed"
 
       [
