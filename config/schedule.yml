@@ -3,59 +3,71 @@
 workflow_scheduler:
   cron: "*/2 5-13 * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
+  active_job: true
   queue: stage_execution
 
 workflow_scheduler_off_hours:
-  cron: "*/3 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  cron: "*/2 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
+  active_job: true
   queue: stage_execution
 
 jira_sync:
   cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
   class: "JiraSyncJob"
+  active_job: true
   queue: default
 
 jira_sync_off_hours:
   cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "JiraSyncJob"
+  active_job: true
   queue: default
 
 slack_review:
   cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
   class: "SlackReviewJob"
+  active_job: true
   queue: default
 
 slack_review_off_hours:
   cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "SlackReviewJob"
+  active_job: true
   queue: default
 
 bugsnag_sync:
   cron: "*/5 5-13 * * * Asia/Ho_Chi_Minh"
   class: "BugsnagSyncJob"
+  active_job: true
   queue: default
 
 bugsnag_sync_off_hours:
   cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "BugsnagSyncJob"
+  active_job: true
   queue: default
 
 brainstorm:
   cron: "*/30 * * * *"
   class: "BrainstormJob"
+  active_job: true
   queue: default
 
 slack_ping:
   cron: "*/5 * * * *"
   class: "SlackPingJob"
+  active_job: true
   queue: default
 
 jira_hours_sync:
   cron: "*/10 5-13 * * * Asia/Ho_Chi_Minh"
   class: "JiraHoursSyncJob"
+  active_job: true
   queue: default
 
 jira_hours_sync_off_hours:
   cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "JiraHoursSyncJob"
+  active_job: true
   queue: default
