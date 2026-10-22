@@ -5,7 +5,7 @@ description: Checklist for adding or changing an agent-backed fetch/sync/triage 
 
 # ai-worker-detached-agent-runs
 
-Scope: the services that start the agent CLI detached, read a JSON array back from a result file, and import it into records. General job/service rules are in `ai-worker-orchestration`, spec rules in `ai-worker-testing`, model/migration rules in `ai-worker-domain` — not repeated here.
+Scope: the services that start the agent CLI detached, read a JSON array back from a result file, and import it into records. General job/service rules are in `ai-worker-orchestration`, the `AiCli` runner/poller layer under `DetachedRun` in `ai-worker-agent-cli`, spec rules in `ai-worker-testing`, model/migration rules in `ai-worker-domain` — not repeated here.
 
 ## Moving parts
 
