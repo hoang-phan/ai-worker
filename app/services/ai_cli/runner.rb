@@ -60,16 +60,12 @@ module AiCli
     def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 
-      # `claude -p` stops background subagents 10 minutes after the last
-      # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
-      agent = self.class.agent
-      cmd = Command.new(agent: agent, prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
-                        disallowed_tools: disallowed_tools, model: model, effort: effort).to_a
-      cmd = CursorMcpFile.new(project_directory, mcp_config).wrap(cmd) if agent == "cursor" && mcp_config.present?
+      command = agent_command(project_directory, prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
+                              disallowed_tools: disallowed_tools, model: model, effort: effort)
 
       Process.spawn(
-        LEAKED_ENV.index_with(nil).merge("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0").merge(env.transform_values(&:to_s)),
-        *cmd,
+        spawn_env(env),
+        *command,
         chdir: project_directory,
         in: File::NULL,
         out: [ log_path, "a" ],
@@ -79,6 +75,26 @@ module AiCli
 
     def poll(pid)
       ProcessStatus.new.call(pid)
+    end
+
+    private
+
+    # Final argv for the selected agent; cursor reads MCP servers from the project's `.cursor/mcp.json`, so its
+    # command is wrapped to write that file for the length of the run.
+    def agent_command(project_directory, prompt, allowed_tools: nil, mcp_config: nil, disallowed_tools: [], model: nil, effort: nil)
+      agent = self.class.agent
+      command = Command.new(agent: agent, prompt: prompt, allowed_tools: allowed_tools, mcp_config: mcp_config,
+                            disallowed_tools: disallowed_tools, model: model, effort: effort).to_a
+      return command unless agent == "cursor" && mcp_config.present?
+
+      CursorMcpFile.new(project_directory, mcp_config).wrap(command)
+    end
+
+    # Process environment for the spawn: LEAKED_ENV unset (nil), the caller's env stringified on top (so it wins).
+    def spawn_env(env)
+      # `claude -p` stops background subagents 10 minutes after the last
+      # turn; 0 makes it wait for them. STALE_AFTER is the real timeout.
+      LEAKED_ENV.index_with(nil).merge("CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS" => "0").merge(env.transform_values(&:to_s))
     end
   end
 end

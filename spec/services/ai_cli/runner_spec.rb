@@ -42,4 +42,61 @@ RSpec.describe AiCli::Runner do
       expect(env).to include("RAILS_ENV" => "test", "UAT_USER" => "1")
     end
   end
+
+  describe "#spawn_env" do
+    subject(:env) { described_class.new.send(:spawn_env, caller_env) }
+
+    let(:caller_env) { {} }
+
+    it "maps every leaked variable to nil and sets the BG wait ceiling" do
+      expect(env.slice(*described_class::LEAKED_ENV).values).to all(be_nil)
+      expect(env.keys).to include(*described_class::LEAKED_ENV)
+      expect(env["CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS"]).to eq("0")
+    end
+
+    context "with caller values" do
+      let(:caller_env) { { "RAILS_ENV" => "test", "UAT_USER" => 1 } }
+
+      it "stringifies them and lets them override the scrub" do
+        expect(env).to include("RAILS_ENV" => "test", "UAT_USER" => "1")
+      end
+    end
+  end
+
+  describe "#agent_command" do
+    let(:base) { %w[claude -p go] }
+    let(:file) { instance_double(AiCli::CursorMcpFile) }
+    let(:command) { instance_double(AiCli::Command, to_a: base) }
+
+    before do
+      allow(described_class).to receive(:agent).and_return(agent)
+      allow(AiCli::Command).to receive(:new).and_return(command)
+      allow(AiCli::CursorMcpFile).to receive(:new).with(tmp, "/mcp.json").and_return(file)
+      allow(file).to receive(:wrap).with(base).and_return(%w[wrapped])
+    end
+
+    def build(mcp_config)
+      described_class.new.send(:agent_command, tmp, "go", mcp_config: mcp_config)
+    end
+
+    context "when the agent is cursor" do
+      let(:agent) { "cursor" }
+
+      it "wraps the command when an mcp_config is given" do
+        expect(build("/mcp.json")).to eq(%w[wrapped])
+      end
+
+      it "leaves the command alone without an mcp_config" do
+        expect(build(nil)).to eq(base)
+      end
+    end
+
+    context "when the agent is not cursor" do
+      let(:agent) { "claude" }
+
+      it "does not wrap even with an mcp_config" do
+        expect(build("/mcp.json")).to eq(base)
+      end
+    end
+  end
 end
