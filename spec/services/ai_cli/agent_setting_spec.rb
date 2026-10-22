@@ -45,7 +45,7 @@ RSpec.describe AiCli::AgentSetting do
 
   describe ".available" do
     it "lists the known agents" do
-      expect(described_class.available).to eq(AiCli::Command::AGENTS.keys)
+      expect(described_class.available).to eq(AiCli::Providers.names)
     end
   end
 end

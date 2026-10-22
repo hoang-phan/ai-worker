@@ -14,9 +14,9 @@ module AiCli
       raise failed unless exit_status.nil? || exit_status.success?
 
       # No status when the process was reaped elsewhere (e.g. Sidekiq restarted
-      # mid-run); claude's final result event in the log says how it ended.
+      # mid-run); the provider reads how it ended from the log.
       if exit_status.nil?
-        outcome = AiCli::Output.new(output).final_outcome
+        outcome = Providers.find(agent)&.outcome(output)
         raise AiCli::CommandError, "#{agent} exit status unknown (pid=#{pid}), treating as failed" if outcome.nil?
         raise failed if outcome == :error
       end

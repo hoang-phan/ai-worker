@@ -114,4 +114,30 @@ RSpec.describe AiCli::Runner do
       end
     end
   end
+
+  describe "#agent_command with an explicit provider" do
+    it "uses that provider instead of the app-wide agent" do
+      allow(described_class).to receive(:agent).and_return("claude")
+      file = instance_double(AiCli::CursorMcpFile, wrap: %w[wrapped])
+      allow(AiCli::CursorMcpFile).to receive(:new).with(tmp, "/mcp.json").and_return(file)
+      allow(AiCli::Command).to receive(:new).and_call_original
+
+      command = described_class.new.send(:agent_command, tmp, "go", provider: "cursor", mcp_config: "/mcp.json")
+
+      expect(AiCli::Command).to have_received(:new).with(hash_including(agent: "cursor"))
+      expect(command).to eq(%w[wrapped])
+    end
+
+    it "falls back to the app-wide agent when the provider is blank" do
+      allow(described_class).to receive(:agent).and_return("codex")
+
+      command = described_class.new.send(:agent_command, tmp, "go", provider: "")
+
+      expect(command.first(2)).to eq(%w[codex exec])
+    end
+
+    it "rejects an unknown provider" do
+      expect { described_class.new.send(:agent_command, tmp, "go", provider: "gemini") }.to raise_error(AiCli::CommandError, /unknown AGENT "gemini"/)
+    end
+  end
 end

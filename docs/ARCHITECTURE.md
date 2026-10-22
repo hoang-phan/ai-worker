@@ -81,7 +81,7 @@ run takes, instead of only for the duration of one job.
 
 The server-wide `AGENT` env var (`claude`, `cursor` or `codex`, default `claude`) selects
 which CLI `AiCli::Runner` spawns for every workflow, e.g. `AGENT=cursor bin/dev`
-(set it for both the web and Sidekiq processes; foreman passes it to both). The commands live in `AiCli::Runner::AGENTS`:
+(set it for both the web and Sidekiq processes; foreman passes it to both). Each CLI is an `AiCli::Provider` in the `AiCli::Providers` registry; a run can name its own provider, otherwise this setting applies. The commands:
 
 | agent  | command                                      |
 |--------|----------------------------------------------|
@@ -89,7 +89,7 @@ which CLI `AiCli::Runner` spawns for every workflow, e.g. `AGENT=cursor bin/dev`
 | cursor | `agent -p "<prompt>" --force`                |
 | codex  | `codex exec --dangerously-bypass-approvals-and-sandbox "<prompt>"` |
 
-Adding another CLI means one entry in `AGENTS`. Codex's stdout/stderr go to the
+Adding another CLI means a new `AiCli::Provider` subclass registered in `AiCli::Providers`; each provider declares `capabilities` (tool lists, model, effort, MCP delivery) so callers know what it ignores. Codex's stdout/stderr go to the
 same per-run log file as the others and are tailed into the Rails log.
 Env vars can live in a git-ignored `.env` (see `.env.example`), loaded by `dotenv-rails`. `AI_VERBOSE`
 stream-json output only applies to `claude`.

@@ -10,8 +10,6 @@ module AiCli
   # cron tick to see whether the process has finished (see
   # docs/RUNBOOK.md).
   class Runner
-    AGENTS = Command::AGENTS
-
     # Bundler/Ruby variables describing *this* app's bundle. Left in the agent's environment they leak into whatever
     # the agent runs in the project's own clone: e.g. BUNDLER_VERSION pins the project's `bundle` to ai-worker's
     # Bundler instead of the one its Gemfile.lock asks for, BUNDLE_GEMFILE points at our Gemfile. Unset for every run.
@@ -51,15 +49,17 @@ module AiCli
     # `Bash(gh workflow run:*)`). Deny rules win even over --dangerously-skip-permissions. Other agents have no
     # equivalent, so the prompt has to say it.
     #
+    # provider: name of the agent CLI for this run (see Providers); the app-wide agent setting when nil.
+    #
     # model / effort: select the model and reasoning level for this run instead of the CLI's defaults, e.g. a stronger
     # model for brainstorming. Claude receives `--model` / `--effort`; Codex receives `--model` and
     # `-c model_reasoning_effort=...`. Cursor ignores them.
-    def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil)
+    def start(project_directory, prompt, log_path:, allowed_tools: nil, mcp_config: nil, env: {}, disallowed_tools: [], model: nil, effort: nil, provider: nil)
       FileUtils.mkdir_p(File.dirname(log_path))
 
       command_options = { allowed_tools: allowed_tools, mcp_config: mcp_config, disallowed_tools: disallowed_tools,
                           model: model, effort: effort }
-      command = agent_command(project_directory, prompt, **command_options)
+      command = agent_command(project_directory, prompt, provider: provider, **command_options)
 
       Process.spawn(
         spawn_env(env),
@@ -77,15 +77,12 @@ module AiCli
 
     private
 
-    # Final argv for the selected agent; cursor reads MCP servers from the project's `.cursor/mcp.json`, so its
-    # command is wrapped to write that file for the length of the run.
-    def agent_command(project_directory, prompt, **command_options)
-      agent = self.class.agent
+    # Final argv for the run's provider (the app-wide agent unless `provider` names one), set up by the provider
+    # (cursor writes its MCP file around the run).
+    def agent_command(project_directory, prompt, provider: nil, **command_options)
+      agent = provider.presence || self.class.agent
       command = Command.new(agent: agent, prompt: prompt, **command_options).to_a
-      mcp_config = command_options[:mcp_config]
-      return command unless agent == "cursor" && mcp_config.present?
-
-      CursorMcpFile.new(project_directory, mcp_config).wrap(command)
+      Providers.fetch(agent).wrap(command, project_directory: project_directory, mcp_config: command_options[:mcp_config])
     end
 
     # Process environment for the spawn: LEAKED_ENV unset (nil), the caller's env stringified on top (so it wins).

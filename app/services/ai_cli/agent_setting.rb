@@ -10,20 +10,20 @@ module AiCli
 
     def current
       cached = Rails.cache.read(CACHE_KEY)
-      return cached if Command::AGENTS.key?(cached)
+      return cached if Providers.find(cached)
 
       ENV["AGENT"].presence || "claude"
     end
 
     def current=(name)
       name = name.to_s
-      raise ArgumentError, "unknown agent #{name.inspect} (expected one of #{available.join(", ")})" unless Command::AGENTS.key?(name)
+      raise ArgumentError, "unknown agent #{name.inspect} (expected one of #{available.join(", ")})" unless Providers.find(name)
 
       Rails.cache.write(CACHE_KEY, name)
     end
 
     def available
-      Command::AGENTS.keys
+      Providers.names
     end
   end
 end
