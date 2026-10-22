@@ -9,7 +9,8 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 
 ## File map
 
-- `app/services/jira/worklog_client.rb` — `Jira::WorklogClient.new(base_url)`: `add_worklog(key, started_at:, seconds:)` (returns the worklog id), `set_original_estimate_if_blank(key, seconds)` (true if it updated), `my_worklogs(key)` (the credentials' user's worklogs, matched on accountId: `[{ id:, started:, seconds: }]`), `keys_with_my_worklogs_since(date)` (JQL search, includes tickets the app doesn't know). All HTTP goes through one private `request` helper (auth, timeouts, status check, JSON parse, transport errors).
+- `app/services/jira/worklog_client.rb` — `Jira::WorklogClient.new(base_url)`: `add_worklog(key, started_at:, seconds:)` (returns the worklog id), `set_original_estimate_if_blank(key, seconds)` (true if it updated), `my_worklogs(key)` (the credentials' user's worklogs, matched on accountId: `[{ id:, started:, seconds: }]`), `keys_with_my_worklogs_since(date)` (JQL search, includes tickets the app doesn't know). Its private `request` helper builds/authenticates requests, checks status, parses JSON, and maps errors.
+- `app/services/jira/http_transport.rb` — `Jira::HttpTransport#call(request, uri)` performs the `Net::HTTP` round trip with Jira's five-second open and 15-second read timeouts. Inject it into `WorklogClient` specs instead of globally stubbing `Net::HTTP`.
 - `app/services/jira/worklog_error.rb` — `Jira::WorklogError`, the only error type of this subsystem.
 - `app/services/jira/worklog_target.rb` — `WorklogTarget.new(workflow)`: `base_url`, `key`, and `problem` (nil, or why the workflow can't log time: not a Jira-kind project + development workflow, no site URL, no ticket key). Pure value object. Ticket keys come from `Jira::TicketRef`.
 - `app/services/jira/time_logger.rb` — `TimeLogger#log(workflow, hours)`; `PRESET_HOURS` (0.5/1/1.5/2) feeds the controller and views.
@@ -29,7 +30,7 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 
 ## Conventions
 
-- Never call Jira from specs. Inject the `client_factory:` lambda (`TimeLogger`, `HoursSync`) or stub `Net::HTTP.start` (client spec), as the existing specs do.
+- Never call Jira from specs. Inject the `client_factory:` lambda (`TimeLogger`, `HoursSync`) or `WorklogClient`'s `transport:` (client spec). Stub `Net::HTTP.start` only in `HttpTransport` specs.
 - Missing `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN` abort: the client raises `WorklogError` ("... are not set") and `HoursSync` re-raises it instead of recording it per ticket.
 - `Jira::WorklogError` is the only error type: map transport/HTTP/JSON failures to it in the client; callers rescue only it.
 - No code in this subsystem writes `time_logs` except `TimeLogger` (new worklog) and `HoursSync` (mirror).
