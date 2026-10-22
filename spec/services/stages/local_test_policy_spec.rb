@@ -4,18 +4,18 @@ RSpec.describe Stages::LocalTestPolicy do
   describe ".outcome" do
     # result, completed rounds, failed, retest, rounds exhausted, auto-merge
     [
-      ["PASSED", 0, false, false, false, true],
-      ["PASSED", 1, false, false, false, true],
-      ["PASSED", 2, false, false, false, true],
-      ["PASSED", 3, false, false, false, true],
-      ["FAILED", 0, true, true, false, false],
-      ["FAILED", 1, true, true, false, false],
-      ["FAILED", 2, true, false, true, false],
-      ["FAILED", 3, true, false, true, false],
-      ["BLOCKED", 0, false, false, false, false],
-      ["BLOCKED", 1, false, false, false, false],
-      ["BLOCKED", 2, false, false, false, false],
-      ["BLOCKED", 3, false, false, false, false]
+      [ "PASSED", 0, false, false, false, true ],
+      [ "PASSED", 1, false, false, false, true ],
+      [ "PASSED", 2, false, false, false, true ],
+      [ "PASSED", 3, false, false, false, true ],
+      [ "FAILED", 0, true, true, false, false ],
+      [ "FAILED", 1, true, true, false, false ],
+      [ "FAILED", 2, true, false, true, false ],
+      [ "FAILED", 3, true, false, true, false ],
+      [ "BLOCKED", 0, false, false, false, false ],
+      [ "BLOCKED", 1, false, false, false, false ],
+      [ "BLOCKED", 2, false, false, false, false ],
+      [ "BLOCKED", 3, false, false, false, false ]
     ].each do |result, rounds, failed, retest, exhausted, auto_merge|
       it "#{result} after #{rounds} completed rounds" do
         outcome = described_class.outcome(result: result, completed_rounds: rounds)
@@ -36,11 +36,11 @@ RSpec.describe Stages::LocalTestPolicy do
   describe ".retest_after_fix?" do
     # ready, completed rounds, feedback pending, agent requested, retest
     [
-      [false, 0, true, true, false],
-      [true, 3, true, true, false],
-      [true, 0, false, false, false],
-      [true, 0, true, false, true],
-      [true, 0, false, true, true]
+      [ false, 0, true, true, false ],
+      [ true, 3, true, true, false ],
+      [ true, 0, false, false, false ],
+      [ true, 0, true, false, true ],
+      [ true, 0, false, true, true ]
     ].each do |ready, rounds, feedback, requested, retest|
       it "ready=#{ready}, rounds=#{rounds}, feedback=#{feedback}, requested=#{requested}" do
         expect(described_class.retest_after_fix?(

@@ -6,6 +6,17 @@ RSpec.describe "Projects", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
+  describe "GET show status filter" do
+    it "lists only workflows with the chosen status" do
+      project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "b1", github_reviewer: "r", status: :done)
+      project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "b2", github_reviewer: "r", status: :pending)
+      get project_path(project, status: "pending")
+
+      expect(response.body).to include("SPEC-2")
+      expect(response.body).not_to include("SPEC-1")
+    end
+  end
+
   describe "GET new and edit" do
     it "renders every optional settings fieldset and preserves saved password placeholders" do
       get new_project_path

@@ -21,7 +21,7 @@ module Bugsnag
         merged[row["bugsnag_id"]] = row["jira_key"]
         row["jira_key"]
       end
-      [merged, added]
+      [ merged, added ]
     end
 
     private

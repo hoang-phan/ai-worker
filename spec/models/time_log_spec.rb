@@ -17,7 +17,7 @@ RSpec.describe TimeLog, type: :model do
     end
 
     it "requires seconds to be a positive integer" do
-      [0, -5, 1.5, nil].each do |value|
+      [ 0, -5, 1.5, nil ].each do |value|
         expect(TimeLog.new(ticket_key: "TL-1", started_at: Time.current, seconds: value)).not_to be_valid
       end
     end
@@ -36,8 +36,8 @@ RSpec.describe TimeLog, type: :model do
     it "ignores blank keys and returns {} for empty input" do
       log("TLSPEC-1", 60)
 
-      expect(TimeLog.seconds_by_ticket([nil, "", "TLSPEC-1"])).to eq("TLSPEC-1" => 60)
-      expect(TimeLog.seconds_by_ticket([nil, ""])).to eq({})
+      expect(TimeLog.seconds_by_ticket([ nil, "", "TLSPEC-1" ])).to eq("TLSPEC-1" => 60)
+      expect(TimeLog.seconds_by_ticket([ nil, "" ])).to eq({})
       expect(TimeLog.seconds_by_ticket([])).to eq({})
       expect(TimeLog.seconds_by_ticket(nil)).to eq({})
     end

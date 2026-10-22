@@ -28,7 +28,8 @@ module Brainstorm
         Look at the code as it is now (and `git log --oneline -30`) and propose up to #{max_workflows} new, independent tasks that move the project toward the goal. Prefer the highest-value, smallest-sufficient ones; each must be doable by one unattended agent run that implements and commits it. Don't propose anything that needs secrets, production access, destructive data operations or a human decision.
 
         Write #{result_file} as a JSON array and nothing else:
-        [{"summary":"<=#{Workflow::SUMMARY_LENGTH} chars, imperative, specific, e.g. Add empty-state to the projects table","task":"Self-contained instructions for the implementing agent: what to change, where (paths), how to verify, and what is out of scope."}]
+        [{"summary":"<=#{Workflow::SUMMARY_LENGTH} chars, imperative, specific, e.g. Add empty-state to the projects table","task":"Self-contained instructions for the implementing agent: what to change, where (paths), how to verify, and what is out of scope.","skills":["optional: names of the project's own skills"]}]
+        "skills" is optional: the `name` from the frontmatter of the repo's own skills (.agents/skills/*/SKILL.md or .claude/skills/*/SKILL.md) that the implementing agent should apply for that task. Only use names that exist in the repo, and omit the key when none fit.
         Write [] if nothing worthwhile is left toward the goal. Reply with one short line, e.g. "Brainstormed 3 workflows".
       PROMPT
     end

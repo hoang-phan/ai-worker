@@ -6,7 +6,11 @@ class ProjectsController < ApplicationController
   end
 
   def show
-    @workflows = @project.workflows.order(:position, :id)
+    all_workflows = @project.workflows.order(:position, :id)
+    @status_filter = params[:status].presence_in(Workflow.statuses.keys)
+    @first_workflow_id = all_workflows.first&.id
+    @last_workflow_id = all_workflows.last&.id
+    @workflows = @status_filter ? all_workflows.where(status: @status_filter) : all_workflows
     @logged_seconds = TimeLog.seconds_by_ticket(@workflows.filter_map(&:jira_key))
   end
 

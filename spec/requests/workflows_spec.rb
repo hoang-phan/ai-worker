@@ -159,19 +159,19 @@ RSpec.describe "Workflows", type: :request do
       post move_project_workflow_path(project, third, direction: "up")
 
       expect(response).to redirect_to(project_path(project))
-      expect(project.workflows.order(:position).pluck(:id)).to eq([first.id, third.id, second.id])
+      expect(project.workflows.order(:position).pluck(:id)).to eq([ first.id, third.id, second.id ])
     end
 
     it "moves a workflow down" do
       post move_project_workflow_path(project, first, direction: "down")
 
-      expect(project.workflows.order(:position).pluck(:id)).to eq([second.id, first.id, third.id])
+      expect(project.workflows.order(:position).pluck(:id)).to eq([ second.id, first.id, third.id ])
     end
 
     it "leaves the order alone at the ends" do
       post move_project_workflow_path(project, first, direction: "up")
 
-      expect(project.workflows.order(:position).pluck(:id)).to eq([first.id, second.id, third.id])
+      expect(project.workflows.order(:position).pluck(:id)).to eq([ first.id, second.id, third.id ])
     end
 
     it "rejects an unknown direction" do
@@ -247,6 +247,13 @@ RSpec.describe "Workflows", type: :request do
 
       expect(flash[:notice]).to eq("Workflow started.")
       expect(workflow.reload).to be_implementing
+    end
+
+    it "redirects back to the project list with the status filter kept" do
+      workflow.update!(status: :pending)
+      post start_project_workflow_path(project, workflow, status: "pending")
+
+      expect(response).to redirect_to(project_path(project, status: "pending"))
     end
   end
 end

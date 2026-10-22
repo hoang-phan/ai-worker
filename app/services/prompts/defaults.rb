@@ -40,7 +40,7 @@ module Prompts
 
     def self.bodies
       @bodies ||= DESCRIPTIONS.keys.to_h do |type|
-        [type, File.read(File.join(DIRECTORY, "#{type}.md")).freeze]
+        [ type, File.read(File.join(DIRECTORY, "#{type}.md")).freeze ]
       end.freeze
     end
     private_class_method :bodies

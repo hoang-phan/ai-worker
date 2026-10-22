@@ -51,7 +51,7 @@ RSpec.describe Workflows::StageOutputs do
       time = Time.current
       first = stage.log_run!("stage_completed", output: "first")
       second = stage.log_run!("stage_completed", output: "second")
-      StageRun.where(id: [first.id, second.id]).update_all(created_at: time)
+      StageRun.where(id: [ first.id, second.id ]).update_all(created_at: time)
 
       expect(outputs.latest_for(stage)).to eq("second")
     end
