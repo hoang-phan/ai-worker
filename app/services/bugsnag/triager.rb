@@ -51,11 +51,7 @@ module Bugsnag
     end
 
     def blockers
-      list = []
-      list << "project kind is not jira" unless project.jira?
-      list << "Jira site URL is not set" if project.jira_base_url.blank?
-      list << "local directory does not exist" unless Dir.exist?(project.local_directory.to_s)
-      list
+      Projects::RunBlockers.new(project).messages(:jira_kind, :jira_site_url, :local_directory)
     end
 
     def running?

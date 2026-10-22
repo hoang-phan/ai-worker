@@ -17,12 +17,7 @@ module Jira
 
     # Everything that would stop workflows from being created automatically.
     def blockers
-      list = []
-      list << "project kind is not jira" unless project.jira?
-      list << "Jira site URL is not set" if project.jira_base_url.blank?
-      list << "assignee is not set" if project.jira_assignee.blank?
-      list << "default GitHub reviewers are not set (workflows require a reviewer)" if project.default_reviewers.blank?
-      list
+      Projects::RunBlockers.new(project).messages(:jira_kind, :jira_site_url, :assignee, :default_reviewers)
     end
 
     def fetcher

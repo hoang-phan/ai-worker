@@ -38,11 +38,7 @@ module Brainstorm
     end
 
     def blockers
-      list = []
-      list << "project kind is not personal" unless project.personal?
-      list << "no goal set" if project.brainstorm_goal.blank?
-      list << "local directory does not exist" unless Dir.exist?(project.local_directory.to_s)
-      list
+      Projects::RunBlockers.new(project).messages(:personal_kind, :brainstorm_goal, :local_directory)
     end
 
     # Pending workflows; brainstorming waits until this is zero.

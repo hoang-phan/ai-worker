@@ -23,11 +23,7 @@ module Slack
 
     # Everything that would stop reviews from being created automatically.
     def blockers
-      list = []
-      list << "project kind is not jira" unless project.jira?
-      list << "GitHub repo is not set" if project.repo_full_name.blank?
-      list << "Slack mention is not set" if project.slack_mention.blank?
-      list
+      Projects::RunBlockers.new(project).messages(:jira_kind, :repo, :slack_mention)
     end
 
     def fetcher
