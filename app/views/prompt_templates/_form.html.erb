@@ -13,6 +13,16 @@
     </div>
 
     <div class="field">
+      <%= f.label :model %>
+      <%= f.text_field :model, placeholder: "claude-sonnet-5-5 (blank = CLI default)" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :effort %>
+      <%= f.select :effort, PromptTemplate::EFFORTS, include_blank: "CLI default" %>
+    </div>
+
+    <div class="field">
       <%= f.label :body %>
       <div class="placeholder-list">
         <% Prompts::Renderer::BUILT_IN_TOKENS.each do |placeholder| %>

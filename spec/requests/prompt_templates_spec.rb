@@ -34,6 +34,27 @@ RSpec.describe "PromptTemplates", type: :request do
     end
   end
 
+  describe "model and effort" do
+    it "saves them on create and update and shows them" do
+      post prompt_templates_path, params: { prompt_template: { name: "Agent", stage_type: "pr_check", body: "Check", model: "claude-opus-5-5", effort: "high" } }
+      created = PromptTemplate.find_by!(name: "Agent")
+      expect(created).to have_attributes(model: "claude-opus-5-5", effort: "high")
+
+      patch prompt_template_path(created), params: { prompt_template: { effort: "low" } }
+      expect(created.reload.effort).to eq "low"
+
+      get prompt_template_path(created)
+      expect(response.body).to include("claude-opus-5-5")
+    end
+
+    it "rejects an invalid effort" do
+      patch prompt_template_path(template), params: { prompt_template: { effort: "bogus" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(template.reload.effort).to be_nil
+    end
+  end
+
   describe "POST create" do
     it "creates the template and redirects with a notice" do
       expect {

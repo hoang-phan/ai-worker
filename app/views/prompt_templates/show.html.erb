@@ -3,6 +3,8 @@
     <h1><%= @prompt_template.name %></h1>
     <p class="page-header__meta">
       <span class="badge badge-info"><%= @prompt_template.stage_type %></span>
+      <span>Model: <%= @prompt_template.model.presence || "CLI default" %></span>
+      <span>Effort: <%= @prompt_template.effort.presence || "CLI default" %></span>
     </p>
   </div>
   <div class="page-header__actions">
