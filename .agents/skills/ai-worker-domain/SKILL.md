@@ -24,6 +24,7 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 - `app/models/workflows/variables.rb` — runbook variables: `NAME=value` text form and user-typed vs stage-emitted (`input_variables` / `output_variable_names`).
 - `app/models/workflows/stage_outputs.rb` — query object for successful runbook stage outputs (`all`, `latest_for(stage)`; only `stage_completed` runs count). `Variables` stays a pure parser.
 - `app/models/projects/slack_user_map.rb` — parses `Project#slack_user_map` (`github-login=SlackUserID` lines) for reviewer tagging.
+- `app/models/projects/live_checkout.rb` — `LiveCheckout.new(local_directory, app_root: Rails.root).live?`: real-path comparison behind `Project#runs_from_live_checkout?` (symlinks count; missing/blank dir is false).
 - `app/models/projects/workflow_defaults.rb` — attributes a new workflow starts with (next position, default skills, PR skills, reviewer).
 - `app/models/projects/workflow_reorder.rb` — moves a workflow up/down the project's priority list.
 - `app/models/projects/run_blockers.rb` — the shared blocker messages used by the agent-run services' `#blockers` (`messages(*checks)`).
