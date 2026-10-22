@@ -9,10 +9,14 @@ class StageExecutor
   # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
-  def initialize(workflow, stage)
+  # `github:`, `git:` and `tooling:` default to the production collaborators; specs pass doubles.
+  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil)
     @workflow = workflow
     @stage = stage
     @project = workflow.project
+    @github = github
+    @git = git
+    @tooling = tooling || Stages::RunTooling.for(stage)
   end
 
   def call
@@ -29,17 +33,21 @@ class StageExecutor
 
   private
 
-  attr_reader :workflow, :stage, :project
+  attr_reader :workflow, :stage, :project, :git, :tooling
+
+  def github
+    @github ||= Github::Client.new(project)
+  end
 
   def start_handler
     @start_handler ||= Stages::StartHandler.new(
       workflow: workflow, stage: stage, project: project,
-      github: Github::Client.new(project), git: Git::BranchService, prompt: prompt, handoff: handoff, launcher: launcher
+      github: github, git: git, prompt: prompt, handoff: handoff, launcher: launcher
     )
   end
 
   def poll_ai_run
-    poller = poller_class.new(
+    poller = tooling.poller_class.new(
       pid: workflow.ai_pid, log_path: workflow.ai_log_path, log_offset: workflow.ai_log_offset,
       started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER
     )
@@ -53,24 +61,19 @@ class StageExecutor
     finalize_success(output)
   end
 
-  # The CI check is a plain command: its exit status is the result, not a verdict on an agent run.
-  def poller_class
-    stage.ci_check? ? Ci::CheckPoller : AiCli::RunPoller
-  end
-
   def finalize_success(output)
     return conflict_resolution_finish.call(output) if stage.resolving_conflicts?
 
     Stages::CompletionHandler.new(
       workflow: workflow, stage: stage, project: project,
-      github: Github::Client.new(project), git: Git::BranchService, handoff: handoff
+      github: github, git: git, handoff: handoff
     ).call(output)
   end
 
   def conflict_resolution_finish
     Stages::ConflictResolutionFinish.new(
       workflow: workflow, stage: stage, project: project,
-      git: Git::BranchService, prompt: prompt, start_ai_run: launcher
+      git: git, prompt: prompt, start_ai_run: launcher
     )
   end
 
@@ -94,7 +97,7 @@ class StageExecutor
 
   def launcher
     @launcher ||= Stages::AiRunLauncher.new(
-      workflow: workflow, stage: stage, project: project, runner: stage.ci_check? ? Ci::CommandRunner : AiCli::Runner
+      workflow: workflow, stage: stage, project: project, runner: tooling.runner
     )
   end
 end
