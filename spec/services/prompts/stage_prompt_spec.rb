@@ -1,7 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Prompts::StagePrompt do
-  subject(:stage_prompt) { described_class.new(workflow, stage) }
+  subject(:stage_prompt) { described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log) }
+
+  let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: false) }
+  let(:latest_log) { ->(_workflow_id) { nil } }
 
   let(:local_directory) { Dir.mktmpdir("stage-prompt-spec") }
   let(:project_attrs) { { kind: :personal } }
@@ -71,11 +74,8 @@ RSpec.describe Prompts::StagePrompt do
     context "with an implementation stage" do
       let(:stage_type) { :implementation }
       let(:stage_attrs) { { prompt: "Implement {TASK}" } }
-      let(:runs_dir) { Dir.mktmpdir("ai-runs-spec") }
-
-      before { stub_const("AiCli::RunLogs::DIR", runs_dir) }
-
-      after { FileUtils.remove_entry(runs_dir) }
+      let(:logs) { {} }
+      let(:latest_log) { ->(workflow_id) { logs[workflow_id] } }
 
       it "adds the check-output guidance but no retry note on the first attempt" do
         body = stage_prompt.body
@@ -89,12 +89,9 @@ RSpec.describe Prompts::StagePrompt do
         before { stage.stage_runs.create!(action: "failed", error: "agent finished but no PR was found") }
 
         it "points at the previous agent log" do
-          old = File.join(runs_dir, "workflow-#{workflow.id}-100.log")
-          recent = File.join(runs_dir, "workflow-#{workflow.id}-200.log")
-          File.write(old, "")
-          File.write(recent, "")
-          File.utime(Time.at(100), Time.at(100), old)
-          File.utime(Time.at(200), Time.at(200), recent)
+          recent = "/tmp/runs/workflow-#{workflow.id}-200.log"
+          old = "/tmp/runs/workflow-#{workflow.id}-100.log"
+          logs[workflow.id] = recent
 
           body = stage_prompt.body
 
@@ -108,7 +105,7 @@ RSpec.describe Prompts::StagePrompt do
         end
 
         it "ignores other workflows' logs" do
-          File.write(File.join(runs_dir, "workflow-#{workflow.id + 1}-100.log"), "")
+          logs[workflow.id + 1] = "/tmp/runs/workflow-#{workflow.id + 1}-100.log"
 
           expect(stage_prompt.body).not_to include("previous attempt")
         end
@@ -116,7 +113,7 @@ RSpec.describe Prompts::StagePrompt do
 
       it "adds nothing when the last run did not fail" do
         stage.stage_runs.create!(action: "started")
-        File.write(File.join(runs_dir, "workflow-#{workflow.id}-100.log"), "")
+        logs[workflow.id] = "/tmp/runs/workflow-#{workflow.id}-100.log"
 
         expect(stage_prompt.body).not_to include("previous attempt")
       end
@@ -126,8 +123,6 @@ RSpec.describe Prompts::StagePrompt do
       let(:stage_type) { :pr_check }
       let(:stage_attrs) { { prompt: "Fix the review" } }
       let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: slack_enabled) }
-
-      before { allow(Slack::ReviewNotifier).to receive(:new).and_return(notifier) }
 
       context "when Slack review notifications are enabled" do
         let(:slack_enabled) { true }

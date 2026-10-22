@@ -8,10 +8,12 @@ module Prompts
       `git commit --no-edit`. Make sure the project still builds and its tests pass. Do not push.
     PROMPT
 
-    def initialize(workflow, stage)
+    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) })
       @workflow = workflow
       @stage = stage
       @project = workflow.project
+      @notifier = notifier
+      @latest_log = latest_log
     end
 
     def body
@@ -37,17 +39,22 @@ module Prompts
 
     private
 
-    attr_reader :workflow, :stage, :project
+    attr_reader :workflow, :stage, :project, :latest_log
+
+    def notifier
+      @notifier ||= Slack::ReviewNotifier.new(project)
+    end
 
     def sections
       stage_type = stage.stage_type
-      retrying = (stage.implementation? || stage.simple_implementation?) && stage.stage_runs.first&.action == "failed"
+      last_action = stage.stage_runs.first&.action
+      retrying = (stage.implementation? || stage.simple_implementation?) && last_action == "failed"
 
       [
         Prompts::StageSections::Retry.new(
           stage_type: stage_type,
-          last_action: stage.stage_runs.first&.action,
-          previous_log: (AiCli::RunLogs.latest(workflow.id) if retrying)
+          last_action: last_action,
+          previous_log: (latest_log.call(workflow.id) if retrying)
         ),
         Prompts::StageSections::LocalFeedback.new(
           stage_type: stage_type,
@@ -56,7 +63,7 @@ module Prompts
         ),
         Prompts::StageSections::FixedSummary.new(
           stage_type: stage_type,
-          notify_enabled: stage.pr_check? && Slack::ReviewNotifier.new(project).enabled?
+          notify_enabled: stage.pr_check? && notifier.enabled?
         ),
         Prompts::StageSections::CheckOutput.new(stage_type: stage_type)
       ]
