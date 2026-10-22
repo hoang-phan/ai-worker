@@ -10,9 +10,10 @@ module Jira
       end
     end
 
-    def initialize(jira_sync)
+    def initialize(jira_sync, fetcher: nil)
       @jira_sync = jira_sync
       @project = jira_sync.project
+      @fetcher = fetcher
     end
 
     # Everything that would stop workflows from being created automatically.
@@ -21,27 +22,17 @@ module Jira
     end
 
     def fetcher
-      AgentFetcher.new(jira_sync)
+      @fetcher ||= AgentFetcher.new(jira_sync)
     end
 
     # `issues` is the array AgentFetcher#poll returns.
     def import(issues)
       found = blockers
-      return Result.new(blockers: found, created: [], skipped: [], failed: []) if found.any?
+      return empty_result(found) if found.any?
 
-      result = Result.new(blockers: [], created: [], skipped: [], failed: [])
+      result = empty_result
       existing = existing_keys
-      issues.each do |issue|
-        key = issue["key"]
-        next if key.blank?
-
-        if existing.include?(key)
-          result.skipped << key
-        else
-          create_workflow(issue, result)
-          existing << key
-        end
-      end
+      issues.each { |issue| import_issue(issue, existing, result) }
       result
     end
 
@@ -54,11 +45,29 @@ module Jira
       Set.new(keys)
     end
 
+    def empty_result(blockers = [])
+      Result.new(blockers: blockers, created: [], skipped: [], failed: [])
+    end
+
+    def import_issue(issue, existing, result)
+      key = issue["key"]
+      return if key.blank?
+
+      if existing.include?(key)
+        result.skipped << key
+      else
+        create_workflow(issue, result)
+        existing << key
+      end
+    end
+
+    def workflow_attributes(key)
+      url = TicketRef.url_for(project.jira_base_url, key)
+      Projects::WorkflowDefaults.new(project).attributes(kind: :development).merge(jira_ticket: url, branch_name: TicketRef.branch_name_for(url))
+    end
+
     def create_workflow(issue, result)
-      url = TicketRef.url_for(project.jira_base_url, issue["key"])
-      workflow = project.workflows.new(
-        Projects::WorkflowDefaults.new(project).attributes(kind: :development).merge(jira_ticket: url, branch_name: TicketRef.branch_name_for(url))
-      )
+      workflow = project.workflows.new(workflow_attributes(issue["key"]))
       if workflow.save
         result.created << issue["key"]
       else

@@ -32,6 +32,23 @@ RSpec.describe Jira::TicketSync do
     end
   end
 
+  describe "#fetcher" do
+    it "returns the injected fetcher" do
+      fetcher = double("fetcher")
+
+      expect(described_class.new(jira_sync, fetcher: fetcher).fetcher).to be(fetcher)
+    end
+
+    it "builds and memoizes an AgentFetcher when none is injected" do
+      built = double("agent fetcher")
+      allow(Jira::AgentFetcher).to receive(:new).with(jira_sync).and_return(built)
+
+      expect(sync.fetcher).to be(built)
+      expect(sync.fetcher).to be(built)
+      expect(Jira::AgentFetcher).to have_received(:new).once
+    end
+  end
+
   describe "#import" do
     it "creates nothing and reports blockers when blocked" do
       project.update_columns(jira_assignee: nil)
