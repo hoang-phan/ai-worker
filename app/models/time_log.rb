@@ -6,4 +6,16 @@ class TimeLog < ApplicationRecord
 
   validates :ticket_key, :started_at, presence: true
   validates :seconds, numericality: { only_integer: true, greater_than: 0 }
+
+  # { ticket_key => total seconds } for the given keys; blank keys are ignored, no keys => {}.
+  def self.seconds_by_ticket(keys)
+    keys = Array(keys).compact_blank
+    return {} if keys.empty?
+
+    where(ticket_key: keys).group(:ticket_key).sum(:seconds)
+  end
+
+  def self.seconds_for(key)
+    key.blank? ? 0 : where(ticket_key: key).sum(:seconds)
+  end
 end

@@ -59,7 +59,7 @@
           <% if @project.jira? %>
             <td>
               <% if workflow.development? && @logged_seconds[workflow.jira_key].to_i.positive? %>
-                <span class="badge badge-success" title="Hours you have logged in Jira<%= ", synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at %>"><%= number_with_precision(@logged_seconds[workflow.jira_key] / 3600.0, precision: 2, strip_insignificant_zeros: true) %> h</span>
+                <span class="badge badge-success" title="Hours you have logged in Jira<%= ", synced #{time_ago_in_words(workflow.jira_logged_synced_at)} ago" if workflow.jira_logged_synced_at %>"><%= logged_hours(@logged_seconds[workflow.jira_key]) %> h</span>
               <% elsif workflow.development? %>
                 <span class="badge badge-neutral">Not logged</span>
               <% end %>

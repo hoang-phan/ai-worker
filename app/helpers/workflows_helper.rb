@@ -29,6 +29,11 @@ module WorkflowsHelper
     workflow.runbook? && workflow.implementing? && !workflow.processing? && current_stage == stage
   end
 
+  # Seconds logged in Jira as hours, e.g. 5400 => "1.5", 3600 => "1".
+  def logged_hours(seconds)
+    number_with_precision(seconds.to_i / 3600.0, precision: 2, strip_insignificant_zeros: true)
+  end
+
   def current_stage_badge(workflow, stage, current_stage = workflow.current_stage)
     return unless current_stage == stage
 

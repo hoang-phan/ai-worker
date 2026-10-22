@@ -19,7 +19,7 @@ class Workflow < ApplicationRecord
 
   # Seconds the Jira user has logged on this workflow's ticket (mirrored in time_logs).
   def logged_seconds
-    jira_key.present? ? TimeLog.where(ticket_key: jira_key).sum(:seconds) : 0
+    TimeLog.seconds_for(jira_key)
   end
 
   # Accepts a Slack thread id (`1760000000.123456`) or a message link (`.../archives/C123/p1760000000123456`).

@@ -59,6 +59,15 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
   end
 
+  describe "#logged_hours" do
+    it "formats seconds as hours without insignificant zeros" do
+      expect(helper.logged_hours(5400)).to eq("1.5")
+      expect(helper.logged_hours(3600)).to eq("1")
+      expect(helper.logged_hours(0)).to eq("0")
+      expect(helper.logged_hours(1234)).to eq("0.34")
+    end
+  end
+
   describe "#current_stage_badge" do
     let(:stage) { Object.new }
 
