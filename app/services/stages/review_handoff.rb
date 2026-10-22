@@ -18,11 +18,10 @@ module Stages
       label = review_label(pr_url, title)
       notifier.collect(workflow)
       thread_ts = workflow.reload.slack_review_thread_ts.presence
-      returned_thread_ts = notifier.notify!(
+      notifier.notify!(
         workflow: workflow, pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
         thread_ts: thread_ts
       )
-      store_thread_ts(returned_thread_ts) if thread_ts.blank?
       stage.log_run!("slack_review_notified")
     rescue Slack::NotifyError, Github::CommandError => e
       stage.log_run!("slack_review_notify_failed", error: e.message)
@@ -45,16 +44,6 @@ module Stages
 
     def review_label(pr_url, title)
       [ workflow.jira_ticket.presence, title ].compact.join(" ").presence || pr_url
-    end
-
-    # Slack::ReviewNotifier#notify! returns the byte count of its detached-run
-    # pid write (an Integer), not a thread timestamp. Only a nonblank String is
-    # a usable timestamp, so anything else is ignored here.
-    def store_thread_ts(value)
-      return unless value.is_a?(String) && value.present?
-      return if workflow.slack_review_thread_ts.present?
-
-      workflow.update!(slack_review_thread_ts: value)
     end
   end
 end

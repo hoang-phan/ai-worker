@@ -42,13 +42,15 @@ module Slack
     end
 
     # Starts the posting run and returns immediately. Posts into `thread_ts` when given (a re-request replies in
-    # the original thread), otherwise as a new channel message.
+    # the original thread), otherwise as a new channel message. Returns nil: starts the run; the thread id is
+    # collected later by PingCollector.
     def notify!(workflow:, pr_url:, label:, reviewers:, again: false, fixed: nil, thread_ts: nil)
       raise NotifyError, blockers.join("; ") unless enabled?
 
       msg = review_message(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed)
       prompt = msg.prompt(channel: project.slack_review_channel, thread_ts: thread_ts)
       spawn(run_dir(workflow), prompt)
+      nil
     rescue AiCli::CommandError, SystemCallError => e
       raise NotifyError, "Slack ping failed to start: #{e.message}"
     end

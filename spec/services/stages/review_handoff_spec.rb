@@ -41,13 +41,13 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
       end
     end
 
-    it "stores the thread timestamp returned by the first notification" do
+    it "notifies without a thread on the first notification and leaves the thread timestamp unset" do
       allow(github).to receive(:pr_title).with(pr_url).and_return("Fix handoff")
-      allow(notifier).to receive(:notify!).and_return("171234.5678")
+      expect(notifier).to receive(:notify!).with(hash_including(thread_ts: nil))
 
       handoff.notify_reviewers!
 
-      expect(workflow.reload.slack_review_thread_ts).to eq("171234.5678")
+      expect(workflow.reload.slack_review_thread_ts).to be_nil
       expect(stage.stage_runs.last.action).to eq("slack_review_notified")
     end
 
@@ -57,7 +57,7 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
       expect(notifier).to receive(:notify!).with(
         workflow: workflow, pr_url: pr_url, label: "REV-1 Fix handoff", reviewers: %w[octocat hubot],
         again: false, fixed: nil, thread_ts: "existing-thread"
-      ).and_return("new-thread")
+      )
 
       handoff.notify_reviewers!
 
@@ -67,7 +67,7 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
     it "uses the PR URL as the label when neither ticket nor title is available" do
       workflow.update_column(:jira_ticket, nil)
       allow(github).to receive(:pr_title).with(pr_url).and_return(nil)
-      expect(notifier).to receive(:notify!).with(hash_including(label: pr_url)).and_return(nil)
+      expect(notifier).to receive(:notify!).with(hash_including(label: pr_url))
 
       handoff.notify_reviewers!
     end

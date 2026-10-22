@@ -37,6 +37,10 @@ RSpec.describe Slack::ReviewNotifier do
       )
     end
 
+    it "returns nil; the thread id is collected later by PingCollector" do
+      expect(notify).to be_nil
+    end
+
     it "names the run dir after the clock" do
       notify
       expect(Dir.children(tmp_root.join(workflow.id.to_s))).to eq([ "1760000000" ])
