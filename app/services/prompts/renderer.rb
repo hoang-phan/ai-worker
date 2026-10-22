@@ -4,6 +4,8 @@ module Prompts
     VARIABLE_NAME = /\A[A-Za-z][A-Za-z0-9_]*\z/
     TOKEN = /\{([A-Za-z][A-Za-z0-9_]*)\}/
     PREV_OUTPUT_LIMIT = 3000
+    # Time zone the {STARTED_ON} date is shown in.
+    STARTED_ON_TIME_ZONE = "Australia/Brisbane"
 
     def self.render(template_body, workflow)
       new(template_body, workflow).render
@@ -45,19 +47,10 @@ module Prompts
         "{IMAGES}" => workflow.image_paths.join(", "),
         "{TASK}" => workflow.task_description.to_s,
         "{SLACK}" => workflow.slack_url.to_s,
-        "{TESTER}" => workflow.project.jira_tester.to_s,
-        "{UAT_URL}" => workflow.project.uat_url.to_s,
-        "{TEST_INSTRUCTIONS}" => workflow.project.test_instructions.to_s,
-        "{UAT_INSTRUCTIONS}" => workflow.project.uat_instructions.to_s,
-        "{LOCAL_URL}" => workflow.project.local_url.to_s,
-        "{LOCAL_INSTRUCTIONS}" => workflow.project.local_instructions.to_s,
-        "{CI_INSTRUCTIONS}" => workflow.project.ci_instructions.to_s,
-        "{CI_VERIFY_INSTRUCTIONS}" => workflow.project.ci_verify_instructions.to_s,
-        "{PR_INSTRUCTIONS}" => workflow.project.pr_instructions.to_s,
-        "{CI_COMMAND}" => workflow.project.ci_command.to_s,
+        **ProjectPlaceholders.for(workflow.project),
         "{CI_OUTPUT}" => workflow.ci_output_path.to_s,
         "{CI_STATUS}" => workflow.ci_exit_status.to_s,
-        "{STARTED_ON}" => workflow.created_at.in_time_zone("Australia/Brisbane").strftime("%d/%m/%Y"),
+        "{STARTED_ON}" => workflow.created_at.in_time_zone(STARTED_ON_TIME_ZONE).strftime("%d/%m/%Y"),
         "{STAGE_NAME}" => workflow.current_stage&.display_name.to_s,
         "{PREV_OUTPUT}" => previous_output
       }
