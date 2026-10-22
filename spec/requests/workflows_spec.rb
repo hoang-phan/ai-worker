@@ -31,6 +31,32 @@ RSpec.describe "Workflows", type: :request do
     end
   end
 
+  describe "GET show with Jira hours" do
+    let(:client) { instance_double(Jira::WorklogClient) }
+
+    before do
+      project.update!(jira_base_url: "https://example.atlassian.net")
+      allow(Jira::WorklogClient).to receive(:new).and_return(client)
+    end
+
+    it "shows the hours currently logged in Jira" do
+      allow(client).to receive(:logged_seconds).with("SPEC-1").and_return(5400)
+
+      get project_workflow_path(project, workflow)
+
+      expect(response.body).to include("Jira currently shows <strong>1.5 h</strong>")
+    end
+
+    it "still renders when Jira can't be read" do
+      allow(client).to receive(:logged_seconds).and_raise(Jira::WorklogError, "Jira is down")
+
+      get project_workflow_path(project, workflow)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Could not read hours from Jira: Jira is down")
+    end
+  end
+
   describe "POST clone" do
     it "refuses a non-runbook" do
       post clone_project_workflow_path(project, workflow)

@@ -49,6 +49,36 @@ RSpec.describe StageExecutor, type: :service do
     expect(stage.stage_runs.find_by(action: "failed").error).to eq "boom"
   end
 
+  describe "injected collaborators" do
+    let(:stage) { workflow.stages.create!(stage_type: :ci_check, name: "ci_check") }
+
+    it "polls a ci_check stage through the injected tooling and builds the github client once" do
+      poller_class = class_double(Ci::CheckPoller)
+      poller = instance_double(Ci::CheckPoller, call: [ :finished, "green" ], log_offset: 5)
+      tooling = Stages::RunTooling::Tooling.new(runner: double("runner"), poller_class: poller_class)
+      github = double("Github::Client")
+      git = double("Git::BranchService")
+      allow(poller_class).to receive(:new).and_return(poller)
+      allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
+
+      described_class.new(workflow, stage, github: github, git: git, tooling: tooling).call
+
+      expect(poller_class).to have_received(:new).with(hash_including(pid: 123, stale_after: StageExecutor::STALE_AFTER))
+      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, git: git))
+      expect(handler).to have_received(:call).with("green")
+      expect(workflow.reload.ai_log_offset).to eq 5
+    end
+
+    it "picks the plain command tooling for a ci_check stage by default" do
+      poller = instance_double(Ci::CheckPoller, call: [ :running, nil ], log_offset: 0)
+      allow(Ci::CheckPoller).to receive(:new).and_return(poller)
+
+      described_class.new(workflow, stage).call
+
+      expect(Ci::CheckPoller).to have_received(:new)
+    end
+  end
+
   describe "starting a stage" do
     let(:workflow) { project.workflows.create!(jira_ticket: "EXEC-2", branch_name: "executor", github_reviewer: "octocat", status: :implementing) }
     let(:github) { double("Github::Client", merged?: false, review_decision: "CHANGES_REQUESTED", pr_info: { "state" => "OPEN", "head_ref" => "feature" }, checkout_pr!: nil) }
