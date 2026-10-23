@@ -23,17 +23,13 @@ module Stages
 
     private
 
-    MAX_LESSONS = 40
-
     attr_reader :workflow, :stage, :project, :github, :handoff
 
     # Best effort: a lesson that cannot be saved never fails the stage.
     def record_lessons(new_lessons)
       return if new_lessons.empty?
 
-      lines = project.agent_lessons.to_s.lines.map(&:strip).reject(&:blank?)
-      new_lessons.each { |lesson| lines << lesson unless lines.any? { |line| line.casecmp?(lesson) } }
-      project.update_column(:agent_lessons, lines.last(MAX_LESSONS).join("\n"))
+      project.update_column(:agent_lessons, Projects::AgentLessons.new(project.agent_lessons).merge(new_lessons))
     rescue StandardError => e
       Rails.logger.warn("Could not save agent lessons for project #{project.id}: #{e.message}")
     end

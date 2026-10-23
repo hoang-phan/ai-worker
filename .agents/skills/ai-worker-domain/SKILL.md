@@ -25,6 +25,7 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 - `app/models/workflows/stage_outputs.rb` — query object for successful runbook stage outputs (`all`, `latest_for(stage)`; only `stage_completed` runs count). `Variables` stays a pure parser.
 - `app/models/projects/slack_user_map.rb` — parses `Project#slack_user_map` (`github-login=SlackUserID` lines) for reviewer tagging.
 - `app/models/projects/live_checkout.rb` — `LiveCheckout.new(local_directory, app_root: Rails.root).live?`: real-path comparison behind `Project#runs_from_live_checkout?` (symlinks count; missing/blank dir is false).
+- `app/models/projects/agent_lessons.rb` — `AgentLessons.new(text)`: `#lines` (stripped non-blank lines) and `#merge(new_lessons)` (case-insensitive de-dup, keeps newest `MAX` = 40, returns text); used by `Stages::PrCheckFinish#record_lessons` for `Project#agent_lessons`.
 - `app/models/projects/skill_catalog.rb` — `SkillCatalog.new(local_directory)`: `#dir` (expanded `.agents/skills` path) and `#names` (sorted non-hidden subdirectories; `[]` for blank/missing dir), exposed as `Project#skill_catalog` and used by `shared/_skill_hints`.
 - `app/models/projects/workflow_defaults.rb` — attributes a new workflow starts with (next position, default skills, PR skills, reviewer).
 - `app/models/projects/workflow_reorder.rb` — moves a workflow up/down the project's priority list.
