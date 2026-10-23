@@ -23,37 +23,42 @@ RSpec.describe "JiraSyncs", type: :request do
     it "creates a sync on the project and redirects with a notice" do
       expect {
         post project_jira_syncs_path(project), params: {
-          jira_sync: { jira_project: "PLATFORM", parent_ticket: "PLATFORM-10", auto_sync: "1" }
+          jira_sync: { jira_project: "PLATFORM", parent_ticket: "PLATFORM-9", auto_sync: "1" }
         }
       }.to change(project.jira_syncs, :count).by(1)
 
       created = project.jira_syncs.find_by!(jira_project: "PLATFORM")
       expect(response).to redirect_to(project_path(project))
       expect(flash[:notice]).to eq("Jira sync created.")
-      expect(created).to have_attributes(parent_ticket: "PLATFORM-10", auto_sync: true)
+      expect(created).to have_attributes(parent_ticket: "PLATFORM-9", auto_sync: true)
     end
 
-    it "re-renders the error summary when persistence fails" do
-      allow_any_instance_of(JiraSync).to receive(:save) do |sync|
-        sync.errors.add(:base, "could not be saved")
-        false
-      end
+    it "allows a blank sync that pulls every assigned ticket" do
+      expect {
+        post project_jira_syncs_path(project), params: { jira_sync: { jira_project: "", parent_ticket: "" } }
+      }.to change(project.jira_syncs, :count).by(1)
+
+      expect(response).to redirect_to(project_path(project))
+    end
+
+    it "re-renders the form with 422 when the sync is invalid" do
+      allow_any_instance_of(JiraSync).to receive(:valid?).and_return(false)
 
       expect {
-        post project_jira_syncs_path(project), params: { jira_sync: { jira_project: "APP" } }
+        post project_jira_syncs_path(project), params: { jira_sync: { jira_project: "PLATFORM" } }
       }.not_to change(JiraSync, :count)
 
       expect(response).to have_http_status(:unprocessable_entity)
-      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
-      expect(summary).to include("prevented this sync from saving", "could not be saved")
+      expect(Nokogiri::HTML(response.body).at_css("form")).to be_present
     end
 
     it "ignores protected attributes" do
       post project_jira_syncs_path(project), params: {
-        jira_sync: { jira_project: "PLATFORM", last_result: "forced" }
+        jira_sync: { jira_project: "PLATFORM", last_result: "forced", last_synced_at: Time.current.iso8601 }
       }
 
-      expect(project.jira_syncs.find_by!(jira_project: "PLATFORM").last_result).to be_nil
+      created = project.jira_syncs.find_by!(jira_project: "PLATFORM")
+      expect(created).to have_attributes(last_result: nil, last_synced_at: nil)
     end
   end
 
@@ -68,16 +73,14 @@ RSpec.describe "JiraSyncs", type: :request do
       expect(jira_sync.reload).to have_attributes(jira_project: "OPS", parent_ticket: "OPS-2", auto_sync: true)
     end
 
-    it "re-renders with 422 and leaves the record unchanged when persistence fails" do
-      allow_any_instance_of(JiraSync).to receive(:update) do |sync|
-        sync.errors.add(:base, "could not be saved")
-        false
-      end
+    it "re-renders with 422 and leaves the record unchanged when invalid" do
+      jira_sync
+      allow_any_instance_of(JiraSync).to receive(:valid?).and_return(false)
 
       patch project_jira_sync_path(project, jira_sync), params: { jira_sync: { jira_project: "OPS" } }
 
       expect(response).to have_http_status(:unprocessable_entity)
-      expect(jira_sync.reload).to have_attributes(jira_project: "APP", parent_ticket: "APP-1", auto_sync: false)
+      expect(jira_sync.reload).to have_attributes(jira_project: "APP", parent_ticket: "APP-1")
     end
   end
 

@@ -49,6 +49,6 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 ## Verification
 
-`RAILS_ENV=test bundle exec rspec spec/services/jira/{agent_fetcher,fetch_prompt,ticket_rows,ticket_ref,ticket_sync,ticket_importer,sync_cycle_source}_spec.rb spec/jobs/jira_sync_job_spec.rb spec/models/jira_sync_spec.rb spec/requests/jira_sync_runs_spec.rb`
+`RAILS_ENV=test bundle exec rspec spec/services/jira/{agent_fetcher,fetch_prompt,ticket_rows,ticket_ref,ticket_sync,ticket_importer,sync_cycle_source}_spec.rb spec/jobs/jira_sync_job_spec.rb spec/models/jira_sync_spec.rb spec/requests/jira_syncs_spec.rb spec/requests/jira_sync_runs_spec.rb`
 
 (`spec/requests/jira_syncs_spec.rb` does not exist; add it with any controller change.)
