@@ -20,6 +20,7 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 - `app/services/jira/hours_sync.rb` — `HoursSync#call` (every ticket of the development workflows of Jira projects, plus this month's logged tickets) and `#recent(base_url)` (this month's only); returns `Result(synced:, failed:)`.
 - `app/jobs/jira_hours_sync_job.rb` — runs `HoursSync#call`; scheduled twice in `config/schedule.yml` (`jira_hours_sync`, `jira_hours_sync_off_hours`). Failed tickets and `WorklogError` are only logged.
 - `app/models/time_log.rb` — mirror row (`ticket_key`, `started_at`, `seconds`, `jira_worklog_id`, optional `workflow`); `Workflow#logged_seconds` and `ProjectsController#show` sum it.
+- `app/helpers/time_logs_helper.rb` — formats logged Jira hours, sync phrases, badges, and select-all checkbox data for time-log views.
 - Entry point: `WorkflowTimeLogsController#create` (routed as `post :log_time, on: :collection, to: "workflow_time_logs#create"`, helper `log_time_project_workflows_path`), driven by the batch bars in `app/views/projects/show.html.erb` and `app/views/workflows/_details.html.erb`. It validates hours against `PRESET_HOURS`, then calls `TimeLogBatch`.
 - Specs: `spec/services/jira/{worklog_client,rest_client,time_logger,time_log_batch,time_slot_planner,hours_sync}_spec.rb`, `spec/jobs/jira_hours_sync_job_spec.rb`, plus `spec/requests/{workflows,projects}_spec.rb`.
 

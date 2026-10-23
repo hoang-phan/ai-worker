@@ -61,15 +61,6 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
   end
 
-  describe "#logged_hours" do
-    it "formats seconds as hours without insignificant zeros" do
-      expect(helper.logged_hours(5400)).to eq("1.5")
-      expect(helper.logged_hours(3600)).to eq("1")
-      expect(helper.logged_hours(0)).to eq("0")
-      expect(helper.logged_hours(1234)).to eq("0.34")
-    end
-  end
-
   describe "#workflow_details_partial" do
     it "selects the PR review partial before considering the project kind" do
       workflow = instance_double(Workflow, pr_review?: true, runbook?: false)
@@ -97,24 +88,6 @@ RSpec.describe WorkflowsHelper, type: :helper do
       project = instance_double(Project, personal?: false)
 
       expect(helper.workflow_details_partial(workflow, project)).to eq("workflows/details/jira")
-    end
-  end
-
-  describe "#workflow_logged_time_label" do
-    let(:workflow) { build_jira_workflow(build_jira_project, jira_ticket: "TEST-1") }
-
-    before do
-      TimeLog.create!(workflow: workflow, ticket_key: workflow.jira_key, started_at: Time.current, seconds: 5400)
-    end
-
-    it "shows logged hours without a sync phrase when never synced" do
-      expect(helper.workflow_logged_time_label(workflow)).to eq("1.5 h logged in Jira")
-    end
-
-    it "includes how long ago Jira hours were synced" do
-      workflow.jira_logged_synced_at = 5.minutes.ago
-
-      expect(helper.workflow_logged_time_label(workflow)).to eq("1.5 h logged in Jira — synced 5 minutes ago")
     end
   end
 
@@ -164,17 +137,6 @@ RSpec.describe WorkflowsHelper, type: :helper do
     let(:project) { build_jira_project }
     let(:workflow) { build_jira_workflow(project) }
 
-    describe "#jira_synced_phrase" do
-      it "is nil when never synced" do
-        expect(helper.jira_synced_phrase(workflow)).to be_nil
-      end
-
-      it "says how long ago hours were synced" do
-        workflow.jira_logged_synced_at = 5.minutes.ago
-        expect(helper.jira_synced_phrase(workflow)).to eq("synced 5 minutes ago")
-      end
-    end
-
     describe "#workflow_kind_badges" do
       it "is empty for a development workflow" do
         expect(helper.workflow_kind_badges(workflow)).to be_blank
@@ -188,37 +150,6 @@ RSpec.describe WorkflowsHelper, type: :helper do
       it "badges PR reviews" do
         allow(workflow).to receive(:pr_review?).and_return(true)
         expect(helper.workflow_kind_badges(workflow)).to eq('<span class="badge badge-neutral">review</span>')
-      end
-    end
-
-    describe "#workflow_logged_time_badge" do
-      it "is nil for non-development workflows" do
-        runbook = project.workflows.create!(kind: :runbook)
-        expect(helper.workflow_logged_time_badge(runbook, 3600)).to be_nil
-      end
-
-      it "shows Not logged without seconds" do
-        expect(helper.workflow_logged_time_badge(workflow, nil)).to eq('<span class="badge badge-neutral">Not logged</span>')
-      end
-
-      it "shows hours with a plain title when never synced" do
-        expect(helper.workflow_logged_time_badge(workflow, 5400)).to eq('<span class="badge badge-success" title="Hours you have logged in Jira">1.5 h</span>')
-      end
-
-      it "adds the synced phrase to the title" do
-        workflow.jira_logged_synced_at = 2.hours.ago
-        expect(helper.workflow_logged_time_badge(workflow, 3600)).to include('title="Hours you have logged in Jira, synced about 2 hours ago"')
-      end
-    end
-
-    describe "#time_log_checkbox_data" do
-      it "marks unlogged rows as select-all targets" do
-        expect(helper.time_log_checkbox_data(0)).to eq(select_all_target: "row")
-        expect(helper.time_log_checkbox_data(nil)).to eq(select_all_target: "row")
-      end
-
-      it "leaves logged rows out" do
-        expect(helper.time_log_checkbox_data(3600)).to eq({})
       end
     end
   end
