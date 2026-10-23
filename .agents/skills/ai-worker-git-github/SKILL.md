@@ -47,5 +47,5 @@ Every `git` and `gh` subprocess in the app goes through one of these objects, al
 - Always `RAILS_ENV=test bundle exec rspec spec/services/git spec/services/github`.
 - `spec/services/git/shell_spec.rb`, `branch_service_spec.rb` — real temp git repos via `GitRepoHelper` (`spec/support/git_repo_helper.rb`: `build_git_fixture(root)` → `[origin, clone]`, `build_other_clone`, `commit_file`, `git`) under `Dir.mktmpdir`, removed in `after`; assert the clone path is inside `Dir.tmpdir` first.
 - `spec/services/github/reader_spec.rb`, `writer_spec.rb`, `runner_spec.rb`, `pr_locator_spec.rb` — stub `Open3.capture3` (return `[out, err, instance_double(Process::Status, success?: ...)]`) and assert the exact argv plus `chdir:`; use an unsaved `Project.new(... repo_full_name: "acme/widgets")`.
-- `pr_locator_spec.rb` — `instance_double(Github::Runner)`, stubbing `run!` per argv. `client_facade_spec.rb` — `instance_double(Github::Reader/Writer)` injected into the facade.
+- `pr_locator_spec.rb` — `instance_double(Github::Runner)`, stubbing `run!` per argv. `client_spec.rb` — `instance_double(Github::Reader/Writer)` injected into the facade.
 - Specs of other code stub `Github::Client` / `Git::*`; never call real `gh` or touch a real project clone.
