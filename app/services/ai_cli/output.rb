@@ -15,50 +15,50 @@ module AiCli
 
     # "UAT" / "RELEASEABLE" (as written), or nil.
     def jira_result
-      text[/JIRA_RESULT:\s*(UAT|RELEASEABLE)/i, 1]
+      marker("JIRA_RESULT", %w[UAT RELEASEABLE])
     end
 
     # "PASSED" / "FAILED" / "BLOCKED" (as written), or nil.
     def uat_result
-      text[/UAT_RESULT:\s*(PASSED|FAILED|BLOCKED)/i, 1]
+      marker("UAT_RESULT", %w[PASSED FAILED BLOCKED])
     end
 
     # "PASSED" / "FAILED" / "BLOCKED" (as written), or nil.
     def local_test_result
-      text[/LOCAL_TEST_RESULT:\s*(PASSED|FAILED|BLOCKED)/i, 1]
+      marker("LOCAL_TEST_RESULT", %w[PASSED FAILED BLOCKED])
     end
 
     # "PASSED" / "FAILED" (upcased) from the last CI_VERDICT line (the log echoes the prompt's own example), or nil.
     def ci_verdict
-      text.scan(/CI_VERDICT:\s*(PASSED|FAILED)/i).last&.first&.upcase
+      last_marker("CI_VERDICT", %w[PASSED FAILED])&.upcase
     end
 
     # The last LOCAL_RETEST line wins; a missing one counts as YES.
     def retest_requested?
-      !text.scan(/LOCAL_RETEST:\s*(YES|NO)/i).last&.first.to_s.casecmp?("NO")
+      !last_marker("LOCAL_RETEST", %w[YES NO]).to_s.casecmp?("NO")
     end
 
     # The last block between the markers (the log may echo the prompt's own example), or nil.
     def local_test_feedback_block
-      text.scan(/LOCAL_TEST_FEEDBACK_BEGIN[ \t]*\n(.*?)\n[ \t]*LOCAL_TEST_FEEDBACK_END/m).last&.first.to_s.strip.presence
+      last_block("LOCAL_TEST_FEEDBACK_BEGIN", "LOCAL_TEST_FEEDBACK_END").to_s.strip.presence
     end
 
     # The last block between the markers, or nil.
     def fixed_summary
-      text.scan(/FIXED_SUMMARY_BEGIN[ \t]*\n(.*?)\n[ \t]*FIXED_SUMMARY_END/m).last&.first.to_s.strip.presence
+      last_block("FIXED_SUMMARY_BEGIN", "FIXED_SUMMARY_END").to_s.strip.presence
     end
 
     # The lines of the last LESSONS_BEGIN/LESSONS_END block (the log may echo the prompt's own example), without
     # their leading "- " and blank lines.
     def lessons
-      block = text.scan(/^[ \t]*LESSONS_BEGIN[ \t]*\n(.*?)\n?^[ \t]*LESSONS_END[ \t]*$/m).last&.first.to_s
+      block = last_block("LESSONS_BEGIN", "LESSONS_END", anchored: true).to_s
       block.lines.map { |line| line.strip.delete_prefix("- ").strip }.reject(&:blank?)
     end
 
     # Rows of the last FOLLOW_UPS_BEGIN/FOLLOW_UPS_END block (the log may echo the prompt's own example): a JSON array
     # of {"summary", "task"}, cleaned by Brainstorm::ProposalNormalizer. [] when the block is missing or not valid JSON.
     def follow_ups
-      body = text.scan(/^[ \t]*FOLLOW_UPS_BEGIN[ \t]*\n(.*?)\n?^[ \t]*FOLLOW_UPS_END[ \t]*$/m).last&.first
+      body = last_block("FOLLOW_UPS_BEGIN", "FOLLOW_UPS_END", anchored: true)
       rows = JSON.parse(body.to_s)
       rows.is_a?(Array) ? Brainstorm::ProposalNormalizer.call(rows) : []
     rescue JSON::ParserError
@@ -87,5 +87,26 @@ module AiCli
     private
 
     attr_reader :text
+
+    def marker(name, values)
+      text[marker_pattern(name, values), 1]
+    end
+
+    def last_marker(name, values)
+      text.scan(marker_pattern(name, values)).last&.first
+    end
+
+    def last_block(begin_marker, end_marker, anchored: false)
+      pattern = if anchored
+        /^[ \t]*#{Regexp.escape(begin_marker)}[ \t]*\n(.*?)\n?^[ \t]*#{Regexp.escape(end_marker)}[ \t]*$/m
+      else
+        /#{Regexp.escape(begin_marker)}[ \t]*\n(.*?)\n[ \t]*#{Regexp.escape(end_marker)}/m
+      end
+      text.scan(pattern).last&.first
+    end
+
+    def marker_pattern(name, values)
+      Regexp.new("#{Regexp.escape(name)}:\\s*(#{Regexp.union(values).source})", Regexp::IGNORECASE)
+    end
   end
 end

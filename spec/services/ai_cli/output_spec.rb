@@ -25,6 +25,7 @@ RSpec.describe AiCli::Output do
   describe "#jira_result" do
     it("returns UAT") { expect(output("JIRA_RESULT: UAT").jira_result).to eq("UAT") }
     it("is case-insensitive") { expect(output("jira_result: releaseable").jira_result).to eq("releaseable") }
+    it("uses the first match") { expect(output("JIRA_RESULT: UAT\nJIRA_RESULT: RELEASEABLE").jira_result).to eq("UAT") }
     it("is nil when missing") { expect(output("nothing").jira_result).to be_nil }
     it("is nil for other values") { expect(output("JIRA_RESULT: DONE").jira_result).to be_nil }
   end
@@ -32,12 +33,14 @@ RSpec.describe AiCli::Output do
   describe "#uat_result" do
     it("returns the verdict") { expect(output("UAT_RESULT: BLOCKED").uat_result).to eq("BLOCKED") }
     it("is case-insensitive") { expect(output("uat_result: passed").uat_result).to eq("passed") }
+    it("uses the first match") { expect(output("UAT_RESULT: PASSED\nUAT_RESULT: FAILED").uat_result).to eq("PASSED") }
     it("is nil when missing") { expect(output("x").uat_result).to be_nil }
   end
 
   describe "#local_test_result" do
     it("returns the verdict") { expect(output("LOCAL_TEST_RESULT: FAILED").local_test_result).to eq("FAILED") }
     it("is case-insensitive") { expect(output("local_test_result: passed").local_test_result).to eq("passed") }
+    it("uses the first match") { expect(output("LOCAL_TEST_RESULT: PASSED\nLOCAL_TEST_RESULT: FAILED").local_test_result).to eq("PASSED") }
     it("is nil when missing") { expect(output(nil).local_test_result).to be_nil }
   end
 
