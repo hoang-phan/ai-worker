@@ -11,6 +11,8 @@ This layer executes one workflow stage at a time: it starts or polls a detached 
 
 Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb`, and their service specs. `Stages::RunTooling`, detached launch mechanics, and polling live in `ai-worker-agent-cli`; adding or renaming a stage type follows `ai-worker-stage-types`; scheduler eligibility/capacity is `ai-worker-scheduling`; prompt construction is `ai-worker-prompts`; and Git/GitHub clients are `ai-worker-git-github`.
 
+End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+
 ## File map
 
 - `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; persists poller log offsets, dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.

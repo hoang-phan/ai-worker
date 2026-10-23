@@ -7,6 +7,8 @@ description: Applies ai-worker's CRUD-screen discipline. Use for any task touchi
 
 Scope: `app/controllers/**`, `app/views/**`, `config/routes.rb`. Read `app/models/*.rb` only for attribute/validation/enum names when building forms — do not modify models here (that's `ai-worker-domain`'s scope) and do not touch `app/jobs`/`app/services` (that's `ai-worker-orchestration`'s scope).
 
+End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+
 ## File map (the whole scope)
 
 - `config/routes.rb` — `resources :projects` (plus member routes `sync_slack` / `brainstorm` mapped to `project_slack_syncs#create` / `project_brainstorms#create`) nests `agents` (`resources :agents, except: %i[index show]`), `jira_syncs` and `bugsnag_syncs` (no index/show; member `run`) and `workflows` (no index; member actions for start, run a runbook stage, clone, advance, resume, roll back to review, delete an image). `stages` nest under a workflow (new/create/edit/update/destroy). Top level: `prompt_templates`, singular `resource :settings` (show/update, with nested singular `resource :rotation, only: :update, module: :settings` → `settings_rotation_path`), `root "projects#index"`, Sidekiq Web at `/sidekiq`, health check.

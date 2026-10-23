@@ -7,6 +7,8 @@ description: Applies ai-worker's job/service discipline. Use for any task touchi
 
 Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.yml`, `config/initializers/sidekiq.rb` (scheduler specifics: `ai-worker-scheduling`). Read `app/models/workflow.rb`, `stage.rb` and `project.rb` only for the public methods and enums this layer calls (`current_stage`, `effective_template`, `skill_list`, `advance!`, status/kind enums, project settings) — don't otherwise touch the model layer (`ai-worker-domain`) or the UI (`ai-worker-ui`). The overall design is in `docs/ARCHITECTURE.md` and `docs/RUNBOOK.md`; where they and the code disagree, the code wins.
 
+End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+
 ## File map (the whole scope)
 
 **Scheduling**

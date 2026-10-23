@@ -7,6 +7,8 @@ description: Checklist for adding or changing an agent-backed fetch/sync/triage 
 
 Scope: the services that start the agent CLI detached, read a JSON array back from a result file, and import it into records. General job/service rules are in `ai-worker-orchestration`, the `AiCli` runner/poller layer under `DetachedRun` in `ai-worker-agent-cli`, spec rules in `ai-worker-testing`, model/migration rules in `ai-worker-domain` — not repeated here.
 
+End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+
 ## Moving parts
 
 - `app/services/ai_cli/detached_run.rb` — the shared state machine: `DetachedRun.new(dir:, result_name:, stale_after:, error_class:, runner: AiCli::Runner)` with `start(cwd:, prompt:, allowed_tools:, model:, effort:)`, `running?`, `poll { |rows| ... }`, `last_started_at`, `read_rows`, `log_path`, `result_path`. State dir holds `pid`, `started_at`, `agent.log` and the result file. `start` is a no-op (false) while the process is alive and deletes any old result; `poll` returns nil while running, raises `error_class` once running past `stale_after`, and after the process ends clears the pid and returns the (block-filtered) rows.

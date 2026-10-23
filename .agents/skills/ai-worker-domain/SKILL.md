@@ -7,6 +7,8 @@ description: Applies ai-worker's data model discipline. Use for any task touchin
 
 Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
 
+End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+
 ## File map (the whole scope)
 
 - `app/models/project.rb` — a local checkout plus, for `jira` projects, its GitHub repo. `enum :kind, { jira: 0, personal: 1 }` (jira = GitHub/PR flow driven by tickets; personal = local-only, one task description per workflow, no PR). `has_many :workflows, :agents, :jira_syncs, :bugsnag_syncs` (all `dependent: :destroy`). Holds per-project settings, grouped: defaults for new workflows (skills, reviewers), Jira (site URL, assignee, tester), Slack PR review and review pings (enable flag, mention, channels, GitHub→Slack user map), UAT testing (enable flag, URL, login, delay), local pre-review testing (same shape), shared test/CI instructions, and brainstorming (goal, limits, auto-start, last-run bookkeeping). UAT and local passwords are Active Record `encrypts` columns. Validations are conditional on kind or on the feature's enable flag. It also refuses a `local_directory` that is this app's own live checkout (agents branch, merge and migrate inside the clone).
