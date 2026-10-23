@@ -21,7 +21,8 @@ RSpec.describe Github::ReviewDecision do
     expect(described_class.call(reviews, %w[alice bob])).to eq("APPROVED")
   end
 
-  it "returns nil when there are no reviews" do
+  it "returns nil for comments-only and no reviews" do
+    expect(described_class.call([ review("alice", "COMMENTED") ], [ "alice" ])).to be_nil
     expect(described_class.call([], [ "alice" ])).to be_nil
   end
 end
