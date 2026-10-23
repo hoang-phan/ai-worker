@@ -1,5 +1,8 @@
 # Shared builders for the Project / Workflow records most specs need. Attributes passed in override the defaults.
 module RecordHelper
+  # All-digit suffix so keys always match Jira::TicketRef::KEY_PATTERN (hex letters would truncate or reject them).
+  JIRA_TICKET_SEQUENCE = Enumerator.produce(100_000) { |n| n + 1 }
+
   def build_jira_project(**attrs)
     Project.create!({ name: "Project #{SecureRandom.hex(4)}", kind: :jira, repo_full_name: "acme/widgets",
                       local_directory: Dir.tmpdir }.merge(attrs))
@@ -10,7 +13,7 @@ module RecordHelper
   end
 
   def build_jira_workflow(project, **attrs)
-    project.workflows.create!({ jira_ticket: "TEST-#{SecureRandom.hex(3)}", branch_name: "branch-#{SecureRandom.hex(3)}",
+    project.workflows.create!({ jira_ticket: "TEST-#{JIRA_TICKET_SEQUENCE.next}", branch_name: "branch-#{SecureRandom.hex(3)}",
                                 github_reviewer: "octocat" }.merge(attrs))
   end
 
