@@ -5,6 +5,8 @@ description: Applies ai-worker's stage execution discipline. Use for any task to
 
 # ai-worker stage pipeline
 
+Browser-test stages (`uat_test`, `local_test`) are specialised in `ai-worker-browser-tests`.
+
 This layer executes one workflow stage at a time: it starts or polls a detached run, turns its completed output into the next workflow state, and records the auditable `StageRun` history. Read the affected file before changing it; this map describes the current seams, not a substitute for the code.
 
 Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb`, and their service specs. `Stages::RunTooling`, detached launch mechanics, and polling live in `ai-worker-agent-cli`; adding or renaming a stage type follows `ai-worker-stage-types`; scheduler eligibility/capacity is `ai-worker-scheduling`; prompt construction is `ai-worker-prompts`; and Git/GitHub clients are `ai-worker-git-github`.

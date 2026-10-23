@@ -5,6 +5,8 @@ description: Applies ai-worker's agent CLI / detached-run discipline. Use for an
 
 # ai-worker agent CLI layer
 
+Browser-test CLI setup, credentials, and MCP delivery are specialised in `ai-worker-browser-tests`.
+
 Every background run the app starts — the agent CLI (claude, cursor `agent`, codex) and the `ci_check` command — is launched and polled by these objects. Runs are detached: a job starts one, records its pid/log state on the workflow (or in a sync's `tmp/` dir) and a later scheduler tick polls it. Read the file before changing it; this is a map, not a substitute.
 
 Scope: `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` and their specs. The stage executor and services that launch, finish, and rescue these runs: `ai-worker-stage-pipeline`; adding a stage type: `ai-worker-stage-types`. The detached sync services built on `DetachedRun`: `ai-worker-detached-agent-runs`. Prompt text: `ai-worker-prompts`. Scheduler capacity rules: `ai-worker-scheduling`.

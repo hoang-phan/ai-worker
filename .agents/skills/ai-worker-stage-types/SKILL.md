@@ -5,6 +5,8 @@ description: Checklist for adding, renaming or changing an ai-worker stage type,
 
 # ai-worker-stage-types
 
+For the `uat_test` and `local_test` worked examples, use `ai-worker-browser-tests` for their specialised flow.
+
 A stage type crosses models, services, jobs and views, and is easy to get half-right. Follow the checklist in order. Per-layer rules live elsewhere: `ai-worker-domain` (models, migrations), `ai-worker-stage-pipeline` (stage execution services), `ai-worker-scheduling` (jobs and eligibility), `ai-worker-agent-cli` (launch/poll tooling), `ai-worker-testing` (specs), and `ai-worker-ui` (views). This file only lists the touch points. Worked example throughout: `local_test`.
 
 ## Lifecycle
