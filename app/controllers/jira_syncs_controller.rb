@@ -1,8 +1,7 @@
 class JiraSyncsController < ApplicationController
-  include ManualStartFlash
   include ProjectScoped
 
-  before_action :set_jira_sync, only: %i[edit update destroy run]
+  before_action :set_jira_sync, only: %i[edit update destroy]
 
   def new
     @jira_sync = @project.jira_syncs.new
@@ -31,22 +30,6 @@ class JiraSyncsController < ApplicationController
   def destroy
     @jira_sync.destroy
     redirect_to @project, notice: "Jira sync deleted."
-  end
-
-  def run
-    sync = Jira::TicketSync.new(@jira_sync)
-    result = AgentRuns::ManualStart.call(
-      blockers: -> { sync.blockers },
-      start: -> { sync.fetcher.start },
-      rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
-    )
-    redirect_after_manual_start(
-      result,
-      to: @project,
-      label: "Jira sync",
-      started: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.",
-      already_running: "A Jira fetch is already running for this sync."
-    )
   end
 
   private

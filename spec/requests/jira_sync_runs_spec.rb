@@ -1,7 +1,7 @@
 require "rails_helper"
 
-RSpec.describe "JiraSyncs", type: :request do
-  let(:local_directory) { Dir.mktmpdir("jira-syncs-request-spec") }
+RSpec.describe "JiraSyncRuns", type: :request do
+  let(:local_directory) { Dir.mktmpdir("jira-sync-runs-request-spec") }
   let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let(:jira_sync) { project.jira_syncs.create!(jira_project: "SPEC") }
   let(:fetcher) { instance_double(Jira::AgentFetcher, start: true) }
@@ -11,7 +11,7 @@ RSpec.describe "JiraSyncs", type: :request do
 
   after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
-  describe "POST run" do
+  describe "POST create" do
     it "reports the blockers" do
       allow(sync).to receive(:blockers).and_return([ "no base url" ])
 

@@ -10,10 +10,10 @@ Rails.application.routes.draw do
     post :sync_slack, on: :member, to: "project_slack_syncs#create"
     post :brainstorm, on: :member, to: "project_brainstorms#create"
     resources :jira_syncs, except: %i[index show] do
-      post :run, on: :member
+      post :run, on: :member, to: "jira_sync_runs#create"
     end
     resources :bugsnag_syncs, except: %i[index show] do
-      post :run, on: :member
+      post :run, on: :member, to: "bugsnag_sync_runs#create"
     end
     resources :agents, except: %i[index show]
     resources :workflows, except: :index do
