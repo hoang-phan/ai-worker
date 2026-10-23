@@ -1,12 +1,17 @@
 require "rails_helper"
 
 RSpec.describe Prompts::StagePrompt do
-  subject(:stage_prompt) { described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log) }
+  subject(:stage_prompt) do
+    described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, subagent_roster: subagent_roster,
+                        run_provider: run_provider)
+  end
 
   let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: false) }
   let(:latest_log) { ->(_workflow_id) { nil } }
+  let(:subagent_roster) { ->(_directory) { [] } }
+  let(:run_provider) { instance_double(Stages::RunProvider, provider: nil) }
 
-  let(:local_directory) { Dir.mktmpdir("stage-prompt-spec") }
+  let_tmpdir(:local_directory, "stage-prompt-spec")
   let(:project_attrs) { { kind: :personal } }
   let(:project) { build_personal_project(local_directory: local_directory, **project_attrs) }
   let(:workflow) do
@@ -20,7 +25,6 @@ RSpec.describe Prompts::StagePrompt do
     stage.destroy
     workflow.destroy
     project.destroy
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   describe "#body" do
@@ -35,21 +39,13 @@ RSpec.describe Prompts::StagePrompt do
       end
     end
 
-    context "when the stage is a task" do
-      let(:stage_attrs) { { prompt: "Do {TASK}" } }
-
-      it "asks for follow-ups" do
-        expect(stage_prompt.body).to include("FOLLOW_UPS_BEGIN")
-      end
-    end
-
     context "when the stage has a template" do
       let(:stage_attrs) { { prompt_template: template } }
       let(:template) { PromptTemplate.create!(name: "tmpl #{SecureRandom.hex(4)}", stage_type: :task, body: "Template: {TASK}") }
 
       after { template.destroy }
 
-      it "uses the template body" do
+      it "uses and renders the template body" do
         expect(stage_prompt.body).to start_with("Template: Do the thing")
       end
     end
@@ -65,7 +61,7 @@ RSpec.describe Prompts::StagePrompt do
 
         before { allow(stage).to receive(:effective_template).and_return(nil) }
 
-        it "falls back to the default body" do
+        it "falls back to the rendered default body" do
           expect(stage_prompt.body).to eq(Prompts::Renderer.render(default_body, workflow))
         end
       end
@@ -79,141 +75,136 @@ RSpec.describe Prompts::StagePrompt do
       end
     end
 
-    context "with an implementation stage" do
-      let(:stage_type) { :implementation }
-      let(:stage_attrs) { { prompt: "Implement {TASK}" } }
-      let(:logs) { {} }
-      let(:latest_log) { ->(workflow_id) { logs[workflow_id] } }
+    it "passes retry a log only for a failed implementation run from this workflow" do
+      stage.update!(stage_type: :implementation, prompt: "Implement")
+      stage.stage_runs.create!(action: "failed")
+      previous_log = "/tmp/runs/workflow-#{workflow.id}.log"
+      latest_log = instance_double(Proc)
+      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
 
-      it "adds the check-output guidance but no retry note on the first attempt" do
-        body = stage_prompt.body
+      expect(latest_log).to receive(:call).with(workflow.id).and_return(previous_log)
+      expect(Prompts::StageSections::Retry).to receive(:new).with(
+        stage_type: "implementation", last_action: "failed", previous_log: previous_log
+      ).and_return(retry_section)
 
-        expect(body).to start_with("Implement Do the thing")
-        expect(body).to include("redirect each command's full output to a file", "do not restart the whole gate")
-        expect(body).not_to include("previous attempt")
-      end
-
-      context "when the last run failed" do
-        before { stage.stage_runs.create!(action: "failed", error: "agent finished but no PR was found") }
-
-        it "points at the previous agent log" do
-          recent = "/tmp/runs/workflow-#{workflow.id}-200.log"
-          old = "/tmp/runs/workflow-#{workflow.id}-100.log"
-          logs[workflow.id] = recent
-
-          body = stage_prompt.body
-
-          expect(body).to start_with("Implement Do the thing")
-          expect(body).to include(recent, "no pull request was opened")
-          expect(body).not_to include(old)
-        end
-
-        it "adds nothing when no earlier log exists" do
-          expect(stage_prompt.body).not_to include("previous attempt")
-        end
-
-        it "ignores other workflows' logs" do
-          logs[workflow.id + 1] = "/tmp/runs/workflow-#{workflow.id + 1}-100.log"
-
-          expect(stage_prompt.body).not_to include("previous attempt")
-        end
-      end
-
-      it "adds nothing when the last run did not fail" do
-        stage.stage_runs.create!(action: "started")
-        logs[workflow.id] = "/tmp/runs/workflow-#{workflow.id}-100.log"
-
-        expect(stage_prompt.body).not_to include("previous attempt")
-      end
+      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
+                          subagent_roster: subagent_roster, run_provider: run_provider).body
     end
 
-    context "with project lessons" do
-      let(:stage_attrs) { { prompt: "Do it" } }
-      let(:project_attrs) { { kind: :personal, agent_lessons: "Use the shared error_summary partial on forms" } }
+    it "does not look up a retry log unless a simple implementation's last action failed" do
+      stage.update!(stage_type: :simple_implementation, prompt: "Implement")
+      stage.stage_runs.create!(action: "started")
+      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
 
-      it "appends them to a task prompt" do
-        expect(stage_prompt.body).to include("Lessons from earlier reviews of this project", "Use the shared error_summary partial on forms")
-      end
+      expect(latest_log).not_to receive(:call)
+      expect(Prompts::StageSections::Retry).to receive(:new).with(
+        stage_type: "simple_implementation", last_action: "started", previous_log: nil
+      ).and_return(retry_section)
 
-      it "does not append them to a pr_check prompt, which asks for new ones instead" do
-        pr_check = workflow.stages.create!(stage_type: :pr_check, prompt: "Fix")
-        body = described_class.new(workflow, pr_check, notifier: notifier, latest_log: latest_log).body
-
-        expect(body).not_to include("Lessons from earlier reviews")
-        expect(body).to include("LESSONS_BEGIN", "LESSONS_END")
-      end
+      stage_prompt.body
     end
 
-    context "with a pr_check stage" do
-      let(:stage_type) { :pr_check }
-      let(:stage_attrs) { { prompt: "Fix the review" } }
-      let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: slack_enabled) }
+    it "does not look up a retry log for failed non-implementation stages" do
+      stage.update!(prompt: "Do it")
+      stage.stage_runs.create!(action: "failed")
+      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
 
-      context "when Slack review notifications are enabled" do
-        let(:slack_enabled) { true }
+      expect(latest_log).not_to receive(:call)
+      expect(Prompts::StageSections::Retry).to receive(:new).with(
+        stage_type: "task", last_action: "failed", previous_log: nil
+      ).and_return(retry_section)
 
-        it "appends the FIXED_SUMMARY instructions" do
-          expect(stage_prompt.body).to start_with("Fix the review\nBefore your last line, print a short summary")
-          expect(stage_prompt.body).to include("FIXED_SUMMARY_BEGIN", "FIXED_SUMMARY_END")
-        end
-      end
-
-      context "when Slack review notifications are disabled" do
-        let(:slack_enabled) { false }
-
-        it "does not append them" do
-          expect(stage_prompt.body).not_to include("FIXED_SUMMARY_BEGIN")
-        end
-      end
-
-      context "when the project is local-test ready" do
-        let(:slack_enabled) { false }
-        let(:project_attrs) do
-          { kind: :jira, repo_full_name: "org/repo", local_test_enabled: true, local_url: "http://localhost:3000" }
-        end
-        let(:workflow) do
-          build_jira_workflow(project, kind: :development, jira_ticket: "ABC-1", branch_name: "abc-1",
-                                       github_reviewer: "someone", local_test_feedback: feedback)
-        end
-        let(:feedback) { nil }
-
-        it "appends the LOCAL_RETEST line without a feedback block" do
-          expect(stage_prompt.body).to start_with("Fix the review\nThis project is also tested locally")
-          expect(stage_prompt.body).to include("`LOCAL_RETEST: YES`")
-          expect(stage_prompt.body).not_to include("<local_test_feedback>")
-        end
-
-        context "with local test feedback" do
-          let(:feedback) { "Login button is broken" }
-
-          it "appends the feedback block before the LOCAL_RETEST line" do
-            body = stage_prompt.body
-            expect(body).to include("<local_test_feedback>\nLogin button is broken\n</local_test_feedback>")
-            expect(body.index("</local_test_feedback>")).to be < body.index("LOCAL_RETEST: YES")
-          end
-        end
-      end
-    end
-  end
-
-  describe "subagent roster" do
-    subject(:stage_prompt) do
-      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, subagent_roster: roster)
+      stage_prompt.body
     end
 
-    let(:stage_attrs) { { prompt: "Do {TASK}" } }
-    let(:roster) { ->(dir) { dir == local_directory ? [ { name: "reviewer", description: "Reviews diffs" } ] : [] } }
+    it "passes local-test readiness and this workflow's feedback to local feedback" do
+      stage.update!(stage_type: :pr_check, prompt: "Fix")
+      allow(project).to receive(:local_test_ready?).and_return(true)
+      allow(workflow).to receive(:local_test_feedback).and_return("Login button is broken")
+      local_feedback = instance_double(Prompts::StageSections::LocalFeedback, to_s: "")
 
-    it "appends the subagents of the project's directory" do
-      expect(stage_prompt.body).to include("- reviewer: Reviews diffs")
+      expect(Prompts::StageSections::LocalFeedback).to receive(:new).with(
+        stage_type: "pr_check", local_test_ready: true, feedback: "Login button is broken"
+      ).and_return(local_feedback)
+
+      stage_prompt.body
     end
 
-    context "with an empty roster" do
-      let(:roster) { ->(_dir) { [] } }
+    it "does not mark a non-pr-check stage as local-test ready" do
+      stage.update!(prompt: "Do it")
+      allow(project).to receive(:local_test_ready?).and_return(true)
+      local_feedback = instance_double(Prompts::StageSections::LocalFeedback, to_s: "")
 
-      it "adds nothing" do
-        expect(stage_prompt.body).not_to include("subagents")
+      expect(Prompts::StageSections::LocalFeedback).to receive(:new).with(
+        stage_type: "task", local_test_ready: false, feedback: workflow.local_test_feedback
+      ).and_return(local_feedback)
+
+      stage_prompt.body
+    end
+
+    it "only enables fixed summaries for pr checks when the notifier is enabled" do
+      stage.update!(stage_type: :pr_check, prompt: "Fix")
+      allow(notifier).to receive(:enabled?).and_return(true)
+      fixed_summary = instance_double(Prompts::StageSections::FixedSummary, to_s: "")
+
+      expect(Prompts::StageSections::FixedSummary).to receive(:new).with(
+        stage_type: "pr_check", notify_enabled: true
+      ).and_return(fixed_summary)
+
+      stage_prompt.body
+    end
+
+    it "does not enable fixed summaries outside pr checks" do
+      stage.update!(prompt: "Do it")
+      allow(notifier).to receive(:enabled?).and_return(true)
+      fixed_summary = instance_double(Prompts::StageSections::FixedSummary, to_s: "")
+
+      expect(Prompts::StageSections::FixedSummary).to receive(:new).with(
+        stage_type: "task", notify_enabled: false
+      ).and_return(fixed_summary)
+
+      stage_prompt.body
+    end
+
+    it "passes project lessons to the lessons section" do
+      stage.update!(prompt: "Do it")
+      project.update!(agent_lessons: "Use the shared error_summary partial on forms")
+      lessons = instance_double(Prompts::StageSections::Lessons, to_s: "")
+
+      expect(Prompts::StageSections::Lessons).to receive(:new).with(
+        stage_type: "task", lessons: "Use the shared error_summary partial on forms"
+      ).and_return(lessons)
+
+      stage_prompt.body
+    end
+
+    it "gets the subagent roster from the project's local directory" do
+      stage.update!(prompt: "Do it")
+      entries = [ { name: "reviewer", description: "Reviews diffs" } ]
+      subagents = instance_double(Prompts::StageSections::Subagents, to_s: "")
+
+      expect(Prompts::StageSections::Subagents).to receive(:new).with(stage_type: "task", entries: entries).and_return(subagents)
+
+      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
+                          subagent_roster: ->(directory) { directory == local_directory ? entries : [] },
+                          run_provider: run_provider).body
+    end
+
+    it "appends sections in order after the rendered body" do
+      stage.update!(prompt: "Do {TASK}")
+      section_classes = [
+        Prompts::StageSections::Retry, Prompts::StageSections::LocalFeedback,
+        Prompts::StageSections::FixedSummary, Prompts::StageSections::LessonsRequest,
+        Prompts::StageSections::FollowUps, Prompts::StageSections::Lessons,
+        Prompts::StageSections::CheckOutput, Prompts::StageSections::Subagents
+      ]
+      outputs = section_classes.each_with_index.map do |klass, index|
+        output = " section-#{index}"
+        allow(klass).to receive(:new).and_return(instance_double(klass, to_s: output))
+        output
       end
+
+      expect(stage_prompt.body).to eq("Do Do the thing#{outputs.join}")
     end
   end
 
@@ -244,37 +235,38 @@ RSpec.describe Prompts::StagePrompt do
   describe "agent brief" do
     let(:stage_attrs) { { prompt: "Do {TASK}" } }
 
-    it "leaves the prompt exactly as before when the stage has no agent" do
-      expect(stage_prompt.body).to eq(Prompts::Renderer.render("Do {TASK}", workflow) + Prompts::StageSections::FollowUps.new(stage_type: "task").to_s)
-      expect(stage_prompt.body).not_to include("project agent")
+    it "does not build an agent brief without a stage agent" do
+      project.agents.create!(name: "billing", description: "Billing", instructions: "Project-wide notes")
+      expect(Prompts::StageSections::AgentBrief).not_to receive(:new)
+
+      stage_prompt.body
     end
 
-    it "does not change a stage's prompt just because the project has agents" do
-      before = stage_prompt.body
-      project.agents.create!(name: "billing", description: "Billing", instructions: "Secret notes")
+    it "prepends the stage agent's brief" do
+      agent = project.agents.create!(name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing.")
+      stage.update!(agent: agent)
+      brief = instance_double(Prompts::StageSections::AgentBrief, to_s: "BRIEF")
 
-      expect(described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log).body).to eq(before)
+      expect(Prompts::StageSections::AgentBrief).to receive(:new).with(
+        name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing.",
+        allowed_tools: [], tools_enforced: nil
+      ).and_return(brief)
+      expect(stage_prompt.body).to start_with("BRIEFDo Do the thing")
     end
 
-    it "puts the stage agent's brief before the task text" do
-      stage.update!(agent: project.agents.create!(name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing."))
+    it "uses the run provider's tool-list capability for the agent brief" do
+      agent = project.agents.create!(name: "billing", description: "Billing", provider: "codex", allowed_tools: [ "Read" ])
+      stage.update!(agent: agent)
+      provider = instance_double(AiCli::Provider, capabilities: AiCli::Provider::Capabilities.new(tool_lists: false, model: true, effort: true, mcp: :overrides))
+      run_provider = instance_double(Stages::RunProvider, provider: provider)
+      brief = instance_double(Prompts::StageSections::AgentBrief, to_s: "")
 
-      body = stage_prompt.body
+      expect(Prompts::StageSections::AgentBrief).to receive(:new).with(
+        name: "billing", description: "Billing", instructions: "", allowed_tools: [ "Read" ], tools_enforced: false
+      ).and_return(brief)
 
-      expect(body).to start_with('You are working as the project agent "billing"')
-      expect(body).to include("Invoices live in app/billing.", "---\n\nDo Do the thing")
-    end
-
-    it "adds the tool allow-list to the prompt for a provider without tool lists" do
-      stage.update!(agent: project.agents.create!(name: "billing", description: "Billing", provider: "codex", allowed_tools: [ "Read" ]))
-
-      expect(stage_prompt.body).to include("Use only these tools and no others: Read.")
-    end
-
-    it "relies on the CLI for the allow-list when the provider enforces it" do
-      stage.update!(agent: project.agents.create!(name: "billing", description: "Billing", provider: "claude", allowed_tools: [ "Read" ]))
-
-      expect(stage_prompt.body).not_to include("Use only these tools")
+      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
+                          subagent_roster: subagent_roster, run_provider: run_provider).body
     end
   end
 end
