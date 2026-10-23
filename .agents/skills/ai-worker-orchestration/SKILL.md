@@ -23,7 +23,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 
 **Git / GitHub** — see the `ai-worker-git-github` skill (Git::Shell, Git::BranchService, Github::Client → Reader/Writer/PrLocator/Runner).
 
-**Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill; the Brainstorm subsystem (`app/services/brainstorm/**`, `BrainstormJob`) is in `ai-worker-brainstorm`; the outbound Slack "please review" ping (`Slack::ReviewNotifier`, `PingCollector`, `PingRun`, `ReviewMessage`, `SlackPingJob`) is in `ai-worker-slack-review-pings`.
+**Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill; the Bugsnag triage subsystem is in `ai-worker-bugsnag-triage`; the Brainstorm subsystem (`app/services/brainstorm/**`, `BrainstormJob`) is in `ai-worker-brainstorm`; the outbound Slack "please review" ping (`Slack::ReviewNotifier`, `PingCollector`, `PingRun`, `ReviewMessage`, `SlackPingJob`) is in `ai-worker-slack-review-pings`.
 
 **Jira worklogs** (REST with `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN`: `Jira::WorklogClient`, `TimeLogger`, `TimeLogBatch`, `HoursSync`, `JiraHoursSyncJob`, `TimeLog`) — the file map, data flow and conventions live in the `ai-worker-jira-worklogs` skill.
 - `app/jobs/application_job.rb` — Rails default base class.
