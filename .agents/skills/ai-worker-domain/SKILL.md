@@ -13,7 +13,7 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 - `app/models/workflow.rb` — one unit of automated work for a project: associations (`project`, `stages` ordered by `position, id`, `time_logs`), the enums, validations by kind/project kind, agent-run tracking columns (`finish_ai_run!` resets them), `QUEUED_STATUSES` / `queued`, `skill_list` / `pr_skill_list` / `reviewer_list`, `tracks_jira_after_merge?`, and thin one-line delegators to the objects below.
   - `enum :status` has 15 values (pending, implementing, reviewing, done, errored, merged, jira_updated, waiting, uat_waiting, uat_testing, uat_tested, local_testing, ci_checking, ci_verifying, opening_pr); the integers are persisted. `enum :kind` is `development` / `pr_review` / `runbook`.
 - `app/models/workflows/transitions.rb` — manual lifecycle: start, resume after an error, roll back to review, runbook Run stage / Next guards.
-- `app/models/workflows/runbook_navigator.rb` — runbook state machine: `start!`, `advance!`, next/previous stage.
+- `app/models/workflows/runbook_navigator.rb` — runbook state machine: `start!`, `advance!`, next/previous stage. Runbook lifecycle and invariants: `ai-worker-runbooks`.
 - `app/models/workflows/current_stage.rb` — `Workflow#current_stage` (runbook's `current_stage_id`, else via the resolver; lazy stage types created on first use).
 - `app/models/workflows/stage_resolver.rb` — pure status/kind/project-kind → stage type mapping (all status→stage maps live here).
 - `app/models/workflows/stage_seeder.rb` — initial stages on create, by kind and project kind; runbooks copy another runbook's stages.

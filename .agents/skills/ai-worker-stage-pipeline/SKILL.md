@@ -34,7 +34,7 @@ Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_to
 - `app/services/stages/pr_review_start.rb` — skips closed PRs or checks out an open PR's head (including cross-repository PRs) before launching its review prompt.
 - `app/services/stages/review_handoff.rb` — best-effort reviewer notification and auto-merge work; catches notification/GitHub errors and logs them instead of failing a completed stage.
 - `app/services/stages/run_tooling.rb` — selects the detached agent or CI runner/poller pair; it is owned by `ai-worker-agent-cli`, not this layer.
-- `app/services/stages/runbook_step_finish.rb` — requires message stages to confirm posting, saves output variables and waiting state, then optionally advances and enqueues the workflow.
+- `app/services/stages/runbook_step_finish.rb` — requires message stages to confirm posting, saves output variables and waiting state, then optionally advances and enqueues the workflow. Runbook lifecycle and invariants: `ai-worker-runbooks`.
 - `app/services/stages/simple_implementation_finish.rb` — completes a ci-loop implementation run into `opening_pr` and logs its output.
 - `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
 - `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort pushes its commits and logs that outcome.
