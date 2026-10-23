@@ -1,10 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Workflows::StageSeeder do
-  let(:local_directory) { Dir.mktmpdir("stage-seeder-spec") }
+  let_tmpdir(:local_directory, "stage-seeder-spec")
   let(:project) { Project.create!(name: "Seeder spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   # Workflow's after_create runs the seeder, so creating the workflow is what seeds it.
   def stage_types(workflow) = workflow.stages.map(&:stage_type)

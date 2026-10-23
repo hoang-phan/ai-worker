@@ -1,12 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Workflows::RunbookNavigator do
-  let(:local_directory) { Dir.mktmpdir("runbook-navigator-spec") }
+  let_tmpdir(:local_directory, "runbook-navigator-spec")
   let(:project) { Project.create!(name: "Navigator spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let(:workflow) { project.workflows.create!(kind: :runbook, status: :pending) }
   let(:navigator) { described_class.new(workflow) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   def add_stage(name, position)
     workflow.stages.create!(stage_type: :runbook_step, name: name, position: position)

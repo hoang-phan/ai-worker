@@ -1,14 +1,10 @@
 require "rails_helper"
 
 RSpec.describe AgentDelegation do
-  let(:local_directory) { Dir.mktmpdir("agent-delegation-spec") }
+  let_tmpdir(:local_directory, "agent-delegation-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let!(:billing) { project.agents.create!(name: "billing", description: "Knows billing") }
   let!(:invoicing) { project.agents.create!(name: "invoicing", description: "Knows invoices") }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   it "links an agent to a delegate" do
     delegation = described_class.create!(agent: billing, delegate: invoicing)

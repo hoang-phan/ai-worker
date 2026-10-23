@@ -29,9 +29,7 @@ RSpec.describe Projects::RunBlockers do
   check :brainstorm_goal, "no goal set", failing: { brainstorm_goal: "" }, passing: { brainstorm_goal: "ship it" }
 
   describe "#local_directory" do
-    let(:dir) { Dir.mktmpdir("run-blockers-spec") }
-
-    after { FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir) }
+    let_tmpdir(:dir, "run-blockers-spec")
 
     it "returns the message when the directory is missing or blank" do
       project.local_directory = File.join(dir, "missing")

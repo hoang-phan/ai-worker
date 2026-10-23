@@ -1,13 +1,11 @@
 require "rails_helper"
 
 RSpec.describe Projects::WorkflowDefaults do
-  let(:local_directory) { Dir.mktmpdir("workflow-defaults-spec") }
+  let_tmpdir(:local_directory, "workflow-defaults-spec")
   let(:project) do
     Project.create!(name: "Defaults spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory,
                     default_skills: "skill-a", default_pr_skills: "pr-skill", default_reviewers: "alice")
   end
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe ".kind_for" do
     it "returns :runbook for runbook strings and symbols" do

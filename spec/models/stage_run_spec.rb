@@ -46,7 +46,7 @@ RSpec.describe StageRun, type: :model do
   end
 
   describe ".history_for" do
-    let(:local_directory) { Dir.mktmpdir("stage-run-spec") }
+    let_tmpdir(:local_directory, "stage-run-spec")
     let(:project) { Project.create!(name: "Stage run spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
     let(:workflow) { project.workflows.create!(jira_ticket: "SR-1", branch_name: "sr-1", github_reviewer: "someone", status: :pending) }
     let(:other_workflow) { project.workflows.create!(jira_ticket: "SR-2", branch_name: "sr-2", github_reviewer: "someone", status: :pending) }
@@ -54,8 +54,6 @@ RSpec.describe StageRun, type: :model do
       other_project = Project.create!(name: "Other stage run spec project", kind: :jira, repo_full_name: "org/other", local_directory: local_directory)
       other_project.workflows.create!(jira_ticket: "SR-1", branch_name: "sr-1", github_reviewer: "someone", status: :pending)
     end
-
-    after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
     it "returns only runs belonging to the workflow, across its stages" do
       workflow.stages.create!(stage_type: :pr_check) if workflow.stages.count < 2

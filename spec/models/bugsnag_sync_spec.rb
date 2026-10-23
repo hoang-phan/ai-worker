@@ -3,10 +3,8 @@ require "rails_helper"
 RSpec.describe BugsnagSync, type: :model do
   subject(:sync) { described_class.new(project: project, bugsnag_project: "web-app", jira_project: "WEB") }
 
-  let(:local_directory) { Dir.mktmpdir("bugsnag-sync-spec") }
+  let_tmpdir(:local_directory, "bugsnag-sync-spec")
   let(:project) { Project.create!(name: "Bugsnag sync spec project", kind: :personal, local_directory: local_directory) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   it { is_expected.to be_valid }
 

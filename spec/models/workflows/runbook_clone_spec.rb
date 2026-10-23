@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Workflows::RunbookClone do
-  let(:local_directory) { Dir.mktmpdir("runbook-clone-spec") }
+  let_tmpdir(:local_directory, "runbook-clone-spec")
   let(:project) { Project.create!(name: "Clone spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let!(:source) do
     project.workflows.create!(kind: :runbook, position: 4, variables: { "CHANNEL" => "#ops", "VERSION" => "1.0" }).tap do |runbook|
@@ -9,8 +9,6 @@ RSpec.describe Workflows::RunbookClone do
       runbook.stages.create!(stage_type: :runbook_step, name: "Ship", position: 2, prompt: "Ship it")
     end
   end
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   def clone_result = described_class.new(source).call
 

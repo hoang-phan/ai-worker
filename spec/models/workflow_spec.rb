@@ -1,14 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Workflow, type: :model do
-  let(:local_directory) { Dir.mktmpdir("workflow-spec") }
+  let_tmpdir(:local_directory, "workflow-spec")
   let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let(:pr_url) { "https://github.com/org/repo/pull/7" }
   let(:workflow) do
     project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone", status: :pending)
   end
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe "transition delegators" do
     it "delegates to Workflows::Transitions" do

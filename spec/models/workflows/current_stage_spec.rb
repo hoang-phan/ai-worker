@@ -1,14 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Workflows::CurrentStage do
-  let(:local_directory) { Dir.mktmpdir("current-stage-spec") }
+  let_tmpdir(:local_directory, "current-stage-spec")
   let(:project_attrs) { { name: "Current stage spec", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory } }
   let(:project) { Project.create!(project_attrs) }
   let(:workflow) do
     project.workflows.create!(jira_ticket: "CS-1", branch_name: "cs-1", github_reviewer: "someone", status: :implementing)
   end
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   def call(wf = workflow) = described_class.new(wf).call
 

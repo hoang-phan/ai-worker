@@ -3,9 +3,7 @@ require "rails_helper"
 RSpec.describe Project, type: :model do
   subject(:project) { described_class.new(name: "Spec project", kind: :personal, local_directory: local_directory) }
 
-  let(:local_directory) { Dir.mktmpdir("project-spec") }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
+  let_tmpdir(:local_directory, "project-spec")
 
   describe "#runs_from_live_checkout?" do
     context "when local_directory is blank" do

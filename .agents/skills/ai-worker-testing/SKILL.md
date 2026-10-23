@@ -15,7 +15,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Data safety
 
 - Never touch development data. No `destroy_all` / `delete_all` / truncate "clean slate" cleanup — rely on transactions, or delete only the exact records you created.
-- For `Project#local_directory` use `Dir.mktmpdir` and remove only that dir in an `after` hook, guarded by `start_with?(Dir.tmpdir)` (see `spec/models/project_spec.rb`).
+- For `Project#local_directory` use `let_tmpdir(:local_directory, "my-spec")` (or `make_tmpdir(prefix)` for several dirs) from `spec/support/tmp_dir_helper.rb`; it removes only paths under `Dir.tmpdir` that still exist after the example. Do not hand-roll `Dir.mktmpdir` + `after` cleanup.
 
 ## No real external calls
 
