@@ -1,14 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "Stages", type: :request do
-  let(:local_directory) { Dir.mktmpdir("stages-request-spec") }
-  let(:project) { Project.create!(name: "Stages spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let_tmpdir(:local_directory, "stages-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:development_workflow) do
-    project.workflows.create!(jira_ticket: "STG-1", branch_name: "stages-spec", github_reviewer: "someone")
+    build_jira_workflow(project, jira_ticket: "STG-1")
   end
   let(:runbook) { project.workflows.create!(kind: :runbook) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe "runbook-only stage lists" do
     it "redirects new, create, and destroy on a non-runbook workflow" do

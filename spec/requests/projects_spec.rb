@@ -1,15 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "Projects", type: :request do
-  let(:local_directory) { Dir.mktmpdir("projects-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
+  let_tmpdir(:local_directory, "projects-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
 
   describe "GET show status filter" do
     it "lists only workflows with the chosen status" do
-      project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "b1", github_reviewer: "r", status: :done)
-      project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "b2", github_reviewer: "r", status: :pending)
+      build_jira_workflow(project, jira_ticket: "SPEC-1", github_reviewer: "r", status: :done)
+      build_jira_workflow(project, jira_ticket: "SPEC-2", github_reviewer: "r", status: :pending)
       get project_path(project, status: "pending")
 
       expect(response.body).to include("SPEC-2")
@@ -69,7 +67,7 @@ RSpec.describe "Projects", type: :request do
 
   describe "GET show" do
     it "keeps workflow rows compact and uses accessible icon controls for PRs and editing" do
-      workflow = project.workflows.create!(jira_ticket: "COMPACT-1", branch_name: "hidden-branch", github_reviewer: "someone", github_pr_url: "https://github.com/org/repo/pull/1")
+      workflow = build_jira_workflow(project, jira_ticket: "COMPACT-1", branch_name: "hidden-branch", github_reviewer: "someone", github_pr_url: "https://github.com/org/repo/pull/1")
 
       get project_path(project)
 
@@ -78,8 +76,8 @@ RSpec.describe "Projects", type: :request do
     end
 
     it "shows time-log status and makes only unlogged tickets selectable by the header checkbox" do
-      logged = project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone")
-      unlogged = project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "spec-2", github_reviewer: "someone")
+      logged = build_jira_workflow(project, jira_ticket: "SPEC-1", github_reviewer: "someone")
+      unlogged = build_jira_workflow(project, jira_ticket: "SPEC-2", github_reviewer: "someone")
       TimeLog.create!(ticket_key: "SPEC-1", jira_worklog_id: "1", started_at: Time.current, seconds: 3600)
 
       get project_path(project)

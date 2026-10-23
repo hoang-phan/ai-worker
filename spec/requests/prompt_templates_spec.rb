@@ -1,12 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "PromptTemplates", type: :request do
-  let(:local_directory) { Dir.mktmpdir("prompt-templates-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:workflow) { project.workflows.create!(jira_ticket: "PT-1", branch_name: "pt-1", github_reviewer: "someone", status: :pending) }
+  let_tmpdir(:local_directory, "prompt-templates-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
+  let(:workflow) { build_jira_workflow(project, jira_ticket: "PT-1", status: :pending) }
   let!(:template) { PromptTemplate.create!(name: "Spec template", stage_type: :task, body: "Do the thing") }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe "GET index" do
     it "lists the templates" do

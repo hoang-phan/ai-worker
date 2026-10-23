@@ -1,16 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "BugsnagSyncRuns", type: :request do
-  let(:local_directory) { Dir.mktmpdir("bugsnag-sync-runs-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let_tmpdir(:local_directory, "bugsnag-sync-runs-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "spec-app", jira_project: "SPEC") }
   let(:triager) { instance_double(Bugsnag::Triager, start: true) }
   let(:triage_sync) { instance_double(Bugsnag::TriageSync, blockers: [], triager: triager) }
 
   before { allow(Bugsnag::TriageSync).to receive(:new).and_return(triage_sync) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
-
   describe "POST create" do
     it "reports the blockers" do
       allow(triage_sync).to receive(:blockers).and_return([ "no token" ])

@@ -1,24 +1,13 @@
 require "rails_helper"
 
-RSpec.describe "Workflows", type: :request do
+RSpec.describe "Workflows", type: :request, active_job_test_adapter: true do
   include ActiveJob::TestHelper
 
-  let(:local_directory) { Dir.mktmpdir("workflows-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let_tmpdir(:local_directory, "workflows-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone", status: :errored,
-                              github_pr_url: "https://github.com/org/repo/pull/7")
+    build_jira_workflow(project, jira_ticket: "SPEC-1", github_reviewer: "someone", status: :errored, github_pr_url: "https://github.com/org/repo/pull/7")
   end
-
-  around do |example|
-    original = ActiveJob::Base.queue_adapter
-    ActiveJob::Base.queue_adapter = :test
-    example.run
-  ensure
-    ActiveJob::Base.queue_adapter = original
-  end
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe "unknown project" do
     it "404s for a nested route" do
@@ -102,7 +91,7 @@ RSpec.describe "Workflows", type: :request do
       now = Time.current.change(usec: 0)
       stage.stage_runs.create!(action: "started", output: "Older output", created_at: now - 1.hour)
       stage.stage_runs.create!(action: "resumed", output: "Newer output", created_at: now)
-      other = project.workflows.create!(jira_ticket: "SPEC-2", branch_name: "spec-2", github_reviewer: "someone", status: :pending)
+      other = build_jira_workflow(project, jira_ticket: "SPEC-2", github_reviewer: "someone", status: :pending)
       other.stages.first.stage_runs.create!(action: "failed", output: "Foreign output")
 
       get project_workflow_path(project, workflow)

@@ -1,17 +1,11 @@
 require "rails_helper"
 
 RSpec.describe "Agents", type: :request do
-  let(:local_directory) { Dir.mktmpdir("agents-request-spec") }
-  let(:other_directory) { Dir.mktmpdir("agents-request-spec-other") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:other_project) { Project.create!(name: "Other project", kind: :personal, local_directory: other_directory) }
+  let_tmpdir(:local_directory, "agents-request-spec")
+  let_tmpdir(:other_directory, "agents-request-spec-other")
+  let(:project) { build_jira_project(local_directory: local_directory) }
+  let(:other_project) { build_personal_project(local_directory: other_directory) }
   let!(:agent) { project.agents.create!(name: "billing", description: "Knows billing", effort: "high") }
-
-  after do
-    [ local_directory, other_directory ].each do |dir|
-      FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir)
-    end
-  end
 
   it "lists the agents on the project page" do
     get project_path(project)

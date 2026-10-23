@@ -1,11 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "WorkflowTimeLogs", type: :request do
-  let(:local_directory) { Dir.mktmpdir("workflow-time-logs-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let_tmpdir(:local_directory, "workflow-time-logs-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone", status: :errored,
-                              github_pr_url: "https://github.com/org/repo/pull/7")
+    build_jira_workflow(project, jira_ticket: "SPEC-1", status: :errored, github_pr_url: "https://github.com/org/repo/pull/7")
   end
 
   describe "POST log_time" do
@@ -17,7 +16,7 @@ RSpec.describe "WorkflowTimeLogs", type: :request do
     end
 
     it "logs the preset hours on each selected workflow" do
-      other = project.workflows.create!(jira_ticket: "https://example.atlassian.net/browse/SPEC-2", branch_name: "spec-2", github_reviewer: "x")
+      other = build_jira_workflow(project, jira_ticket: "https://example.atlassian.net/browse/SPEC-2")
 
       expect {
         post log_time_project_workflows_path(project), params: { workflow_ids: [ workflow.id, other.id ], hours: "1.5" }

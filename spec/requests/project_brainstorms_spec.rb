@@ -1,16 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "Project brainstorms", type: :request do
-  let(:local_directory) { Dir.mktmpdir("projects-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
+  let_tmpdir(:local_directory, "projects-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
 
   describe "POST brainstorm" do
-    let(:state_root) { Dir.mktmpdir("projects-request-state") }
+    let_tmpdir(:state_root, "projects-request-state")
     let(:planner) { Brainstorm::Planner.new(project, root: state_root) }
-
-    after { FileUtils.remove_entry(state_root) if state_root.start_with?(Dir.tmpdir) && File.exist?(state_root) }
 
     before do
       allow(planner).to receive_messages(blockers: [], queued_count: 0, start: true)

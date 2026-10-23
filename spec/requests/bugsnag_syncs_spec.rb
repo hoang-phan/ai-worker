@@ -1,13 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "BugsnagSyncs", type: :request do
-  let(:local_directory) { Dir.mktmpdir("bugsnag-syncs-request-spec") }
+  let_tmpdir(:local_directory, "bugsnag-syncs-request-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "APP") }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   describe "GET new and edit" do
     it "renders the forms" do

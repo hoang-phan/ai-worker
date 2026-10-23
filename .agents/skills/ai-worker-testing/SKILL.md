@@ -10,6 +10,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 - Specs live in `spec/{models,services,jobs,requests}`, mirroring `app/`. Helpers: `spec/rails_helper.rb`, `spec/spec_helper.rb`.
 - Always run with the environment set explicitly: `RAILS_ENV=test bundle exec rspec` (or a single file/line). Never rely on the default environment — it is development, which is real data. Test DB is `storage/test.sqlite3`; prepare with `RAILS_ENV=test bin/rails db:test:prepare`.
 - Transactional fixtures are on (`use_transactional_fixtures = true`); records created in an example roll back automatically.
+- Request specs use `let_tmpdir` + `RecordHelper` (`build_jira_project`, `build_personal_project`, `build_jira_workflow`, `build_task_workflow`); tag a describe with `active_job_test_adapter: true` (`spec/support/active_job_test_adapter.rb`) to swap ActiveJob's queue adapter to `:test` for its examples instead of copying an `around` block.
 - CI runs the same commands in the `test` job (`.github/workflows/ci.yml`) and in `config/ci.rb` (`bin/ci`).
 
 ## Data safety

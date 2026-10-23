@@ -1,11 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "WorkflowImages", type: :request do
-  let(:local_directory) { Dir.mktmpdir("workflow-images-request-spec") }
-  let(:project) { Project.create!(name: "Spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:workflow) { project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone", status: :pending) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
+  let_tmpdir(:local_directory, "workflow-images-request-spec")
+  let(:project) { build_jira_project(local_directory: local_directory) }
+  let(:workflow) { build_jira_workflow(project, jira_ticket: "SPEC-1", status: :pending) }
 
   describe "DELETE image" do
     it "removes the image and redirects to the edit form" do
