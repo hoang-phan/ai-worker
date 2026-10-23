@@ -37,18 +37,14 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
   def project(kind: :personal, directory: nil)
     directory ||= Dir.mktmpdir("workflow-scheduler-job-spec")
     directories << directory unless directories.include?(directory)
-    attributes = { name: "Scheduler spec #{SecureRandom.hex(4)}", kind: kind, local_directory: directory }
-    attributes[:repo_full_name] = "acme/widgets" if kind == :jira
-    Project.create!(**attributes)
+    kind == :jira ? build_jira_project(local_directory: directory) : build_personal_project(local_directory: directory)
   end
 
   def workflow(project:, status: :implementing, kind: :development, position: 1, **attributes)
     attributes[:task_description] = "Task #{SecureRandom.hex(4)}" if kind == :development && project.personal?
-    if kind == :development && project.jira?
-      attributes.reverse_merge!(jira_ticket: "SPEC-#{SecureRandom.random_number(10_000)}", branch_name: "spec-#{SecureRandom.hex(4)}", github_reviewer: "reviewer")
-    end
     attributes[:github_pr_url] ||= "https://github.com/acme/widgets/pull/#{SecureRandom.random_number(10_000)}" if kind == :pr_review
-    project.workflows.create!(status: status, kind: kind, position: position, **attributes)
+    builder = project.jira? ? :build_jira_workflow : :build_task_workflow
+    public_send(builder, project, status: status, kind: kind, position: position, **attributes)
   end
 
   it "delegates the active-workflow phase to ActiveWorkflowRunner" do

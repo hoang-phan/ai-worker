@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Slack::ReviewImporter do
   let(:dir) { Dir.mktmpdir("review-importer-spec") }
   let(:project) do
-    Project.create!(name: "ReviewImporter spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets",
-                    slack_mention: "@reviewer")
+    build_jira_project(local_directory: dir, slack_mention: "@reviewer")
   end
   let(:github) { instance_double(Github::Client, current_login: "me", pr_info: nil) }
   let(:importer) { described_class.new(project, github: github) }
@@ -47,7 +46,7 @@ RSpec.describe Slack::ReviewImporter do
   end
 
   it "skips already-imported pairs without calling GitHub, but imports the same PR from another message" do
-    project.workflows.create!(kind: :pr_review, slack_url: slack_url, github_pr_url: pr_url, position: 1)
+    build_jira_workflow(project, kind: :pr_review, slack_url: slack_url, github_pr_url: pr_url, position: 1)
     stub_pr(pr_url)
 
     importer.import([ mention ], result)

@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Slack::ReviewSync do
   let(:dir) { Dir.mktmpdir("review-sync-spec") }
   let(:project) do
-    Project.create!(name: "ReviewSync spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets",
-                    slack_mention: "@reviewer")
+    build_jira_project(local_directory: dir, slack_mention: "@reviewer")
   end
   let(:github) { instance_double(Github::Client, current_login: "me", pr_info: nil) }
   let(:sync) { described_class.new(project, github: github) }

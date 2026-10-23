@@ -3,8 +3,8 @@ require "rails_helper"
 RSpec.describe Prompts::Renderer do
   let(:local_directory) { Dir.mktmpdir("renderer-spec") }
   let(:project) do
-    Project.create!(
-      name: "Renderer spec #{SecureRandom.hex(4)}", local_directory: local_directory, kind: :personal,
+    build_personal_project(
+      local_directory: local_directory,
       jira_tester: "tess", uat_url: "https://uat.example", test_instructions: "run tests", uat_instructions: "check uat",
       local_url: "http://localhost:3000", local_instructions: "boot it", ci_instructions: "watch ci",
       ci_verify_instructions: "verify ci", pr_instructions: "open pr", ci_command: "bin/ci"
@@ -12,8 +12,8 @@ RSpec.describe Prompts::Renderer do
   end
   let(:variables) { {} }
   let(:workflow) do
-    Workflow.create!(
-      project: project, kind: :development, task_description: "Do the thing", variables: variables,
+    build_task_workflow(
+      project, kind: :development, task_description: "Do the thing", variables: variables,
       jira_ticket: "ABC-1", github_pr_url: "https://github.com/acme/app/pull/7", github_reviewer: "alice, bob",
       skills: "one, two", pr_skills: "pr-one", slack_url: "https://slack.example/t/1",
       ci_output_path: "/tmp/ci.log", ci_exit_status: 2, created_at: Time.utc(2026, 3, 4, 20, 0)
@@ -100,7 +100,7 @@ RSpec.describe Prompts::Renderer do
     end
 
     describe "{PREV_OUTPUT}" do
-      let(:runbook) { Workflow.create!(project: project, kind: :runbook, task_description: "rb") }
+      let(:runbook) { build_task_workflow(project, kind: :runbook, task_description: "rb") }
       let!(:first) { runbook.stages.create!(stage_type: :runbook_step, name: "First") }
       let!(:second) { runbook.stages.create!(stage_type: :runbook_step, name: "Second") }
 

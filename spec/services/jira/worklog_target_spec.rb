@@ -5,9 +5,9 @@ RSpec.describe Jira::WorklogTarget do
   let(:base_url) { "https://example.atlassian.net" }
   let(:ticket) { "TGT-1" }
   let(:workflow_kind) { :development }
-  let(:project) { Project.create!(name: "Target spec", kind: kind, repo_full_name: "org/repo", local_directory: "/tmp", jira_base_url: base_url) }
+  let(:project) { build_jira_project(kind: kind, jira_base_url: base_url) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: ticket, branch_name: "tgt-1", github_reviewer: "x", task_description: "Spec task", kind: workflow_kind)
+    build_jira_workflow(project, jira_ticket: ticket, task_description: "Spec task", kind: workflow_kind)
   end
 
   subject(:target) { described_class.new(workflow) }

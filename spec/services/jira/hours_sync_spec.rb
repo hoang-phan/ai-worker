@@ -4,13 +4,13 @@ RSpec.describe Jira::HoursSync do
   let(:dir) { Dir.mktmpdir("hours-sync-spec") }
   let(:base_url) { "https://acme.atlassian.net" }
   let!(:project) do
-    Project.create!(name: "HoursSync spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets", jira_base_url: base_url)
+    build_jira_project(local_directory: dir, jira_base_url: base_url)
   end
   let(:client) { instance_double(Jira::WorklogClient, keys_with_my_worklogs_since: []) }
   let(:sync) { described_class.new(client_factory: ->(_url) { client }, today: -> { Date.new(2026, 10, 22) }) }
 
   def workflow_for(ticket)
-    project.workflows.create!(jira_ticket: ticket, branch_name: ticket.downcase, github_reviewer: "someone")
+    build_jira_workflow(project, jira_ticket: ticket)
   end
 
   def worklog(id, seconds, started: Time.zone.parse("2026-10-19 09:00"))

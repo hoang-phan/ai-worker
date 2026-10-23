@@ -5,7 +5,7 @@ RSpec.describe BugsnagSyncJob, type: :job do
   let(:tuesday_10am) { Time.zone.local(2026, 10, 20, 10, 0) }
   let(:dir) { Dir.mktmpdir("bugsnag-sync-job-spec") }
   let(:project) do
-    Project.create!(name: "BugsnagSyncJob spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets")
+    build_jira_project(local_directory: dir)
   end
   let(:auto_sync) { true }
   let!(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB", auto_sync: auto_sync) }

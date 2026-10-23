@@ -8,9 +8,9 @@ RSpec.describe Prompts::StagePrompt do
 
   let(:local_directory) { Dir.mktmpdir("stage-prompt-spec") }
   let(:project_attrs) { { kind: :personal } }
-  let(:project) { Project.create!(name: "Stage prompt spec #{SecureRandom.hex(4)}", local_directory: local_directory, **project_attrs) }
+  let(:project) { build_personal_project(local_directory: local_directory, **project_attrs) }
   let(:workflow) do
-    Workflow.create!(project: project, kind: :development, task_description: "Do the thing", variables: { "ENV" => "staging" })
+    build_task_workflow(project, kind: :development, task_description: "Do the thing", variables: { "ENV" => "staging" })
   end
   let(:stage_type) { :task }
   let(:stage_attrs) { {} }
@@ -172,8 +172,8 @@ RSpec.describe Prompts::StagePrompt do
           { kind: :jira, repo_full_name: "org/repo", local_test_enabled: true, local_url: "http://localhost:3000" }
         end
         let(:workflow) do
-          Workflow.create!(project: project, kind: :development, jira_ticket: "ABC-1", branch_name: "abc-1",
-                           github_reviewer: "someone", local_test_feedback: feedback)
+          build_jira_workflow(project, kind: :development, jira_ticket: "ABC-1", branch_name: "abc-1",
+                                       github_reviewer: "someone", local_test_feedback: feedback)
         end
         let(:feedback) { nil }
 

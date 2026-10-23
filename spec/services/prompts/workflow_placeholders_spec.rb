@@ -3,11 +3,11 @@ require "rails_helper"
 RSpec.describe Prompts::WorkflowPlaceholders do
   let(:local_directory) { Dir.mktmpdir("workflow-placeholders-spec") }
   let(:project) do
-    Project.create!(name: "WorkflowPlaceholders spec #{SecureRandom.hex(4)}", local_directory: local_directory, kind: :personal)
+    build_personal_project(local_directory: local_directory)
   end
   let(:workflow) do
-    Workflow.create!(
-      project: project, kind: :development, task_description: "Do the thing",
+    build_task_workflow(
+      project, kind: :development, task_description: "Do the thing",
       jira_ticket: "ABC-1", github_pr_url: "https://github.com/acme/app/pull/7", github_reviewer: "alice, bob",
       skills: "one, two", pr_skills: "pr-one", slack_url: "https://slack.example/t/1",
       ci_output_path: "/tmp/ci.log", ci_exit_status: 2, created_at: Time.utc(2026, 3, 4, 20, 0)
@@ -59,7 +59,7 @@ RSpec.describe Prompts::WorkflowPlaceholders do
   end
 
   describe "{PREV_OUTPUT}" do
-    let(:runbook) { Workflow.create!(project: project, kind: :runbook, task_description: "rb") }
+    let(:runbook) { build_task_workflow(project, kind: :runbook, task_description: "rb") }
     let!(:first) { runbook.stages.create!(stage_type: :runbook_step, name: "First") }
     let!(:second) { runbook.stages.create!(stage_type: :runbook_step, name: "Second") }
 

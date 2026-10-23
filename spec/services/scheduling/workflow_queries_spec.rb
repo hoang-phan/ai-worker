@@ -13,12 +13,12 @@ RSpec.describe Scheduling::WorkflowQueries do
   def project
     directory = Dir.mktmpdir("workflow-queries-spec")
     directories << directory
-    Project.create!(name: "Queries spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: directory)
+    build_personal_project(local_directory: directory)
   end
 
   def workflow(status: :implementing, position: 1, project: self.project, **attributes)
-    project.workflows.create!(status: status, kind: :development, position: position,
-                              task_description: "Task #{SecureRandom.hex(4)}", **attributes)
+    build_task_workflow(project, status: status, kind: :development, position: position,
+                                 task_description: "Task #{SecureRandom.hex(4)}", **attributes)
   end
 
   describe ".active" do

@@ -11,7 +11,7 @@ RSpec.describe BrainstormJob, type: :job do
   def create_project(**attrs)
     dir = Dir.mktmpdir("brainstorm-job-spec")
     dirs << dir
-    Project.create!({ name: "BrainstormJob spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: dir, brainstorm_goal: "ship it" }.merge(attrs))
+    build_personal_project(**{ local_directory: dir, brainstorm_goal: "ship it" }.merge(attrs))
   end
 
   before do

@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Bugsnag::TriageSync do
   let(:dir) { Dir.mktmpdir("triage-sync-spec") }
   let(:project) do
-    Project.create!(name: "TriageSync spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir,
-                    repo_full_name: "acme/widgets", jira_base_url: "https://acme.atlassian.net")
+    build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net")
   end
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB") }
   let(:triager) { instance_double(Bugsnag::Triager) }

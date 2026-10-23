@@ -4,7 +4,7 @@ RSpec.describe Brainstorm::ProposalImporter do
   let(:local_directory) { Dir.mktmpdir("importer-spec") }
   let(:suffix) { SecureRandom.hex(4) }
   let(:project) do
-    Project.create!(name: "Importer spec #{suffix}", kind: :personal, local_directory: local_directory,
+    build_personal_project(local_directory: local_directory,
                     brainstorm_goal: "improve things", brainstorm_max_workflows: 2, default_skills: "ruby")
   end
   let(:in_flight) { project.workflows.development.where(status: :implementing) }
@@ -53,7 +53,7 @@ RSpec.describe Brainstorm::ProposalImporter do
   end
 
   it "does nothing while a workflow is queued" do
-    project.workflows.create!(summary: "Manual #{suffix}", task_description: "x", status: :pending, position: 1)
+    build_task_workflow(project, summary: "Manual #{suffix}", task_description: "x", status: :pending, position: 1)
 
     result = importer.call([ proposal("New #{suffix}") ])
 
@@ -71,7 +71,7 @@ RSpec.describe Brainstorm::ProposalImporter do
   end
 
   it "skips proposals matching an in-flight workflow's brief after normalizing" do
-    project.workflows.create!(summary: "Add  the Widget! #{suffix}", task_description: "x", status: :implementing, position: 1)
+    build_task_workflow(project, summary: "Add  the Widget! #{suffix}", task_description: "x", status: :implementing, position: 1)
 
     result = importer.call([ proposal("add the widget #{suffix}"), proposal("Other #{suffix}") ])
 
@@ -87,7 +87,7 @@ RSpec.describe Brainstorm::ProposalImporter do
   end
 
   it "does not count skipped duplicates towards the maximum" do
-    project.workflows.create!(summary: "Known #{suffix}", task_description: "x", status: :implementing, position: 1)
+    build_task_workflow(project, summary: "Known #{suffix}", task_description: "x", status: :implementing, position: 1)
 
     result = importer.call([ proposal("Known #{suffix}"), proposal("A #{suffix}"), proposal("B #{suffix}") ])
 

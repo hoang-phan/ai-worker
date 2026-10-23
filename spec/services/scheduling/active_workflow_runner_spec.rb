@@ -25,14 +25,12 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
   def project(directory: nil, kind: :personal)
     directory ||= Dir.mktmpdir("active-workflow-runner-spec")
     directories << directory unless directories.include?(directory)
-    attrs = { name: "Runner spec #{SecureRandom.hex(4)}", kind: kind, local_directory: directory }
-    attrs[:repo_full_name] = "acme/widgets" if kind == :jira
-    Project.create!(**attrs)
+    kind == :jira ? build_jira_project(local_directory: directory) : build_personal_project(local_directory: directory)
   end
 
   def workflow(project:, status: :implementing, position: 1, **attrs)
-    attrs[:task_description] = "Task #{SecureRandom.hex(4)}" if project.personal?
-    project.workflows.create!(status: status, kind: :development, position: position, **attrs)
+    builder = project.jira? ? :build_jira_workflow : :build_task_workflow
+    public_send(builder, project, status: status, kind: :development, position: position, **attrs)
   end
 
   it "does nothing without workflows" do
@@ -106,7 +104,7 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
   end
 
   it "starts a named non-auto-run runbook only when named" do
-    runbook = project.workflows.create!(kind: :runbook, status: :implementing, position: 1, auto_run: false)
+    runbook = build_task_workflow(project, kind: :runbook, status: :implementing, position: 1, auto_run: false)
     stage = runbook.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1)
     runbook.update!(current_stage_id: stage.id)
 

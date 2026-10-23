@@ -4,8 +4,7 @@ RSpec.describe JiraSyncJob, type: :job do
   let(:dir) { Dir.mktmpdir("jira-sync-job-spec") }
   let(:base_url) { "https://acme.atlassian.net" }
   let(:project) do
-    Project.create!(name: "JiraSyncJob spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets",
-                    jira_base_url: base_url)
+    build_jira_project(local_directory: dir, jira_base_url: base_url)
   end
   let(:auto_sync) { true }
   let!(:jira_sync) { project.jira_syncs.create!(auto_sync: auto_sync) }

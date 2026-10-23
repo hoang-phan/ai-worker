@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Jira::TicketSync do
   let(:dir) { Dir.mktmpdir("ticket-sync-spec") }
   let(:project) do
-    Project.create!(name: "TicketSync spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets",
-                    jira_base_url: "https://acme.atlassian.net", jira_assignee: "me@example.com",
+    build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net", jira_assignee: "me@example.com",
                     default_reviewers: "alice,bob", default_skills: "rails,testing")
   end
   let(:jira_sync) { project.jira_syncs.create! }
@@ -73,8 +72,8 @@ RSpec.describe Jira::TicketSync do
     end
 
     it "skips keys that already have a workflow, including ones stored as full browse URLs" do
-      project.workflows.create!(jira_ticket: "https://acme.atlassian.net/browse/UNS-1", branch_name: "UNS-1", github_reviewer: "alice", position: 1)
-      project.workflows.create!(jira_ticket: "UNS-2", branch_name: "UNS-2", github_reviewer: "alice", position: 2)
+      build_jira_workflow(project, jira_ticket: "https://acme.atlassian.net/browse/UNS-1", branch_name: "UNS-1", github_reviewer: "alice", position: 1)
+      build_jira_workflow(project, jira_ticket: "UNS-2", branch_name: "UNS-2", github_reviewer: "alice", position: 2)
 
       result = sync.import([ { "key" => "UNS-1" }, { "key" => "UNS-2" }, { "key" => "UNS-3" } ])
 

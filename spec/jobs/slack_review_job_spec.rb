@@ -11,7 +11,7 @@ RSpec.describe SlackReviewJob, type: :job do
   def create_project(**attrs)
     dir = Dir.mktmpdir("slack-review-job-spec")
     dirs << dir
-    Project.create!({ name: "SlackReviewJob spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets" }.merge(attrs))
+    build_jira_project(**{ local_directory: dir }.merge(attrs))
   end
 
   def sync_result(created: [], skipped: [], failed: [], skipped_reasons: Hash.new(0))

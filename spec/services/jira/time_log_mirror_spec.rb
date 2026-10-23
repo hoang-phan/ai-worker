@@ -3,13 +3,13 @@ require "rails_helper"
 RSpec.describe Jira::TimeLogMirror do
   let(:dir) { Dir.mktmpdir("time-log-mirror-spec") }
   let(:project) do
-    Project.create!(name: "Mirror spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: dir, repo_full_name: "acme/widgets", jira_base_url: "https://acme.atlassian.net")
+    build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net")
   end
   let(:started) { Time.zone.parse("2026-10-19 09:00") }
   let(:mirror) { described_class.new }
 
   def workflow_for(ticket)
-    project.workflows.create!(jira_ticket: ticket, branch_name: ticket.downcase, github_reviewer: "someone")
+    build_jira_workflow(project, jira_ticket: ticket)
   end
 
   def worklog(id, seconds, at: started)

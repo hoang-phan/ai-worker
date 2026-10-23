@@ -16,9 +16,8 @@ RSpec.describe Scheduling::UatPhase do
   def workflow(status:, position: 1, **attrs)
     directory = Dir.mktmpdir("uat-phase-spec")
     directories << directory
-    project = Project.create!(name: "UAT spec #{SecureRandom.hex(4)}", kind: :jira, local_directory: directory, repo_full_name: "acme/widgets")
-    project.workflows.create!(status: status, kind: :development, position: position, jira_ticket: "SPEC-#{SecureRandom.random_number(10_000)}",
-                              branch_name: "spec-#{SecureRandom.hex(4)}", github_reviewer: "reviewer", **attrs)
+    project = build_jira_project(local_directory: directory)
+    build_jira_workflow(project, status: status, kind: :development, position: position, **attrs)
   end
 
   context "with no free slots" do

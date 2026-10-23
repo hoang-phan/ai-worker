@@ -27,10 +27,10 @@ RSpec.describe Brainstorm::Planner do
   end
 
   describe "#wait_reason" do
-    let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
+    let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
 
     def add_workflow(**attrs)
-      project.workflows.create!({ task_description: "do it", branch_name: "b-#{SecureRandom.hex(3)}", github_reviewer: "someone" }.merge(attrs))
+      build_task_workflow(project, **{ task_description: "do it" }.merge(attrs))
     end
 
     it "is nil when nothing is pending" do
@@ -52,7 +52,7 @@ RSpec.describe Brainstorm::Planner do
   end
 
   describe "#record_start!" do
-    let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
+    let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
 
     it "stamps brainstorm_last_run_at with the current time" do
       freeze_time do
@@ -104,10 +104,10 @@ RSpec.describe Brainstorm::Planner do
 
   describe "launch snapshot" do
     let(:dir) { root.join(project.id.to_s) }
-    let(:project) { Project.create!(name: "Planner spec #{SecureRandom.hex(4)}", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
+    let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
 
     def add_implementing(summary)
-      project.workflows.create!(task_description: summary, summary: summary, branch_name: "b-#{SecureRandom.hex(3)}", github_reviewer: "someone", status: :implementing)
+      build_task_workflow(project, task_description: summary, summary: summary, status: :implementing)
     end
 
     def launched_inputs

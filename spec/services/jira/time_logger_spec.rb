@@ -3,9 +3,9 @@ require "rails_helper"
 RSpec.describe Jira::TimeLogger do
   let(:kind) { :jira }
   let(:base_url) { "https://example.atlassian.net" }
-  let(:project) { Project.create!(name: "Logger spec", kind: kind, repo_full_name: "org/repo", local_directory: "/tmp", jira_base_url: base_url) }
+  let(:project) { build_jira_project(jira_base_url: base_url, kind: kind) }
   let(:ticket) { "LOG-1" }
-  let(:workflow) { project.workflows.create!(jira_ticket: ticket, branch_name: "log-1", github_reviewer: "x", task_description: "Spec task") }
+  let(:workflow) { build_jira_workflow(project, jira_ticket: ticket, task_description: "Spec task") }
   let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", set_original_estimate_if_blank: true) }
   let(:factory) { ->(_base_url) { client } }
   let(:started_at) { Time.zone.local(2026, 10, 20, 9) }

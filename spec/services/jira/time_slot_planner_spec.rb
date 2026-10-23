@@ -1,8 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Jira::TimeSlotPlanner do
-  let(:project) { Project.create!(name: "Planner spec", kind: :jira, repo_full_name: "org/repo", local_directory: "/tmp") }
-  let(:workflow) { project.workflows.create!(jira_ticket: "PLAN-1", branch_name: "plan-1", github_reviewer: "x") }
+  let(:project) { build_jira_project }
+  let(:workflow) { build_jira_workflow(project) }
   let(:monday) { Date.new(2027, 2, 1) } # the 1st of the month, a Monday
   let(:planner) { described_class.new(today: monday + 2) }
 

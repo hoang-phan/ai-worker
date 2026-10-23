@@ -28,18 +28,12 @@ RSpec.describe Scheduling::PostMergePhase do
   def project(kind: :jira)
     directory = Dir.mktmpdir("post-merge-phase-spec")
     directories << directory
-    attrs = { name: "Post merge spec #{SecureRandom.hex(4)}", kind: kind, local_directory: directory }
-    attrs[:repo_full_name] = "acme/widgets" if kind == :jira
-    Project.create!(**attrs)
+    kind == :jira ? build_jira_project(local_directory: directory) : build_personal_project(local_directory: directory)
   end
 
   def workflow(project: self.project, status: :done, position: 1, **attrs)
-    if project.jira?
-      attrs.reverse_merge!(jira_ticket: "SPEC-#{SecureRandom.random_number(10_000)}", branch_name: "spec-#{SecureRandom.hex(4)}", github_reviewer: "reviewer")
-    else
-      attrs[:task_description] ||= "Task #{SecureRandom.hex(4)}"
-    end
-    project.workflows.create!(status: status, kind: :development, position: position, **attrs)
+    builder = project.jira? ? :build_jira_workflow : :build_task_workflow
+    public_send(builder, project, status: status, kind: :development, position: position, **attrs)
   end
 
   def done_workflow(position: 1, **attrs)
