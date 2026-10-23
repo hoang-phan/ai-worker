@@ -78,8 +78,8 @@ RSpec.describe Project, type: :model do
     end
 
     it "is one past the highest existing position" do
-      project.workflows.create!(task_description: "a", position: 3)
-      project.workflows.create!(task_description: "b", position: 7)
+      build_task_workflow(project, position: 3)
+      build_task_workflow(project, position: 7)
 
       expect(project.next_workflow_position).to eq(8)
     end

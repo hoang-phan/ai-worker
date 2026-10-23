@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Workflows::RunbookNavigator do
   let_tmpdir(:local_directory, "runbook-navigator-spec")
-  let(:project) { Project.create!(name: "Navigator spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
   let(:workflow) { project.workflows.create!(kind: :runbook, status: :pending) }
   let(:navigator) { described_class.new(workflow) }
 

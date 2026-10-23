@@ -2,11 +2,11 @@ require "rails_helper"
 
 RSpec.describe Projects::WorkflowReorder do
   let_tmpdir(:local_directory, "workflow-reorder-spec")
-  let(:project) { Project.create!(name: "Reorder spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:other_project) { Project.create!(name: "Reorder spec other", kind: :jira, repo_full_name: "org/other", local_directory: make_tmpdir("workflow-reorder-other")) }
-  let!(:first) { project.workflows.create!(jira_ticket: "REORDER-1", branch_name: "reorder-1", github_reviewer: "x", position: 1) }
-  let!(:second) { project.workflows.create!(jira_ticket: "REORDER-2", branch_name: "reorder-2", github_reviewer: "x", position: 2) }
-  let!(:third) { project.workflows.create!(jira_ticket: "REORDER-3", branch_name: "reorder-3", github_reviewer: "x", position: 3) }
+  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:other_project) { build_jira_project(repo_full_name: "org/other", local_directory: make_tmpdir("workflow-reorder-other")) }
+  let!(:first) { build_jira_workflow(project, jira_ticket: "REORDER-1", branch_name: "reorder-1", position: 1) }
+  let!(:second) { build_jira_workflow(project, jira_ticket: "REORDER-2", branch_name: "reorder-2", position: 2) }
+  let!(:third) { build_jira_workflow(project, jira_ticket: "REORDER-3", branch_name: "reorder-3", position: 3) }
 
   def ordered_ids = project.workflows.order(:position, :id).pluck(:id)
 
@@ -41,7 +41,7 @@ RSpec.describe Projects::WorkflowReorder do
   end
 
   it "returns false for a workflow from another project and changes nothing" do
-    foreign = other_project.workflows.create!(jira_ticket: "REORDER-X", branch_name: "reorder-x", github_reviewer: "x", position: 2)
+    foreign = build_jira_workflow(other_project, jira_ticket: "REORDER-X", branch_name: "reorder-x", position: 2)
 
     expect(described_class.new(project).move(foreign, :up)).to be(false)
     expect(project.workflows.order(:id).pluck(:position)).to eq([ 1, 2, 3 ])

@@ -3,8 +3,8 @@ require "rails_helper"
 RSpec.describe Projects::WorkflowDefaults do
   let_tmpdir(:local_directory, "workflow-defaults-spec")
   let(:project) do
-    Project.create!(name: "Defaults spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory,
-                    default_skills: "skill-a", default_pr_skills: "pr-skill", default_reviewers: "alice")
+    build_jira_project(repo_full_name: "org/repo", local_directory: local_directory,
+                       default_skills: "skill-a", default_pr_skills: "pr-skill", default_reviewers: "alice")
   end
 
   describe ".kind_for" do
@@ -37,13 +37,13 @@ RSpec.describe Projects::WorkflowDefaults do
     end
 
     it "keeps blank project defaults blank" do
-      bare = Project.create!(name: "Defaults bare project", kind: :jira, repo_full_name: "org/bare", local_directory: local_directory)
+      bare = build_jira_project(repo_full_name: "org/bare", local_directory: local_directory)
       attrs = described_class.new(bare).attributes(kind: :development)
       expect(attrs.values_at(:skills, :pr_skills, :github_reviewer)).to all(be_blank)
     end
 
     it "puts the position after existing workflows" do
-      project.workflows.create!(jira_ticket: "DEFAULTS-1", branch_name: "defaults-1", github_reviewer: "x", position: 4)
+      build_jira_workflow(project, jira_ticket: "DEFAULTS-1", branch_name: "defaults-1", position: 4)
       expect(described_class.new(project).attributes[:position]).to eq(5)
     end
   end

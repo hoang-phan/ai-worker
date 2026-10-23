@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe JiraSync, type: :model do
   let_tmpdir(:local_directory, "jira-sync-spec")
-  let(:project) { Project.create!(name: "Jira sync spec project", kind: :personal, local_directory: local_directory) }
+  let(:project) { build_personal_project(local_directory: local_directory) }
 
   describe "#label" do
     subject(:label) { described_class.new(jira_project: jira_project, parent_ticket: parent_ticket).label }

@@ -2,8 +2,8 @@ require "rails_helper"
 
 RSpec.describe Stage, type: :model do
   let_tmpdir(:local_directory, "stage-spec")
-  let(:project) { Project.create!(name: "Stage spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:workflow) { project.workflows.create!(jira_ticket: "STG-1", branch_name: "stg-1", github_reviewer: "someone", status: :pending) }
+  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:workflow) { build_jira_workflow(project, jira_ticket: "STG-1", branch_name: "stg-1", status: :pending) }
   let(:stage) { workflow.stages.create!(stage_type: :pr_check) }
 
   describe "#removable?" do
@@ -82,7 +82,7 @@ RSpec.describe Stage, type: :model do
 
     it "rejects an agent of another project" do
       other_directory = make_tmpdir("stage-spec-other")
-      other = Project.create!(name: "Other stage project", kind: :personal, local_directory: other_directory)
+      other = build_personal_project(local_directory: other_directory)
       agent = other.agents.create!(name: "billing", description: "Billing")
       stage = workflow.stages.new(stage_type: :task, agent: agent)
 

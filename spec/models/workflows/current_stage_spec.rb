@@ -2,10 +2,10 @@ require "rails_helper"
 
 RSpec.describe Workflows::CurrentStage do
   let_tmpdir(:local_directory, "current-stage-spec")
-  let(:project_attrs) { { name: "Current stage spec", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory } }
-  let(:project) { Project.create!(project_attrs) }
+  let(:project_attrs) { { repo_full_name: "org/repo", local_directory: local_directory } }
+  let(:project) { build_jira_project(**project_attrs) }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "CS-1", branch_name: "cs-1", github_reviewer: "someone", status: :implementing)
+    build_jira_workflow(project, jira_ticket: "CS-1", branch_name: "cs-1", status: :implementing)
   end
 
   def call(wf = workflow) = described_class.new(wf).call
@@ -56,8 +56,8 @@ RSpec.describe Workflows::CurrentStage do
   end
 
   it "maps implementing to the task stage on a personal project" do
-    personal = Project.create!(name: "Personal spec", kind: :personal, local_directory: local_directory)
-    task = personal.workflows.create!(task_description: "Do it", status: :implementing)
+    personal = build_personal_project(local_directory: local_directory)
+    task = build_task_workflow(personal, status: :implementing)
     expect(call(task)).to eq(task.stages.find_by!(stage_type: :task))
   end
 

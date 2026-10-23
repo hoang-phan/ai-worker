@@ -2,10 +2,10 @@ require "rails_helper"
 
 RSpec.describe Workflows::Transitions do
   let_tmpdir(:local_directory, "transitions-spec")
-  let(:project) { Project.create!(name: "Transitions spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
   let(:pr_url) { "https://github.com/org/repo/pull/7" }
   let(:workflow) do
-    project.workflows.create!(jira_ticket: "SPEC-1", branch_name: "spec-1", github_reviewer: "someone", status: :pending)
+    build_jira_workflow(project, jira_ticket: "SPEC-1", branch_name: "spec-1", status: :pending)
   end
   let(:transitions) { described_class.new(workflow) }
 

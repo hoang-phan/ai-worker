@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Workflows::RunbookClone do
   let_tmpdir(:local_directory, "runbook-clone-spec")
-  let(:project) { Project.create!(name: "Clone spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
   let!(:source) do
     project.workflows.create!(kind: :runbook, position: 4, variables: { "CHANNEL" => "#ops", "VERSION" => "1.0" }).tap do |runbook|
       runbook.stages.create!(stage_type: :runbook_step, name: "Build", position: 1, prompt: "Build it")
@@ -13,7 +13,7 @@ RSpec.describe Workflows::RunbookClone do
   def clone_result = described_class.new(source).call
 
   it "refuses a workflow that is not a runbook" do
-    development = project.workflows.create!(jira_ticket: "C-1", branch_name: "c-1", github_reviewer: "x")
+    development = build_jira_workflow(project, jira_ticket: "C-1", branch_name: "c-1")
 
     result = described_class.new(development).call
 

@@ -47,12 +47,12 @@ RSpec.describe StageRun, type: :model do
 
   describe ".history_for" do
     let_tmpdir(:local_directory, "stage-run-spec")
-    let(:project) { Project.create!(name: "Stage run spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
-    let(:workflow) { project.workflows.create!(jira_ticket: "SR-1", branch_name: "sr-1", github_reviewer: "someone", status: :pending) }
-    let(:other_workflow) { project.workflows.create!(jira_ticket: "SR-2", branch_name: "sr-2", github_reviewer: "someone", status: :pending) }
+    let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+    let(:workflow) { build_jira_workflow(project, jira_ticket: "SR-1", branch_name: "sr-1", status: :pending) }
+    let(:other_workflow) { build_jira_workflow(project, jira_ticket: "SR-2", branch_name: "sr-2", status: :pending) }
     let(:other_project_workflow) do
-      other_project = Project.create!(name: "Other stage run spec project", kind: :jira, repo_full_name: "org/other", local_directory: local_directory)
-      other_project.workflows.create!(jira_ticket: "SR-1", branch_name: "sr-1", github_reviewer: "someone", status: :pending)
+      other_project = build_jira_project(repo_full_name: "org/other", local_directory: local_directory)
+      build_jira_workflow(other_project, jira_ticket: "SR-1", branch_name: "sr-1", status: :pending)
     end
 
     it "returns only runs belonging to the workflow, across its stages" do
