@@ -7,17 +7,6 @@ RSpec.describe Jira::SyncCycleSource do
   let(:source) { described_class.new(record, log_prefix: "[Spec] jira_sync=1", sync: sync) }
   let(:result) { Jira::TicketSync::Result.new(blockers: [], created: [ "A-1" ], skipped: [], failed: [ "A-2: boom", "A-3: bad" ]) }
 
-  it "delegates poll, import, blockers and start! to the sync and fetcher" do
-    allow(fetcher).to receive(:poll).and_return([ 1 ])
-    allow(sync).to receive(:import).with([ 1 ]).and_return(result)
-
-    expect(source.poll).to eq([ 1 ])
-    expect(source.import([ 1 ])).to eq(result)
-    expect(source.blockers).to eq([])
-    source.start!
-    expect(fetcher).to have_received(:start)
-  end
-
   it "appends failures to the log line" do
     expect(source.log_message(result, "sum")).to eq("[Spec] jira_sync=1 sum A-2: boom; A-3: bad")
     expect(source.log_message(result.dup.tap { |r| r.failed = [] }, "sum")).to eq("[Spec] jira_sync=1 sum")
@@ -36,12 +25,6 @@ RSpec.describe Jira::SyncCycleSource do
     expect(source.eligible?).to be(true)
     allow(record).to receive(:auto_sync?).and_return(false)
     expect(source.eligible?).to be(false)
-  end
-
-  it "is idle only when the fetcher is not running" do
-    expect(source.idle?).to be(true)
-    allow(fetcher).to receive(:running?).and_return(true)
-    expect(source.idle?).to be(false)
   end
 
   describe "#due?" do

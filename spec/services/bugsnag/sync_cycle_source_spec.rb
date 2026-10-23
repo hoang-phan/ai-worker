@@ -7,17 +7,6 @@ RSpec.describe Bugsnag::SyncCycleSource do
   let(:source) { described_class.new(record, sync: sync) }
   let(:tuesday_10am) { Time.zone.local(2026, 10, 20, 10, 0) }
 
-  it "delegates poll, import, blockers and start!" do
-    allow(triager).to receive(:poll).and_return([ 1 ])
-    allow(sync).to receive(:import).with([ 1 ]).and_return(:imported)
-
-    expect(source.poll).to eq([ 1 ])
-    expect(source.import([ 1 ])).to eq(:imported)
-    expect(source.blockers).to eq([ "no clone" ])
-    source.start!
-    expect(triager).to have_received(:start)
-  end
-
   it "persists the summary with a timestamp, and failures as last_result only" do
     freeze_time do
       source.persist!(nil, "sum")
@@ -27,13 +16,10 @@ RSpec.describe Bugsnag::SyncCycleSource do
     expect(record).to have_received(:update).with(last_result: "failed: x")
   end
 
-  it "is eligible only for auto-sync records and idle only when not running" do
+  it "is eligible only for auto-sync records" do
     expect(source.eligible?).to be(true)
     allow(record).to receive(:auto_sync?).and_return(false)
     expect(source.eligible?).to be(false)
-    expect(source.idle?).to be(true)
-    allow(triager).to receive(:running?).and_return(true)
-    expect(source.idle?).to be(false)
   end
 
   describe "#due?" do

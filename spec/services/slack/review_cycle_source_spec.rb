@@ -12,17 +12,6 @@ RSpec.describe Slack::ReviewCycleSource do
 
   before { allow(WorkflowSchedulerJob).to receive(:perform_later) }
 
-  it "delegates poll, import, blockers and start!" do
-    allow(fetcher).to receive(:poll).and_return([ 1 ])
-    allow(sync).to receive(:import).with([ 1 ]).and_return(:imported)
-
-    expect(source.poll).to eq([ 1 ])
-    expect(source.import([ 1 ])).to eq(:imported)
-    expect(source.blockers).to eq([ "no token" ])
-    source.start!
-    expect(fetcher).to have_received(:start)
-  end
-
   it "appends failures to the log line" do
     expect(source.log_message(result(failed: [ "x", "y" ]), "sum")).to eq("[Spec] project=1 sum x; y")
     expect(source.log_message(result, "sum")).to eq("[Spec] project=1 sum")
@@ -44,11 +33,8 @@ RSpec.describe Slack::ReviewCycleSource do
     expect(WorkflowSchedulerJob).to have_received(:perform_later).once
   end
 
-  it "is always eligible and idle only when the fetcher is not running" do
+  it "is always eligible" do
     expect(source.eligible?).to be(true)
-    expect(source.idle?).to be(true)
-    allow(fetcher).to receive(:running?).and_return(true)
-    expect(source.idle?).to be(false)
   end
 
   it "is due after FETCH_EVERY and not before" do

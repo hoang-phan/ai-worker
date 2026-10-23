@@ -1,18 +1,14 @@
 # Adapts one Project's Slack PR reviews to AgentRuns::SyncCycle (driven by SlackReviewJob).
 module Slack
-  class ReviewCycleSource < AgentRuns::CycleSource
+  class ReviewCycleSource < AgentRuns::FetcherCycleSource
     FETCH_EVERY = 30.minutes
 
     def initialize(project, log_prefix:, sync: nil)
       @project = project
       @log_prefix = log_prefix
-      @sync = sync || Slack::ReviewSync.new(project)
-      @fetcher = @sync.fetcher
+      sync ||= Slack::ReviewSync.new(project)
+      super(sync:, fetcher: sync.fetcher)
     end
-
-    def poll = @fetcher.poll
-    def import(mentions) = @sync.import(mentions)
-    def summary(result) = result.summary
 
     def log_message(result, summary)
       "#{@log_prefix} #{summary} #{result.failed.join('; ')}".strip
@@ -29,13 +25,8 @@ module Slack
       WorkflowSchedulerJob.perform_later if result.created.any?
     end
 
-    def idle? = !@fetcher.running?
-
     def due?
-      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: @fetcher.last_started_at)
+      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: last_started_at)
     end
-
-    def blockers = @sync.blockers
-    def start! = @fetcher.start
   end
 end
