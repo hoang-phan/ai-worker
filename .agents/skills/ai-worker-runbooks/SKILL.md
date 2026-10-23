@@ -19,7 +19,7 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 - `app/models/workflows/stage_outputs.rb` — successful (`stage_completed`) outputs, `all` / `latest_for(stage)`.
 - `app/models/stage.rb` — `run_mode` (`agent`/`message`, prefix `run`), `name` and `channel` validations, `auto_advance`, `wait_for_workflow`, `removable?`.
 - `app/services/stages/start_handler.rb` — `start_runbook_step`: gate, then launch the prompt (wrapped for message stages).
-- `app/services/prompts/stage_prompt.rb` — `slack_message` wraps the text in the post-to-Slack instructions.
+- `app/services/prompts/stage_prompt.rb` — `slack_message` forwards to `Prompts::SlackPost` (`app/services/prompts/slack_post.rb`), which wraps the text in the post-to-Slack instructions.
 - `app/services/stages/workflow_run_gate.rb` — `wait_for_workflow` gate on GitHub Actions.
 - `app/services/stages/runbook_step_finish.rb` — success path (POSTED check, variables, waiting, auto-advance).
 - `app/controllers/workflow_runbooks_controller.rb` — `run_stage`, `advance`, `clone` (routes in `config/routes.rb`); Start is `workflow_transitions#start`.
