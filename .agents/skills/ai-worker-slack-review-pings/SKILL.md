@@ -5,7 +5,7 @@ description: Applies ai-worker's Slack "please review" ping discipline. Use for 
 
 # ai-worker-slack-review-pings
 
-Scope: the outbound "please review" message posted to the project's Slack channel once a PR is up for review (and again after changes are pushed), and the read-back of that message's permalink into `Workflow#slack_review_thread_ts` so later pings reply in the same thread. It is built on a short detached agent run (`AiCli::Runner`) but is *not* a fetch/sync service: there is no result file, importer or sync wrapper. The inbound side (mention fetch, `ReviewSync`, `ReviewImporter`) is in `ai-worker-detached-agent-runs`; the `AiCli` runner/poller in `ai-worker-agent-cli`; job/service rules in `ai-worker-orchestration`; spec rules in `ai-worker-testing` — not repeated here.
+Scope: the outbound "please review" message posted to the project's Slack channel once a PR is up for review (and again after changes are pushed), and the read-back of that message's permalink into `Workflow#slack_review_thread_ts` so later pings reply in the same thread. It is built on a short detached agent run (`AiCli::Runner`) but is *not* a fetch/sync service: there is no result file, importer or sync wrapper. The inbound side (mention fetch, `ReviewSync`, `ReviewImporter`) is in `ai-worker-pr-review-workflows` (fetch/run mechanics in `ai-worker-detached-agent-runs`); the `AiCli` runner/poller in `ai-worker-agent-cli`; job/service rules in `ai-worker-orchestration`; spec rules in `ai-worker-testing` — not repeated here.
 
 ## File map
 
@@ -28,7 +28,7 @@ Scope: the outbound "please review" message posted to the project's Slack channe
 
 - `app/services/stages/review_handoff.rb` (`Stages::ReviewHandoff#notify_reviewers!`) — the caller; see `ai-worker-stage-pipeline`. It skips unless `enabled?` and reviewers exist, calls `collect` first (so a freshly collected permalink is the `thread_ts`), then `notify!`, and logs `slack_review_notified` / `slack_review_notify_failed` rescuing `Slack::NotifyError` and `Github::CommandError`.
 - `Workflow#slack_review_thread_ts=` (`app/models/workflow.rb`) — accepts `1760000000.123456` or a `.../archives/C123/p1760000000123456` link and stores the `ts`; see `ai-worker-domain`. `Project#slack_review_channel` / `slack_user_map` are project columns.
-- The Slack mention fetch, `Slack::ReviewSync`, `Slack::ReviewImporter` and `SlackReviewJob` — `ai-worker-detached-agent-runs`.
+- The Slack mention fetch, `Slack::ReviewSync`, `Slack::ReviewImporter` and `SlackReviewJob` — `ai-worker-pr-review-workflows`.
 
 ## Conventions
 
