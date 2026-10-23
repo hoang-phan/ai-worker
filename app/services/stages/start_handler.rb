@@ -3,6 +3,15 @@ module Stages
   # launcher owns detached agent run kick-off. StageExecutor still owns the live-checkout guard, polling and error
   # rescue; the Git/Github/AiCli errors raised here propagate to its rescue.
   class StartHandler
+    # Stages whose start is just the rendered prompt run detached. task: personal-project workflows with no branch or PR;
+    # the agent runs in the local checkout and commits its own work (as implementation prompts run `gh pr create`).
+    # jira_update: the agent moves the ticket to UAT / Releaseable via its Atlassian MCP connector.
+    PROMPT_ONLY_TYPES = %w[task jira_update ci_verify pr_create].freeze
+
+    # Stage type => BrowserTestStart kind. uat_test tests the project's UAT site; local_test uses the project's own
+    # development server on the PR's branch, after the PR exists and before review.
+    BROWSER_TEST_KINDS = { "uat_test" => :uat, "local_test" => :local }.freeze
+
     def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:, launcher:)
       @workflow = workflow
       @stage = stage
@@ -18,13 +27,10 @@ module Stages
       case stage.stage_type
       when "implementation", "simple_implementation" then start_implementation
       when "pr_check" then run_pr_check
-      when "task" then start_task
       when "pr_review" then start_pr_review
-      when "jira_update" then start_jira_update
-      when "uat_test" then start_uat_test
-      when "local_test" then start_local_test
       when "ci_check" then start_ci_check
-      when "ci_verify", "pr_create" then launcher.call(prompt.body)
+      when *PROMPT_ONLY_TYPES then launcher.call(prompt.body)
+      when *BROWSER_TEST_KINDS.keys then start_browser_test(BROWSER_TEST_KINDS.fetch(stage.stage_type))
       when "runbook_step" then start_runbook_step
       end
     end
@@ -38,37 +44,10 @@ module Stages
       launcher.call(prompt.body)
     end
 
-    # Personal-project workflows: no branch, no PR — just run the agent CLI
-    # directly against the project's local checkout (already on its own
-    # branch/main) and commit. The task-stage prompt instructs the agent to
-    # commit its own work, the same way implementation-stage prompts
-    # instruct it to run `gh pr create` itself.
-    def start_task
-      launcher.call(prompt.body)
-    end
-
     def start_pr_review
       Stages::PrReviewStart.new(
         workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher
       ).call
-    end
-
-    # Moves the ticket to UAT / Releaseable via the agent's Atlassian MCP
-    # connector (it decides which, from the PR). Runs detached like any agent run.
-    def start_jira_update
-      launcher.call(prompt.body)
-    end
-
-    # The agent tests the ticket in a headless browser (Playwright MCP) on the project's UAT site, records
-    # video + trace, attaches them to the ticket and comments with the result (the prompt tells it to).
-    def start_uat_test
-      start_browser_test(:uat)
-    end
-
-    # Same browser setup as the UAT test, but against the project's own development server, on the PR's branch, after the
-    # PR exists and before review.
-    def start_local_test
-      start_browser_test(:local)
     end
 
     def start_browser_test(kind)
