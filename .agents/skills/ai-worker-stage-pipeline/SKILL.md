@@ -17,6 +17,7 @@ Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_to
 - `app/services/stages/browser_test_start.rb` — validates a UAT/local `BrowserTestRun`, checks out the PR branch for local testing, then launches the browser-configured prompt with its MCP config, environment, and tool restrictions.
 - `app/services/stages/ci_check_finish.rb` — moves a completed CI command to `ci_verifying`, stores its log path and exit status, and logs the output tail.
 - `app/services/stages/ci_verify_finish.rb` — parses `CI_VERDICT`, either advances to local testing/review and hands off reviewers, or returns to CI checking (or errors after the configured round limit).
+- The whole `ci_loop` flow (statuses, seeding, resume, round limit, prompts, specs) is mapped in `ai-worker-ci-loop`; read it before changing `ci_check_finish.rb`, `ci_verify_finish.rb`, `pr_opened_finish.rb` or `simple_implementation_finish.rb`.
 - `app/services/stages/completion_handler.rb` — dispatches successful completed output by stage type to the corresponding finish service.
 - `app/services/stages/conflict_resolution_finish.rb` — verifies a conflict-resolution run committed its merge, aborts and raises if not, otherwise clears its run and immediately launches the review-fix prompt.
 - `app/services/stages/failure_handler.rb` — aborts a resolving merge, clears run state without auto-run, logs `failed`, and parks workflows at the supplied consecutive-failure threshold.
