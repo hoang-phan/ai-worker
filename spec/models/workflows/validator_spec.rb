@@ -1,0 +1,115 @@
+require "rails_helper"
+
+RSpec.describe Workflows::Validator do
+  let_tmpdir(:local_directory, "workflow-validator-spec")
+  let(:jira_project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let(:personal_project) { build_personal_project(local_directory: local_directory) }
+  let(:pr_url) { "https://github.com/org/repo/pull/7" }
+
+  def errors_for(workflow)
+    workflow.valid?
+    workflow.errors
+  end
+
+  describe "jira development workflows" do
+    it "is valid with a ticket, branch and reviewer" do
+      expect(jira_project.workflows.build(jira_ticket: "V-1", branch_name: "v-1", github_reviewer: "octocat")).to be_valid
+    end
+
+    %i[jira_ticket branch_name github_reviewer].each do |attribute|
+      it "requires #{attribute}" do
+        workflow = jira_project.workflows.build(jira_ticket: "V-1", branch_name: "v-1", github_reviewer: "octocat", attribute => " ")
+
+        expect(errors_for(workflow).details[attribute]).to eq([ { error: :blank } ])
+      end
+    end
+  end
+
+  describe "personal development workflows" do
+    it "requires task_description" do
+      expect(errors_for(personal_project.workflows.build).details[:task_description]).to eq([ { error: :blank } ])
+    end
+
+    it "does not require the Jira fields" do
+      expect(errors_for(personal_project.workflows.build(task_description: "Do it")).attribute_names).to be_empty
+    end
+  end
+
+  describe "pr_review workflows" do
+    it "requires github_pr_url" do
+      expect(errors_for(jira_project.workflows.build(kind: :pr_review)).details[:github_pr_url]).to eq([ { error: :blank } ])
+    end
+
+    it "is valid on a Jira project with a PR url" do
+      expect(jira_project.workflows.build(kind: :pr_review, github_pr_url: pr_url)).to be_valid
+    end
+
+    it "rejects a personal project" do
+      errors = errors_for(personal_project.workflows.build(kind: :pr_review, github_pr_url: pr_url))
+
+      expect(errors[:base]).to eq([ "PR reviews need a Jira (GitHub-backed) project" ])
+    end
+
+    it "rejects a missing project without raising" do
+      errors = errors_for(Workflow.new(kind: :pr_review, github_pr_url: pr_url))
+
+      expect(errors[:base]).to include("PR reviews need a Jira (GitHub-backed) project")
+    end
+
+    it "keeps the github_pr_url format check on the model" do
+      errors = errors_for(jira_project.workflows.build(kind: :pr_review, github_pr_url: "https://example.com/x"))
+
+      expect(errors[:github_pr_url]).to eq([ "must be a github.com pull request URL" ])
+    end
+  end
+
+  describe "workflows without a project" do
+    it "skips the project-kind rules for development workflows" do
+      expect(errors_for(Workflow.new).attribute_names).to eq([ :project ])
+    end
+  end
+
+  describe "variable names" do
+    it "rejects names that are not placeholders" do
+      workflow = jira_project.workflows.build(kind: :runbook, variables: { "OK_1" => "a", "bad-name" => "b", "also bad" => "c" })
+
+      expect(errors_for(workflow)[:variables]).to eq([ "names must be letters, digits or underscores (bad-name, also bad)" ])
+    end
+
+    it "accepts letters, digits and underscores" do
+      expect(jira_project.workflows.build(kind: :runbook, variables: { "CHANNEL_2" => "#ops" })).to be_valid
+    end
+  end
+
+  describe "copy_stages_from_id" do
+    let!(:source) { jira_project.workflows.create!(kind: :runbook) }
+
+    it "accepts a runbook of the same project" do
+      expect(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: source.id)).to be_valid
+    end
+
+    it "is ignored when blank" do
+      expect(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: "")).to be_valid
+    end
+
+    it "rejects a runbook of another project" do
+      other = build_jira_project(repo_full_name: "org/other", local_directory: local_directory).workflows.create!(kind: :runbook)
+
+      expect(errors_for(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: other.id))[:copy_stages_from_id])
+        .to eq([ "must be a runbook workflow of this project" ])
+    end
+
+    it "rejects a workflow that is not a runbook" do
+      development = build_jira_workflow(jira_project)
+
+      expect(errors_for(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: development.id))[:copy_stages_from_id])
+        .to eq([ "must be a runbook workflow of this project" ])
+    end
+
+    it "is not checked for non-runbook workflows" do
+      workflow = jira_project.workflows.build(jira_ticket: "V-2", branch_name: "v-2", github_reviewer: "o", copy_stages_from_id: 0)
+
+      expect(workflow).to be_valid
+    end
+  end
+end

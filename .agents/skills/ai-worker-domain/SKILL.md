@@ -18,6 +18,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 - `app/models/workflows/runbook_navigator.rb` — runbook state machine: `start!`, `advance!`, next/previous stage. Runbook lifecycle and invariants: `ai-worker-runbooks`.
 - `app/models/workflows/runbook_clone.rb` — the runbook Clone button: same stages, only user-set variables.
 - `app/models/workflows/image_store.rb` — reference images as plain files under `tmp/workflow_images/<id>` (not Active Storage), exposed via `{IMAGES}`.
+- `app/models/workflows/validator.rb` — `Workflows::Validator` (`validates_with` on Workflow): the kind/project-conditional presence rules, PR-review project check, variable-name check and `copy_stages_from_id` check. Spec: `spec/models/workflows/validator_spec.rb`. The `github_pr_url` format check stays in `workflow.rb`.
 - `app/models/workflows/label.rb` — `label` / `brief` / `heading` display text.
 - `app/models/workflows/variables.rb` — runbook variables: `NAME=value` text form and user-typed vs stage-emitted (`input_variables` / `output_variable_names`).
 - `app/models/workflows/stage_outputs.rb` — query object for successful runbook stage outputs (`all`, `latest_for(stage)`; only `stage_completed` runs count). `Variables` stays a pure parser.

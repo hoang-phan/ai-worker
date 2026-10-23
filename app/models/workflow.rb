@@ -47,16 +47,8 @@ class Workflow < ApplicationRecord
     provider
   end
 
-  validates :jira_ticket, presence: true, if: :jira_development?
-  validates :branch_name, presence: true, if: :jira_development?
-  validates :github_reviewer, presence: true, if: :jira_development?
-  validates :task_description, presence: true, if: :personal_development?
-  validates :github_pr_url, presence: true, if: :pr_review?
-  validate :pr_review_needs_github_project, if: :pr_review?
+  validates_with Workflows::Validator
   validates :github_pr_url, format: { with: %r{\Ahttps://github\.com/[^/\s]+/[^/\s]+/pull/\d+\z}, message: "must be a github.com pull request URL" }, allow_blank: true
-
-  validate :variable_names_are_placeholders
-  validate :copy_source_is_a_runbook_of_this_project, if: :runbook?
 
   # Create-time only: id of another runbook workflow of the project whose stages this one starts with.
   attr_accessor :copy_stages_from_id
@@ -179,27 +171,6 @@ class Workflow < ApplicationRecord
 
   def stage_outputs
     Workflows::StageOutputs.new(self).all
-  end
-
-  def copy_source_is_a_runbook_of_this_project
-    errors.add(:copy_stages_from_id, "must be a runbook workflow of this project") if copy_stages_from_id.present? && copy_source.nil?
-  end
-
-  def variable_names_are_placeholders
-    bad = variables.keys.grep_v(Prompts::Renderer::VARIABLE_NAME)
-    errors.add(:variables, "names must be letters, digits or underscores (#{bad.join(', ')})") if bad.any?
-  end
-
-  def jira_development?
-    development? && project&.jira?
-  end
-
-  def personal_development?
-    development? && project&.personal?
-  end
-
-  def pr_review_needs_github_project
-    errors.add(:base, "PR reviews need a Jira (GitHub-backed) project") unless project&.jira?
   end
 
   def purge_images
