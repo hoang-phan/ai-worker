@@ -26,4 +26,4 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 
 ## Design
 
-- Prefer extracting pure logic into small POROs (e.g. `AiCli::Output`, `Prompts::StagePrompt`) and unit-testing them directly, over testing through jobs or subprocesses.
+- Prefer extracting pure logic into small POROs (e.g. `AiCli::Output`, `Prompts::StagePrompt`) and unit-testing them directly, over testing through jobs or subprocesses. For behaviour-preserving extractions, splits, slimming, or moves, follow `ai-worker-refactoring`.

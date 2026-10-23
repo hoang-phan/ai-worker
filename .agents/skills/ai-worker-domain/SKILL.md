@@ -43,7 +43,7 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 
 ## Conventions
 
-- `Workflow`, `Project` and `Stage` keep thin one-line delegators; new behaviour goes into a focused PORO under the matching `app/models/<plural>/` folder (`workflows/`, `projects/`, `stages/`) with its own spec under `spec/models/<plural>/`.
+- `Workflow`, `Project` and `Stage` keep thin one-line delegators; new behaviour goes into a focused PORO under the matching `app/models/<plural>/` folder (`workflows/`, `projects/`, `stages/`) with its own spec under `spec/models/<plural>/`. For behaviour-preserving extractions, splits, slimming, or moves, follow `ai-worker-refactoring`.
 - `status` / `stage_type` / `kind` / `run_mode` / `action` are always closed, enumerable sets (Rails `enum` or the frozen `ACTIONS` array) — never a free-text column. Add new states to the existing enum/array rather than a parallel field. Enum integers are persisted: append, never renumber or reorder. `Stage` and `PromptTemplate` share one `stage_type` mapping, the frozen `Stage::STAGE_TYPES` constant — edit it in one place only.
 - Every migration needs an explicit `null: false, default:` for anything that drives control flow (status, kind, position, `processing`, enable flags). The scheduler polls these columns, so an unexpected `NULL` breaks it silently. Follow recent migrations such as `db/migrate/*_add_uat_testing.rb`. Data-moving migrations should only touch narrowly selected rows.
 - `Workflow#skill_list` is the only place that parses the `skills` text column; if the format changes, update `Prompts::Renderer`'s `{SKILLS}` substitution too (owned by `ai-worker-orchestration`).
