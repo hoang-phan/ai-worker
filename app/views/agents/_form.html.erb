@@ -39,7 +39,7 @@
       <%= f.text_area :instructions, rows: 16, placeholder: "What this agent knows: key files, conventions, gotchas for its area of the project." %>
     </div>
 
-    <% others = project.agents.where.not(id: agent.id).order(:name) %>
+    <% others = agent.delegate_candidates %>
     <% if others.any? %>
       <div class="field">
         <%= f.label :delegate_ids, "May hand work to" %>

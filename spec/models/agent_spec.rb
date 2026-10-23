@@ -91,6 +91,31 @@ RSpec.describe Agent do
     end
   end
 
+  describe "#delegate_candidates" do
+    let(:foreign_project) { build_personal_project }
+    let!(:billing) { build_agent.tap(&:save!) }
+    let!(:zeta) { project.agents.create!(name: "zeta", description: "Last") }
+    let!(:alpha) { project.agents.create!(name: "alpha", description: "First") }
+
+    before { foreign_project.agents.create!(name: "foreign", description: "Elsewhere") }
+
+    it "returns the project's other agents ordered by name" do
+      expect(billing.delegate_candidates).to eq [ alpha, zeta ]
+    end
+
+    it "excludes itself" do
+      expect(billing.delegate_candidates).not_to include(billing)
+    end
+
+    it "excludes agents of other projects" do
+      expect(billing.delegate_candidates.map(&:name)).not_to include("foreign")
+    end
+
+    it "returns every agent of the project for an unsaved agent" do
+      expect(project.agents.new(name: "new-one").delegate_candidates).to eq [ alpha, billing, zeta ]
+    end
+  end
+
   it "is unset on its stages when destroyed" do
     workflow = build_jira_workflow(project, jira_ticket: "AG-1", branch_name: "ag-1", status: :implementing)
     stage = workflow.stages.create!(stage_type: :implementation, name: "implementation")

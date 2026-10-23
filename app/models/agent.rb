@@ -30,6 +30,9 @@ class Agent < ApplicationRecord
     self.allowed_tools = text.to_s.lines.map(&:strip).reject(&:empty?).uniq
   end
 
+  # Agents of the project this one may hand work to (every other one); a new agent's nil id excludes nothing.
+  def delegate_candidates = project.agents.where.not(id: id).order(:name)
+
   private
 
   def delegates_belong_to_project
