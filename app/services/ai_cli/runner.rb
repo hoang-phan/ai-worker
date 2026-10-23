@@ -21,12 +21,6 @@ module AiCli
 
     def self.agent = AgentSetting.current
 
-    def self.agent=(name)
-      AgentSetting.current = name
-    end
-
-    def self.available_agents = AgentSetting.available
-
     def self.start(...) = new.start(...)
 
     # Non-blocking: returns :running, or [:completed, Process::Status-or-nil].

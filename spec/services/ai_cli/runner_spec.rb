@@ -5,18 +5,6 @@ RSpec.describe AiCli::Runner do
 
   after { FileUtils.remove_entry(tmp) }
 
-  describe "agent setting delegation" do
-    it "delegates to AiCli::AgentSetting" do
-      allow(AiCli::AgentSetting).to receive(:current).and_return("codex")
-      allow(AiCli::AgentSetting).to receive(:available).and_return(%w[codex])
-      expect(AiCli::AgentSetting).to receive(:current=).with("codex")
-
-      expect(described_class.agent).to eq("codex")
-      expect(described_class.available_agents).to eq(%w[codex])
-      described_class.agent = "codex"
-    end
-  end
-
   describe ".start" do
     it "forwards every argument to #start" do
       runner = instance_double(described_class)
@@ -132,6 +120,14 @@ RSpec.describe AiCli::Runner do
       allow(described_class).to receive(:agent).and_return("codex")
 
       command = described_class.new.send(:agent_command, tmp, "go", provider: "")
+
+      expect(command.first(2)).to eq(%w[codex exec])
+    end
+
+    it "uses AgentSetting.current when no provider is given" do
+      allow(AiCli::AgentSetting).to receive(:current).and_return("codex")
+
+      command = described_class.new.send(:agent_command, tmp, "go")
 
       expect(command.first(2)).to eq(%w[codex exec])
     end
