@@ -2,9 +2,9 @@ require "rails_helper"
 
 RSpec.describe Projects::WorkflowList do
   let(:project) { build_jira_project }
-  let!(:first) { build_jira_workflow(project, status: :pending) }
-  let!(:middle) { build_jira_workflow(project, status: :reviewing) }
-  let!(:last) { build_jira_workflow(project, status: :pending) }
+  let!(:first) { build_jira_workflow(project, jira_ticket: "TEST-101", status: :pending) }
+  let!(:middle) { build_jira_workflow(project, jira_ticket: "TEST-102", status: :reviewing) }
+  let!(:last) { build_jira_workflow(project, jira_ticket: "TEST-103", status: :pending) }
 
   it "ignores an invalid status" do
     list = described_class.new(project, status: "bogus")
