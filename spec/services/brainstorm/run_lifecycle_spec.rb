@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::RunLifecycle do
-  let(:root) { Pathname.new(Dir.mktmpdir("brainstorm-run-lifecycle-spec")) }
+  let(:root) { Pathname.new(make_tmpdir("brainstorm-run-lifecycle-spec")) }
   let(:dir) { root.join("run") }
   let(:runner) { instance_double(AiCli::Runner.singleton_class) }
   let(:lifecycle) { described_class.new(dir: dir, stale_after: 45.minutes, runner: runner) }
@@ -14,8 +14,6 @@ RSpec.describe Brainstorm::RunLifecycle do
     dir.join("started_at").write(Time.current.to_f)
     allow(runner).to receive(:poll).with(123).and_return([ :completed, nil ])
   end
-
-  after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
   describe "#result_path" do
     it "is the detached run's result file inside the run directory" do

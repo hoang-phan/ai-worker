@@ -3,12 +3,10 @@ require "rails_helper"
 RSpec.describe Brainstorm::Planner do
   subject(:planner) { described_class.new(project, root: root, lifecycle: lifecycle) }
 
-  let(:root) { Pathname.new(Dir.mktmpdir("planner-spec")) }
+  let(:root) { Pathname.new(make_tmpdir("planner-spec")) }
   let(:project) { Project.new(id: 987_654, name: "Spec project", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
   let(:dir) { root.join("987654") }
   let(:lifecycle) { instance_double(Brainstorm::RunLifecycle, running?: false, last_started_at: nil, start: true, poll: nil, result_path: dir.join("result.json")) }
-
-  after { FileUtils.remove_entry(root) if root.to_s.start_with?(Dir.tmpdir) }
 
   describe ".model" do
     it "defaults brainstorms to gpt-6-sol when BRAINSTORM_MODEL is unset" do

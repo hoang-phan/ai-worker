@@ -2,20 +2,14 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::UatPhase do
-  let(:directories) { [] }
   let(:executed) { [] }
   let(:max) { 3 }
   let(:logger) { instance_double(Logger, error: nil) }
   let(:execute) { ->(workflow) { executed << workflow.id } }
   let(:phase) { described_class.new(execute: execute, logger: logger, max_capacity: max) }
 
-  after do
-    directories.each { |d| FileUtils.remove_entry(d) if d.start_with?(Dir.tmpdir) && File.exist?(d) }
-  end
-
   def workflow(status:, position: 1, **attrs)
-    directory = Dir.mktmpdir("uat-phase-spec")
-    directories << directory
+    directory = make_tmpdir("uat-phase-spec")
     project = build_jira_project(local_directory: directory)
     build_jira_workflow(project, status: status, kind: :development, position: position, **attrs)
   end

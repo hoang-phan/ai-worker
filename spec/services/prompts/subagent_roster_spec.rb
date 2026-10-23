@@ -1,10 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Prompts::SubagentRoster do
-  let(:directory) { Dir.mktmpdir("subagent-roster-spec") }
+  let_tmpdir(:directory, "subagent-roster-spec")
   let(:agents_dir) { File.join(directory, ".claude", "agents") }
-
-  after { FileUtils.remove_entry(directory) }
 
   def write_agent(file, content)
     FileUtils.mkdir_p(agents_dir)

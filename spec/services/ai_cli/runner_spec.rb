@@ -1,9 +1,7 @@
 require "rails_helper"
 
 RSpec.describe AiCli::Runner do
-  let(:tmp) { Dir.mktmpdir("runner") }
-
-  after { FileUtils.remove_entry(tmp) }
+  let_tmpdir(:tmp, "runner")
 
   describe ".start" do
     it "forwards every argument to #start" do

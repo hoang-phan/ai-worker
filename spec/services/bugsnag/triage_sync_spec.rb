@@ -1,15 +1,13 @@
 require "rails_helper"
 
 RSpec.describe Bugsnag::TriageSync do
-  let(:dir) { Dir.mktmpdir("triage-sync-spec") }
+  let_tmpdir(:dir, "triage-sync-spec")
   let(:project) do
     build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net")
   end
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB") }
   let(:triager) { instance_double(Bugsnag::Triager) }
   let(:sync) { described_class.new(bugsnag_sync, triager: triager) }
-
-  after { FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir) }
 
   describe "#triager" do
     it "returns the injected triager" do

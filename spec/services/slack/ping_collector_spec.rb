@@ -1,14 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Slack::PingCollector do
-  let(:root) { Pathname(Dir.mktmpdir) }
+  let(:root) { Pathname(make_tmpdir("ping-collector-spec")) }
   let(:poller) { double("poller", call: [ :completed, nil ]) }
   let(:collector) { described_class.new(root: root, poller: poller) }
   let(:workflow) { instance_double(Workflow, id: 7, slack_review_thread_ts: nil) }
   let(:workflow_dir) { root.join("7") }
   let(:link) { "https://ws.slack.com/archives/C123/p1760000000123456" }
-
-  after { FileUtils.rm_rf(root) }
 
   def ping(started_at: Time.current.to_i, pid: 42, log: nil)
     path = workflow_dir.join(started_at.to_s)

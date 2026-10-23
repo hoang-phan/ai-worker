@@ -69,7 +69,7 @@ RSpec.describe Brainstorm::ProposalNormalizer do
   end
 
   describe "malformed result.json as surfaced by AiCli::DetachedRun" do
-    let(:dir) { Pathname(Dir.mktmpdir) }
+    let(:dir) { Pathname(make_tmpdir("proposal-normalizer-spec")) }
     let(:run) do
       AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: 1.hour, error_class: Brainstorm::FetchError)
     end
@@ -78,8 +78,6 @@ RSpec.describe Brainstorm::ProposalNormalizer do
       dir.join("pid").write("123")
       allow(AiCli::Runner).to receive(:poll).and_return(:done)
     end
-
-    after { FileUtils.remove_entry(dir) }
 
     it "raises FetchError for invalid JSON before the normalizer runs" do
       dir.join("result.json").write("[{not json")

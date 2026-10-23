@@ -2,7 +2,6 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::PostMergePhase do
-  let(:directories) { [] }
   let(:executed) { [] }
   let(:merged_urls) { [] }
   let(:failing_pr_urls) { [] }
@@ -21,13 +20,8 @@ RSpec.describe Scheduling::PostMergePhase do
   let(:github_factory) { ->(_project) { github } }
   let(:phase) { described_class.new(execute: execute, github_factory: github_factory, logger: logger) }
 
-  after do
-    directories.each { |d| FileUtils.remove_entry(d) if d.start_with?(Dir.tmpdir) && File.exist?(d) }
-  end
-
   def project(kind: :jira)
-    directory = Dir.mktmpdir("post-merge-phase-spec")
-    directories << directory
+    directory = make_tmpdir("post-merge-phase-spec")
     kind == :jira ? build_jira_project(local_directory: directory) : build_personal_project(local_directory: directory)
   end
 

@@ -23,7 +23,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 - Never invoke real `claude`, `gh`, or `git` against the network. Stub `Open3.capture3`, `Process.spawn`, `AiCli::Runner.start` / `.poll`.
 - Services that spawn agents (`AiCli::DetachedRun`, `Brainstorm::RunLifecycle`) take an injectable `runner:`; pass a fake/`instance_double` instead of stubbing `AiCli::Runner` globally (spec recipes for `spec/services/ai_cli/**` and `spec/services/ci/**`: `ai-worker-agent-cli`).
 - Build records with `RecordHelper` (`build_jira_project`, `build_personal_project`, `build_jira_workflow(project, ...)`, `build_task_workflow(project, ...)`); pass only the attributes the spec cares about. `CiLoopHelper` builds on it.
-- For `Git::BranchService`, use `GitRepoHelper`'s bare-origin fixtures (`build_git_fixture`, `build_other_clone`) under `Dir.mktmpdir`, and remove only that tmpdir afterwards.
+- For `Git::BranchService`, use `GitRepoHelper`'s bare-origin fixtures (`build_git_fixture`, `build_other_clone`) under a `let_tmpdir`/`make_tmpdir` directory.
 
 ## Design
 

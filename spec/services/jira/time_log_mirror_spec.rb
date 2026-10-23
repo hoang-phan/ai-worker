@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Jira::TimeLogMirror do
-  let(:dir) { Dir.mktmpdir("time-log-mirror-spec") }
+  let_tmpdir(:dir, "time-log-mirror-spec")
   let(:project) do
     build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net")
   end
@@ -19,8 +19,6 @@ RSpec.describe Jira::TimeLogMirror do
   def create_log(key, id, seconds, workflow: nil)
     TimeLog.create!(workflow: workflow, ticket_key: key, jira_worklog_id: id, started_at: started, seconds: seconds)
   end
-
-  after { FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir) }
 
   it "creates rows for new worklogs, attached to the workflow" do
     workflow = workflow_for("MIR-1")

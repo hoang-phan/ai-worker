@@ -3,13 +3,11 @@ require "rails_helper"
 RSpec.describe Github::Writer do
   subject(:writer) { described_class.new(project) }
 
-  let(:local_directory) { Dir.mktmpdir("github-writer-spec") }
+  let_tmpdir(:local_directory, "github-writer-spec")
   let(:project) { Project.new(name: "Github writer spec", kind: :personal, local_directory: local_directory, repo_full_name: "acme/widgets") }
   let(:ok) { instance_double(Process::Status, success?: true) }
   let(:failed) { instance_double(Process::Status, success?: false) }
   let(:pr_url) { "https://github.com/acme/widgets/pull/42" }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   describe "#request_review!" do
     it "posts reviewers[]= args to the PR's endpoint without -R" do

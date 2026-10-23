@@ -2,15 +2,13 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe AiCli::BrowserTestRun do
-  let(:root) { Pathname(Dir.mktmpdir) }
+  let(:root) { Pathname(make_tmpdir("browser-test-run-spec")) }
   let(:project) do
     Project.new(name: "Acme", uat_url: "https://uat.test", uat_username: "u", uat_password: "p",
                 local_url: "http://localhost:3000", local_username: "lu", local_password: "lp",
                 jira_base_url: "https://acme.atlassian.net")
   end
   let(:workflow) { Workflow.new.tap { |w| w.id = 42 } }
-
-  after { FileUtils.remove_entry(root) }
 
   def run_for(kind) = described_class.new(project, workflow, kind: kind, root: root)
 

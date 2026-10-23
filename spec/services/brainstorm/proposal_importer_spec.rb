@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::ProposalImporter do
-  let(:local_directory) { Dir.mktmpdir("importer-spec") }
+  let_tmpdir(:local_directory, "importer-spec")
   let(:suffix) { SecureRandom.hex(4) }
   let(:project) do
     build_personal_project(local_directory: local_directory,
@@ -9,8 +9,6 @@ RSpec.describe Brainstorm::ProposalImporter do
   end
   let(:in_flight) { project.workflows.development.where(status: :implementing) }
   let(:importer) { described_class.new(project, in_flight: in_flight) }
-
-  after { FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory) }
 
   def proposal(summary, task = "Do it")
     { "summary" => summary, "task" => task }

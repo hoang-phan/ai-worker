@@ -2,7 +2,6 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::ActiveWorkflowRunner do
-  let(:directories) { [] }
   let(:calls) { [] }
   let(:starting_ids) { [] }
   let(:failing_ids) { [] }
@@ -18,13 +17,8 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
   end
   let(:runner) { described_class.new(executor: executor, logger: logger, max_capacity: max) }
 
-  after do
-    directories.each { |d| FileUtils.remove_entry(d) if d.start_with?(Dir.tmpdir) && File.exist?(d) }
-  end
-
   def project(directory: nil, kind: :personal)
-    directory ||= Dir.mktmpdir("active-workflow-runner-spec")
-    directories << directory unless directories.include?(directory)
+    directory ||= make_tmpdir("active-workflow-runner-spec")
     kind == :jira ? build_jira_project(local_directory: directory) : build_personal_project(local_directory: directory)
   end
 
@@ -59,7 +53,7 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
   end
 
   it "starts only one waiting workflow per shared clone" do
-    dir = Dir.mktmpdir("active-workflow-runner-clone")
+    dir = make_tmpdir("active-workflow-runner-clone")
     first = workflow(project: project(directory: dir), position: 1)
     workflow(project: project(directory: "#{dir}/./"), position: 2)
     starting_ids << first.id

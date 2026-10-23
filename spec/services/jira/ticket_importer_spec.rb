@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Jira::TicketImporter do
-  let(:dir) { Dir.mktmpdir("ticket-importer-spec") }
+  let_tmpdir(:dir, "ticket-importer-spec")
   let(:project) do
     build_jira_project(local_directory: dir, jira_base_url: "https://acme.atlassian.net", jira_assignee: "me@example.com",
                     default_reviewers: "alice,bob", default_skills: "rails,testing")
@@ -10,7 +10,6 @@ RSpec.describe Jira::TicketImporter do
 
   after do
     project.destroy
-    FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir)
   end
 
   def import(issues)

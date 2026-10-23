@@ -2,11 +2,7 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::Capacity do
-  let(:dirs) { [ Dir.mktmpdir, Dir.mktmpdir, Dir.mktmpdir ] }
-
-  after do
-    dirs.each { |dir| FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir) }
-  end
+  let(:dirs) { [ make_tmpdir("capacity-spec"), make_tmpdir("capacity-spec"), make_tmpdir("capacity-spec") ] }
 
   def workflow_for(dir)
     Workflow.new(project: Project.new(local_directory: dir))

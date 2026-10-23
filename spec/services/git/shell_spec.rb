@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Git::Shell do
   include GitRepoHelper
 
-  let(:root) { Dir.mktmpdir("git_shell_spec") }
+  let_tmpdir(:root, "git_shell_spec")
   let(:fixture) { build_git_fixture(root) }
   let(:origin) { fixture[0] }
   let(:clone) { fixture[1] }
@@ -13,8 +13,6 @@ RSpec.describe Git::Shell do
     expect(clone).to start_with(File.realpath(Dir.tmpdir)).or start_with(Dir.tmpdir)
     clone
   end
-
-  after { FileUtils.remove_entry(root) }
 
   describe "#run" do
     it "returns stdout, stderr and status without raising" do

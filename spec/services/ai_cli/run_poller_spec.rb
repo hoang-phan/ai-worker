@@ -2,12 +2,10 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe AiCli::RunPoller do
-  let(:dir) { Dir.mktmpdir }
+  let_tmpdir(:dir, "run-poller-spec")
   let(:log_path) { File.join(dir, "run.log") }
   let(:started_at) { 1.minute.ago }
   let(:log_text) { "some output\n" }
-
-  after { FileUtils.remove_entry(dir) }
 
   before do
     File.write(log_path, log_text)

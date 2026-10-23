@@ -2,17 +2,8 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::WorkflowQueries do
-  let(:directories) { [] }
-
-  after do
-    directories.each do |directory|
-      FileUtils.remove_entry(directory) if directory.start_with?(Dir.tmpdir) && File.exist?(directory)
-    end
-  end
-
   def project
-    directory = Dir.mktmpdir("workflow-queries-spec")
-    directories << directory
+    directory = make_tmpdir("workflow-queries-spec")
     build_personal_project(local_directory: directory)
   end
 

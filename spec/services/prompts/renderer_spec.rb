@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Prompts::Renderer do
-  let(:local_directory) { Dir.mktmpdir("renderer-spec") }
+  let_tmpdir(:local_directory, "renderer-spec")
   let(:project) do
     build_personal_project(
       local_directory: local_directory,
@@ -23,7 +23,6 @@ RSpec.describe Prompts::Renderer do
   after do
     workflow.destroy
     project.destroy
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   describe "BUILT_IN_TOKENS" do

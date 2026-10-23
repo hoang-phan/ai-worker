@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Prompts::WorkflowPlaceholders do
-  let(:local_directory) { Dir.mktmpdir("workflow-placeholders-spec") }
+  let_tmpdir(:local_directory, "workflow-placeholders-spec")
   let(:project) do
     build_personal_project(local_directory: local_directory)
   end
@@ -17,7 +17,6 @@ RSpec.describe Prompts::WorkflowPlaceholders do
   after do
     workflow.destroy
     project.destroy
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   it "lists every token it substitutes in TOKENS" do

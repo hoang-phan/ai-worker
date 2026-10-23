@@ -1,14 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::RunOutcome do
-  let(:tmpdir) { Pathname(Dir.mktmpdir("run-outcome-spec")) }
+  let(:tmpdir) { Pathname(make_tmpdir("run-outcome-spec")) }
   let(:log_path) { tmpdir.join("agent.log") }
   let(:retried) { false }
   let(:aborted) { '{"type":"result","subtype":"error_during_execution","terminal_reason":"aborted_streaming"}' }
 
   subject(:outcome) { described_class.new(log_path: log_path, retried: retried) }
-
-  after { FileUtils.remove_entry(tmpdir) }
 
   context "without a log file" do
     it "has no event, does not retry and says so" do

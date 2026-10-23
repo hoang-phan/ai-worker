@@ -2,14 +2,12 @@ require "rails_helper"
 
 RSpec.describe AiCli::DetachedRun do
   let(:error_class) { Class.new(StandardError) }
-  let(:tmp) { Dir.mktmpdir("detached_run") }
+  let_tmpdir(:tmp, "detached_run")
   let(:dir) { Pathname(tmp).join("run") }
   let(:runner) { instance_double(AiCli::Runner.singleton_class, start: 4242, poll: :running) }
   let(:run) do
     described_class.new(dir: dir, result_name: "result.json", stale_after: 15.minutes, error_class: error_class, runner: runner)
   end
-
-  after { FileUtils.remove_entry(tmp) }
 
   def start_run
     run.start(cwd: tmp, prompt: "go")

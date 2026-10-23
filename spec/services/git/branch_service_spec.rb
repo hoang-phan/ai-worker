@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Git::BranchService do
   include GitRepoHelper
 
-  let(:root) { Dir.mktmpdir("branch_service_spec") }
+  let_tmpdir(:root, "branch_service_spec")
   let(:fixture) { build_git_fixture(root) }
   let(:origin) { fixture[0] }
   let(:clone) { fixture[1] }
@@ -14,8 +14,6 @@ RSpec.describe Git::BranchService do
     expect(clone).to start_with(File.realpath(Dir.tmpdir)).or start_with(Dir.tmpdir)
     clone
   end
-
-  after { FileUtils.remove_entry(root) }
 
   def current_branch = git(clone, "rev-parse", "--abbrev-ref", "HEAD").strip
 

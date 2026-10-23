@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Jira::HoursSync do
-  let(:dir) { Dir.mktmpdir("hours-sync-spec") }
+  let_tmpdir(:dir, "hours-sync-spec")
   let(:base_url) { "https://acme.atlassian.net" }
   let!(:project) do
     build_jira_project(local_directory: dir, jira_base_url: base_url)
@@ -16,8 +16,6 @@ RSpec.describe Jira::HoursSync do
   def worklog(id, seconds, started: Time.zone.parse("2026-10-19 09:00"))
     { id: id, started: started, seconds: seconds }
   end
-
-  after { FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir) }
 
   describe "#call" do
     it "mirrors each ticket's worklogs, linking them to the workflow, and stamps the sync time" do

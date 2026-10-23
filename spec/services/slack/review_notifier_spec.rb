@@ -2,13 +2,11 @@ require "rails_helper"
 
 RSpec.describe Slack::ReviewNotifier do
   let(:project) { instance_double(Project, slack_review_channel: "C123", slack_user_id_for: nil) }
-  let(:tmp_root) { Pathname(Dir.mktmpdir("slack_pings_spec")) }
+  let(:tmp_root) { Pathname(make_tmpdir("slack_pings_spec")) }
   let(:runner) { double("runner", start: 42, poll: nil) }
   let(:notifier) { described_class.new(project, runner: runner, root: tmp_root) }
   let(:workflow) { instance_double(Workflow, id: 987_654_321, slack_review_thread_ts: nil) }
   let(:dir) { tmp_root.join(workflow.id.to_s) }
-
-  after { FileUtils.remove_entry(tmp_root) if tmp_root.exist? }
 
   describe "#message" do
     it "delegates to Slack::ReviewMessage with the project's Slack id lookup" do

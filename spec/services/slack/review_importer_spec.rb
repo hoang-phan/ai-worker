@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Slack::ReviewImporter do
-  let(:dir) { Dir.mktmpdir("review-importer-spec") }
+  let_tmpdir(:dir, "review-importer-spec")
   let(:project) do
     build_jira_project(local_directory: dir, slack_mention: "@reviewer")
   end
@@ -14,7 +14,6 @@ RSpec.describe Slack::ReviewImporter do
 
   after do
     project.destroy
-    FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir)
   end
 
   def stub_pr(url, state: "OPEN", author: "someone")

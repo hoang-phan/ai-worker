@@ -35,9 +35,8 @@ RSpec.describe Scheduling::Planner do
   end
 
   describe ".eligible_waiting" do
-    let(:dir) { Dir.mktmpdir }
+    let_tmpdir(:dir, "planner-spec")
     let(:proj) { project(dir) }
-    after { FileUtils.remove_entry(dir) }
 
     def eligible(active, waiting, run_workflow_id: nil)
       described_class.eligible_waiting(active_workflows: active, waiting: waiting, run_workflow_id: run_workflow_id)
@@ -50,12 +49,10 @@ RSpec.describe Scheduling::Planner do
     end
 
     it "lets the head of each clone start" do
-      other = Dir.mktmpdir
+      other = make_tmpdir("planner-spec")
       a = workflow(1, proj)
       b = workflow(2, project(other))
       expect(eligible([ a, b ], [ a, b ])).to eq([ a, b ])
-    ensure
-      FileUtils.remove_entry(other)
     end
 
     it "keeps a PR-review workflow eligible while a development head on the clone waits on review" do

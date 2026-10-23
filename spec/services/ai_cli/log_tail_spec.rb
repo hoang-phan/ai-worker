@@ -2,11 +2,9 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe AiCli::LogTail do
-  let(:dir) { Dir.mktmpdir }
+  let_tmpdir(:dir, "log-tail-spec")
   let(:log_path) { File.join(dir, "run.log") }
   let(:tail) { described_class.new(log_path: log_path, log_tag: "workflow=1 stage=2") }
-
-  after { FileUtils.remove_entry(dir) }
 
   describe "#read_from" do
     it "returns empty content and the same offset when the file is missing" do

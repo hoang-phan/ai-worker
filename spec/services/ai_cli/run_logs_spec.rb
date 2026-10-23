@@ -1,9 +1,7 @@
 require "rails_helper"
 
 RSpec.describe AiCli::RunLogs do
-  let(:dir) { Dir.mktmpdir("run-logs-spec") }
-
-  after { FileUtils.remove_entry(dir) }
+  let_tmpdir(:dir, "run-logs-spec")
 
   describe ".new_path" do
     it "builds workflow-<id>-<unix>.log under the dir" do
