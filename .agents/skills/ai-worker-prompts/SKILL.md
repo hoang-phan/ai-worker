@@ -57,6 +57,6 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
 - `spec/services/prompts/renderer_spec.rb` — built-ins, `BUILT_IN_TOKENS` drift guard, custom variables, no re-expansion.
 - `spec/services/prompts/project_placeholders_spec.rb` — project tokens.
 - `spec/services/prompts/defaults_spec.rb` — a new or edited default body (placeholders, marker, digest).
-- `spec/services/prompts/stage_prompt_spec.rb` — precedence, section wiring and append order, agent-brief wiring, `slack_message`; section wording is tested per section. `spec/services/prompts/ci_loop_prompt_spec.rb` covers the ci_loop prompts.
+- `spec/services/prompts/stage_prompt_spec.rb` — precedence, section wiring and append order, agent-brief wiring, `slack_message`; section wording is tested per section. `spec/services/prompts/stage_prompt/ci_loop_spec.rb` covers the ci_loop prompts.
 - `spec/services/prompts/stage_sections/<snake_name>_spec.rb` — one spec per section: guards and text.
 - `spec/models/prompt_template_spec.rb` — model validations.
