@@ -1,12 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Stage, type: :model do
-  let(:local_directory) { Dir.mktmpdir("stage-spec") }
+  let_tmpdir(:local_directory, "stage-spec")
   let(:project) { Project.create!(name: "Stage spec project", kind: :jira, repo_full_name: "org/repo", local_directory: local_directory) }
   let(:workflow) { project.workflows.create!(jira_ticket: "STG-1", branch_name: "stg-1", github_reviewer: "someone", status: :pending) }
   let(:stage) { workflow.stages.create!(stage_type: :pr_check) }
-
-  after { FileUtils.remove_entry(local_directory) if File.exist?(local_directory) }
 
   describe "#removable?" do
     let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
@@ -83,15 +81,13 @@ RSpec.describe Stage, type: :model do
     end
 
     it "rejects an agent of another project" do
-      other_directory = Dir.mktmpdir("stage-spec-other")
+      other_directory = make_tmpdir("stage-spec-other")
       other = Project.create!(name: "Other stage project", kind: :personal, local_directory: other_directory)
       agent = other.agents.create!(name: "billing", description: "Billing")
       stage = workflow.stages.new(stage_type: :task, agent: agent)
 
       expect(stage).not_to be_valid
       expect(stage.errors[:agent]).to be_present
-    ensure
-      FileUtils.remove_entry(other_directory) if other_directory&.start_with?(Dir.tmpdir) && File.exist?(other_directory)
     end
   end
 end

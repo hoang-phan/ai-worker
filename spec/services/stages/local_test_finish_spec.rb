@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::LocalTestFinish, type: :service do
-  let(:local_directory) { Dir.mktmpdir("local-test-finish-spec") }
+  let_tmpdir(:local_directory, "local-test-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "local-test-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing,
@@ -16,10 +16,6 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
   end
 
   def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   it "moves to reviewing, enables auto-merge on PASSED and notifies reviewers" do
     finish("LOCAL_TEST_RESULT: PASSED")

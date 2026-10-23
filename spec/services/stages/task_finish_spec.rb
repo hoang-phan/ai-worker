@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::TaskFinish, type: :service do
-  let(:local_directory) { Dir.mktmpdir("task-finish-spec") }
+  let_tmpdir(:local_directory, "task-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing,
@@ -16,10 +16,6 @@ RSpec.describe Stages::TaskFinish, type: :service do
   end
 
   def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   it "resets AI-run state, marks the workflow done and logs task_completed and task_pushed" do
     finish

@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::StartHandler, type: :service do
-  let(:local_directory) { Dir.mktmpdir("start-handler-spec") }
+  let_tmpdir(:local_directory, "start-handler-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
@@ -22,10 +22,6 @@ RSpec.describe Stages::StartHandler, type: :service do
   end
 
   def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   def expect_run_started(prompt_text = "the prompt", **options)
     expect(launcher).to have_received(:call).with(prompt_text, **options)

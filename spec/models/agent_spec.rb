@@ -1,15 +1,10 @@
 require "rails_helper"
 
 RSpec.describe Agent do
-  let(:local_directory) { Dir.mktmpdir("agent-spec") }
+  let_tmpdir(:local_directory, "agent-spec")
+  let_tmpdir(:other_local_directory, "agent-spec-other")
   let(:project) { build_jira_project(local_directory: local_directory) }
-  let(:other_project) { Project.create!(name: "Other agent project", kind: :personal, local_directory: Dir.mktmpdir("agent-spec-other")) }
-
-  after do
-    [ local_directory, other_project.local_directory ].each do |dir|
-      FileUtils.remove_entry(dir) if dir.start_with?(Dir.tmpdir) && File.exist?(dir)
-    end
-  end
+  let(:other_project) { Project.create!(name: "Other agent project", kind: :personal, local_directory: other_local_directory) }
 
   def build_agent(**attributes)
     project.agents.new({ name: "billing", description: "Knows billing" }.merge(attributes))

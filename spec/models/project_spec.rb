@@ -35,12 +35,10 @@ RSpec.describe Project, type: :model do
     end
 
     context "when local_directory is a symlink to the running app's root" do
-      let(:link_parent) { Dir.mktmpdir("project-spec-link") }
+      let_tmpdir(:link_parent, "project-spec-link")
       let(:local_directory) { File.join(link_parent, "checkout") }
 
       before { File.symlink(Rails.root.to_s, local_directory) }
-
-      after { FileUtils.remove_entry(link_parent) }
 
       it { is_expected.to be_runs_from_live_checkout }
     end

@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::ReviewHandoff, type: :service do
-  let(:local_directory) { Dir.mktmpdir("review-handoff-spec") }
+  let_tmpdir(:local_directory, "review-handoff-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "review-handoff",
@@ -15,10 +15,6 @@ RSpec.describe Stages::ReviewHandoff, type: :service do
   let(:github) { instance_double(Github::Client) }
 
   subject(:handoff) { described_class.new(workflow, stage, notifier: notifier, github: github) }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   describe "#notify_reviewers!" do
     it "does nothing when Slack notifications are disabled" do

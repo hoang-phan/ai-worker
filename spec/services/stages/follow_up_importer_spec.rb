@@ -1,13 +1,9 @@
 require "rails_helper"
 
 RSpec.describe Stages::FollowUpImporter, type: :service do
-  let(:local_directory) { Dir.mktmpdir("follow-up-importer-spec") }
+  let_tmpdir(:local_directory, "follow-up-importer-spec")
   let(:project) { build_personal_project(local_directory: local_directory, default_skills: "ruby") }
   let!(:current) { build_task_workflow(project, status: :implementing) }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   def proposals(*summaries) = summaries.map { |summary| { "summary" => summary, "task" => "Task for #{summary}" } }
 

@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::FailureHandler, type: :service do
-  let(:local_directory) { Dir.mktmpdir("failure-handler-spec") }
+  let_tmpdir(:local_directory, "failure-handler-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "FAIL-1", branch_name: "failure-handler", status: :implementing,
@@ -17,10 +17,6 @@ RSpec.describe Stages::FailureHandler, type: :service do
   end
 
   before { allow(Git::BranchService).to receive(:abort_merge!) }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   it "clears the AI-run fields, stops auto-run and logs the failure" do
     handle

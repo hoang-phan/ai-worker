@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe StageExecutor, type: :service do
-  let(:local_directory) { Dir.mktmpdir("stage-executor-spec") }
+  let_tmpdir(:local_directory, "stage-executor-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "EXEC-1", branch_name: "executor", status: :implementing, processing: true,
@@ -9,10 +9,6 @@ RSpec.describe StageExecutor, type: :service do
   end
   let(:stage) { workflow.stages.create!(stage_type: :task) }
   let(:handler) { instance_double(Stages::CompletionHandler, call: nil) }
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
-  end
 
   it "hands a finished run's output to the completion handler" do
     poller = instance_double(AiCli::RunPoller, call: [ :finished, "all done" ], log_offset: 0)

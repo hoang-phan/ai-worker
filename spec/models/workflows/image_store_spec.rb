@@ -6,10 +6,8 @@ RSpec.describe Workflows::ImageStore do
     def read = data
   end
 
-  let(:root) { Pathname(Dir.mktmpdir("image_store_spec")) }
+  let(:root) { Pathname(make_tmpdir("image_store_spec")) }
   let(:store) { described_class.new(root: root, workflow_id: 42) }
-
-  after { FileUtils.rm_rf(root) }
 
   describe "#add" do
     it "saves images and returns the count" do

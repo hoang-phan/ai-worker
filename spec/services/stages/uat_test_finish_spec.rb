@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::UatTestFinish, type: :service do
-  let(:local_directory) { Dir.mktmpdir("uat-test-finish-spec") }
+  let_tmpdir(:local_directory, "uat-test-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, processing: true, ai_pid: 123,
@@ -18,10 +18,6 @@ RSpec.describe Stages::UatTestFinish, type: :service do
   def expect_ai_run_reset
     expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil,
                                                 ai_started_at: nil, ai_log_offset: 0)
-  end
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   %w[PASSED FAILED BLOCKED].each do |verdict|

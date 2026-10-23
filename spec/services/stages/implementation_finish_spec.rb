@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::ImplementationFinish, type: :service do
-  let(:local_directory) { Dir.mktmpdir("implementation-finish-spec") }
+  let_tmpdir(:local_directory, "implementation-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "implementation-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing,
@@ -15,10 +15,6 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
 
   def finish(out = output)
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(out)
-  end
-
-  after do
-    FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   it "discovers the PR, clears the AI run, starts review, and hands off" do

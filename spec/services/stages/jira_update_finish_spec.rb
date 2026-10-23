@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::JiraUpdateFinish, type: :service do
-  let(:local_directory) { Dir.mktmpdir("jira-update-finish-spec") }
+  let_tmpdir(:local_directory, "jira-update-finish-spec")
   let(:project_attributes) { {} }
   let(:project) { build_jira_project(**{ local_directory: local_directory }.merge(project_attributes)) }
   let(:workflow) do
@@ -19,10 +19,6 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
   def expect_ai_run_reset
     expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil,
                                                 ai_started_at: nil, ai_log_offset: 0)
-  end
-
-  after do
-  FileUtils.remove_entry(local_directory) if local_directory.start_with?(Dir.tmpdir) && File.exist?(local_directory)
   end
 
   let(:uat_attributes) { { uat_test_enabled: true, uat_url: "https://uat.example.com", uat_test_delay_minutes: 30 } }
