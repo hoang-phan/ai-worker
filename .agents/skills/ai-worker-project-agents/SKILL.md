@@ -17,7 +17,7 @@ Scope: `app/models/{agent,agent_delegation,stage}.rb`, `app/controllers/agents_c
 
 ## UI and assignment
 
-- `AgentsController` is project-scoped CRUD only: new/create/edit/update/destroy. Success redirects to the project with a notice; invalid create/update re-renders with 422. `set_agent` scopes lookups through `@project.agents`.
+- `AgentsController` includes `ProjectScoped` then `ProjectChildCrud`, configuring `:agents` and the "Agent" flash label. It remains project-scoped CRUD only: success redirects to the project with a notice; invalid create/update re-renders with 422; the concern scopes lookups through `@project.agents`.
 - `agent_params` permits name, description, instructions, model, effort, provider, `allowed_tools_text`, and `delegate_ids`; it filters delegates through `@project.agents`, so forged foreign IDs cannot be linked.
 - `agents/_form` exposes identity/brief, optional model/effort/provider, line-based allowed tools, instructions, and other same-project agents as delegation checkboxes. Provider choices come from `AiCli::Providers.names` and the blank label states the current `AiCli::AgentSetting`.
 - `projects/_agents` lists agents with CLI/model/effort and delegate names, plus project-scoped CRUD links. `stages/form/_prompt_fields` shows the agent select only when the project has agents; a blank assignment means no project agent.
