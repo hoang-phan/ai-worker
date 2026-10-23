@@ -40,6 +40,21 @@ RSpec.describe Jira::TicketRef do
     end
   end
 
+  describe "KEY / .key?" do
+    it "accepts exactly one valid key" do
+      expect(described_class.key?("UIUX-3456")).to be(true)
+      expect("UIUX-3456").to match(described_class::KEY)
+    end
+
+    it "rejects lowercase keys, a missing number and surrounding text" do
+      expect(described_class.key?("uiux-3456")).to be(false)
+      expect(described_class.key?("UIUX-")).to be(false)
+      expect(described_class.key?("see UIUX-3456")).to be(false)
+      expect(described_class.key?("UIUX-3456\nfoo")).to be(false)
+      expect(described_class.key?(nil)).to be(false)
+    end
+  end
+
   describe ".url_for" do
     it "builds a browse URL with or without a trailing slash on the base" do
       expect(described_class.url_for("https://x.atlassian.net", "ABC-1")).to eq("https://x.atlassian.net/browse/ABC-1")

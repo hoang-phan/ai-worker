@@ -2,6 +2,7 @@ module Jira
   # Pure helpers for turning a Jira ticket URL / key into the pieces the app needs.
   module TicketRef
     KEY_PATTERN = /[A-Z][A-Z0-9]+-\d+/
+    KEY = /\A#{KEY_PATTERN}\z/
 
     module_function
 
@@ -13,6 +14,11 @@ module Jira
     # Ticket key ("UIUX-3456") for a stored jira_ticket (URL or bare key); nil when none is found.
     def key_for(jira_ticket)
       branch_name_for(jira_ticket).to_s[KEY_PATTERN]
+    end
+
+    # True when text is exactly one ticket key (no surrounding text).
+    def key?(text)
+      text.to_s.match?(KEY)
     end
 
     def url_for(base_url, key)

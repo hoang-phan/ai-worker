@@ -2,10 +2,9 @@ module Bugsnag
   # Pure: validates the parsed rows of the triage agent's result.json.
   #
   # Input: the Array DetachedRun yields (any elements). Output: an Array of { "bugsnag_id", "jira_key" } string
-  # hashes, both stripped. Non-Hash rows and rows whose id or key doesn't match ID/KEY are dropped.
+  # hashes, both stripped. Non-Hash rows and rows whose id doesn't match ID or key isn't a Jira key are dropped.
   class TriageRows
     ID = /\A[\w-]{6,64}\z/
-    KEY = /\A[A-Z][A-Z0-9]+-\d+\z/
 
     def self.call(rows)
       new(rows).call
@@ -21,7 +20,7 @@ module Bugsnag
 
         id = row["bugsnag_id"].to_s.strip
         key = row["jira_key"].to_s.strip
-        { "bugsnag_id" => id, "jira_key" => key } if id.match?(ID) && key.match?(KEY)
+        { "bugsnag_id" => id, "jira_key" => key } if id.match?(ID) && Jira::TicketRef.key?(key)
       end
     end
 
