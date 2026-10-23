@@ -13,6 +13,15 @@ class Workflow < ApplicationRecord
   # paused for a person (Next) after each.
   enum :kind, { development: 0, pr_review: 1, runbook: 2 }
 
+  # Development workflows not started yet. Brainstorming only adds more once none are left; every other status is
+  # irrelevant to it (implementing ones are shown to the agent so it doesn't repeat them, done ones are in the code).
+  QUEUED_STATUSES = %w[pending].freeze
+  SUMMARY_LENGTH = 100
+  # Columns cleared when an agent run finishes or fails; merge into the workflow's next update!.
+  AI_RUN_RESET = { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, ai_provider: nil }.freeze
+
+  scope :queued, -> { development.where(status: QUEUED_STATUSES) }
+
   def jira_key
     Jira::TicketRef.key_for(jira_ticket)
   end
@@ -28,13 +37,6 @@ class Workflow < ApplicationRecord
     super(text[%r{/p(\d{10})(\d{6})}] ? "#{$1}.#{$2}" : text.presence)
   end
 
-  # Development workflows not started yet. Brainstorming only adds more once none are left; every other status is
-  # irrelevant to it (implementing ones are shown to the agent so it doesn't repeat them, done ones are in the code).
-  QUEUED_STATUSES = %w[pending].freeze
-  SUMMARY_LENGTH = 100
-  # Columns cleared when an agent run finishes or fails; merge into the workflow's next update!.
-  AI_RUN_RESET = { processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, ai_provider: nil }.freeze
-
   # The agent CLI this workflow runs with when its stage's agent names none: the provider picked by AiCli::Rotation
   # the first time it needs one (kept for the workflow's life), else nil for the app-wide agent.
   def rotation_provider!
@@ -44,8 +46,6 @@ class Workflow < ApplicationRecord
     update_column(:rotation_provider, provider) if provider
     provider
   end
-
-  scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 
   validates :jira_ticket, presence: true, if: :jira_development?
   validates :branch_name, presence: true, if: :jira_development?
@@ -69,22 +69,12 @@ class Workflow < ApplicationRecord
     Workflows::ImageStore.new(workflow_id: id)
   end
 
-  def image_dir
-    image_store.dir
-  end
-
-  def image_paths
-    image_store.paths
-  end
+  delegate :dir, :paths, to: :image_store, prefix: :image
 
   # `uploads` are ActionDispatch::Http::UploadedFile objects. Returns the number saved.
-  def add_images(uploads)
-    image_store.add(uploads)
-  end
+  def add_images(uploads) = image_store.add(uploads)
 
-  def remove_image(name)
-    image_store.remove(name)
-  end
+  def remove_image(name) = image_store.remove(name)
 
   # Position for a stage appended after this workflow's existing ones.
   def next_stage_position

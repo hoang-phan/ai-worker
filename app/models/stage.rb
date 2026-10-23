@@ -18,36 +18,12 @@ class Stage < ApplicationRecord
   validates :channel, presence: true, if: -> { runbook_step? && run_message? }
   validate :agent_belongs_to_workflow_project
 
+  delegate :last_action, :consecutive_failures, :resolving_conflicts?, :completed_local_test_rounds, :completed_ci_rounds,
+           :local_test_unfinished?, to: :run_history
+
   # A started runbook must keep the stage it is currently executing or waiting on.
   def removable?
     workflow.pending? || workflow.current_stage_id != id
-  end
-
-  # Action of the newest run, nil when the stage has none.
-  def last_action
-    run_history.last_action
-  end
-
-  # Trailing run of failed/started rows (newest first) with no success or `resumed` in between; counts the failed ones.
-  def consecutive_failures
-    run_history.consecutive_failures
-  end
-
-  def resolving_conflicts?
-    run_history.resolving_conflicts?
-  end
-
-  def completed_local_test_rounds
-    run_history.completed_local_test_rounds
-  end
-
-  def completed_ci_rounds
-    run_history.completed_ci_rounds
-  end
-
-  # A local test run that started but whose newest run isn't a completion (earlier completed rounds don't count).
-  def local_test_unfinished?
-    run_history.local_test_unfinished?
   end
 
   # Records one audit-log row for this stage; `action` must be in StageRun::ACTIONS (raises RecordInvalid otherwise).
