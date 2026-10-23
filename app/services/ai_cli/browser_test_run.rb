@@ -12,10 +12,20 @@ module AiCli
     # Playwright MCP, pinned: headless, throwaway profile, `devtools` capability for the video/trace tools.
     PLAYWRIGHT_MCP_PACKAGE = "@playwright/mcp@0.0.83".freeze
 
-    # Per kind: the label used in error messages, the directory under the root and the env-variable prefix.
+    # Per kind: the label used in error messages, the directory under the root, the env-variable prefix, the Project
+    # attributes holding the URL and login, and the extra env (key => name of a private reader) added to the credentials.
+    # Adding a kind means adding one entry here.
     KIND_SETTINGS = {
-      uat: { label: "UAT", dir_name: "uat_runs", env_prefix: "UAT" }.freeze,
-      local: { label: "local", dir_name: "local_test_runs", env_prefix: "LOCAL" }.freeze
+      uat: {
+        label: "UAT", dir_name: "uat_runs", env_prefix: "UAT",
+        url_attr: :uat_url, username_attr: :uat_username, password_attr: :uat_password,
+        extra_env: { "UAT_OUTPUT_DIR" => :output_dir_value, "JIRA_BASE_URL" => :jira_base_url_value }.freeze
+      }.freeze,
+      local: {
+        label: "local", dir_name: "local_test_runs", env_prefix: "LOCAL",
+        url_attr: :local_url, username_attr: :local_username, password_attr: :local_password,
+        extra_env: { "LOCAL_URL" => :url, "LOCAL_OUTPUT_DIR" => :output_dir_value }.freeze
+      }.freeze
     }.freeze
 
     KINDS = KIND_SETTINGS.keys.freeze
@@ -87,24 +97,27 @@ module AiCli
     end
 
     def extra_env
-      case @kind
-      when :uat
-        { "UAT_OUTPUT_DIR" => output_dir.to_s, "JIRA_BASE_URL" => @project.jira_base_url }
-      when :local
-        { "LOCAL_URL" => url, "LOCAL_OUTPUT_DIR" => output_dir.to_s }
-      end
+      settings[:extra_env].transform_values { |reader| send(reader) }
+    end
+
+    def output_dir_value
+      output_dir.to_s
+    end
+
+    def jira_base_url_value
+      @project.jira_base_url
     end
 
     def url
-      @project.public_send(:"#{@kind}_url")
+      @project.public_send(settings[:url_attr])
     end
 
     def username
-      @project.public_send(:"#{@kind}_username")
+      @project.public_send(settings[:username_attr])
     end
 
     def password
-      @project.public_send(:"#{@kind}_password")
+      @project.public_send(settings[:password_attr])
     end
   end
 end
