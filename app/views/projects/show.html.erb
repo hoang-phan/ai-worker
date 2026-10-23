@@ -16,50 +16,7 @@
   </div>
 </div>
 
-<%= form_with url: project_path(@project), method: :get, class: "batch-bar" do %>
-  <label for="status" class="text-muted">Status:</label>
-  <%= select_tag :status, options_for_select([["All", ""]] + Workflow.statuses.keys.map { |s| [s.humanize, s] }, @status_filter), onchange: "this.form.requestSubmit()" %>
-  <noscript><button type="submit" class="btn btn-secondary">Filter</button></noscript>
-<% end %>
-
-<% if @project.jira? %>
-  <%= form_with url: log_time_project_workflows_path(@project), method: :post, id: "time-log-form", class: "batch-bar" do %>
-    <span class="text-muted">Log time on selected:</span>
-    <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
-      <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary" data-turbo-confirm="Log <%= hours %> h on each selected workflow's Jira ticket?"><%= hours %> h</button>
-    <% end %>
-  <% end %>
-<% end %>
-
-<div class="table-wrap" data-controller="select-all">
-  <table class="workflow-table">
-    <thead>
-      <tr>
-        <% if @project.jira? %>
-          <th><input type="checkbox" aria-label="Select all tickets without logged time" data-action="change->select-all#toggle" form="time-log-form"></th>
-        <% end %>
-        <th>Position</th>
-        <th><%= @project.personal? ? "Task" : "Jira" %></th>
-        <% if @project.jira? %>
-          <th>Time</th>
-        <% end %>
-        <th>Status</th>
-        <% unless @project.personal? %>
-          <th>PR</th>
-        <% end %>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @workflows.each do |workflow| %>
-        <%= render "projects/workflow_row", project: @project, workflow: workflow, logged_seconds: @logged_seconds[workflow.jira_key], first: workflow.id == @first_workflow_id, last: workflow.id == @last_workflow_id, status_filter: @status_filter %>
-      <% end %>
-    </tbody>
-  </table>
-  <% if @workflows.empty? %>
-    <div class="empty-state"><%= @status_filter ? "No #{@status_filter.humanize.downcase} workflows." : "No workflows yet." %> <%= link_to "Create one", new_project_workflow_path(@project) %>.</div>
-  <% end %>
-</div>
+<%= render "projects/workflows", project: @project, workflow_list: @workflow_list %>
 
 <%= render "projects/agents", project: @project %>
 
