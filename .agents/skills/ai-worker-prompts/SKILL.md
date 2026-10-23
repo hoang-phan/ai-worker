@@ -21,9 +21,8 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
   - `LessonsRequest` (`lessons_request.rb`): pr_check; asks for 0-3 generalisable rules between `LESSONS_BEGIN/END`.
   - `Lessons` (`lessons.rb`): implementation/simple_implementation/task; lists `project.agent_lessons` as data.
   - `FollowUps` (`follow_ups.rb`): task; asks for out-of-scope work between `FOLLOW_UPS_BEGIN/END`, queued as workflows by `Stages::TaskFinish`.
-  - `Subagents` (`subagents.rb`): implementation/simple_implementation/pr_check/task; lists the project's `.claude/agents` entries, read by `app/services/prompts/subagent_roster.rb` (`Prompts::SubagentRoster#entries`: name + description from the YAML frontmatter).
   - `LocalFeedback` (`local_feedback.rb`): pr_check on a locally-testable project (failure feedback plus the `LOCAL_RETEST: YES|NO` question).
-  - `AgentBrief` (`agent_brief.rb`): the one section that is prepended, only when the stage has an `agent`, so a stage without one renders exactly as before.
+  - Project-agent `AgentBrief` and `Subagents`: see `ai-worker-project-agents`.
 - `app/models/prompt_template.rb` — `PromptTemplate`: `name`, `body` (both required), `stage_type` enum reusing `Stage::STAGE_TYPES`, `has_many :stages, dependent: :nullify`. It holds no placeholder list; the UI reads `Prompts::Renderer::BUILT_IN_TOKENS`.
 - `docs/PROMPT_TEMPLATES.md` — the user-facing placeholder table and template examples.
 
