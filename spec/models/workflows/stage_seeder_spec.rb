@@ -28,6 +28,18 @@ RSpec.describe Workflows::StageSeeder do
     expect(stage_types(workflow)).to eq(%w[pr_review])
   end
 
+  it "seeds the ci_loop stages for a new workflow, and none of the plain implementation" do
+    workflow = build_ci_workflow(build_ci_project)
+
+    expect(stage_types(workflow)).to eq(%w[simple_implementation ci_check ci_verify pr_create pr_check])
+  end
+
+  it "does not touch a standard project's workflows" do
+    workflow = build_ci_workflow(build_ci_project(flow: :standard, ci_command: nil))
+
+    expect(stage_types(workflow)).to eq(%w[implementation pr_check])
+  end
+
   describe "runbooks" do
     it "seeds nothing without a copy source" do
       expect(project.workflows.create!(kind: :runbook).stages).to be_empty

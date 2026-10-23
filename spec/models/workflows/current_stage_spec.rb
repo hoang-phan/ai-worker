@@ -40,6 +40,14 @@ RSpec.describe Workflows::CurrentStage do
     expect(stage).to be_simple_implementation
   end
 
+  it "resolves implementing to the seeded simple_implementation stage and reviewing to pr_check on the ci_loop flow" do
+    ci_workflow = build_ci_workflow(build_ci_project)
+
+    expect(call(ci_workflow)).to eq(ci_workflow.stages.find_by!(stage_type: :simple_implementation))
+    ci_workflow.update!(status: :reviewing)
+    expect(call(ci_workflow)).to eq(ci_workflow.stages.find_by!(stage_type: :pr_check))
+  end
+
   it "creates a lazy stage type once and reuses it" do
     workflow.update!(status: :merged)
 
