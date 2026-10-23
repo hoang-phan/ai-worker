@@ -7,15 +7,28 @@ description: Applies ai-worker's scheduler discipline. Use for any task touching
 
 The delayed-UAT browser-test phase is specialised in `ai-worker-browser-tests`.
 
-Scope: `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/planner.rb` (pure decisions: eligibility, `clone_key`), `app/services/scheduling/capacity.rb` (slot/clone bookkeeping), `app/services/scheduling/workflow_queries.rb` (the AR selection the job uses: status lists, ordering, due-UAT relation, free slots), `config/sidekiq.yml`, `config/schedule.yml`. What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-type wiring: `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
+Scope:
+
+- `app/jobs/workflow_scheduler_job.rb` wires the three scheduler phases onto the `stage_execution` queue.
+- `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows.
+- `app/services/scheduling/capacity.rb` tracks global slots and busy clones.
+- `app/services/scheduling/guarded_executor.rb` logs and isolates individual executor failures.
+- `app/services/scheduling/planner.rb` makes pure eligibility and `clone_key` decisions.
+- `app/services/scheduling/post_merge_phase.rb` confirms tracked merges and starts one merged workflow when idle.
+- `app/services/scheduling/uat_phase.rb` schedules due or retried UAT tests within free slots.
+- `app/services/scheduling/workflow_queries.rb` provides the AR selections, ordering, due-UAT relation, and free-slot count.
+- `config/sidekiq.yml` serializes scheduler ticks.
+- `config/schedule.yml` defines the cron cadence.
+
+What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-type wiring: `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
 
 ## Tick
 
 `WorkflowSchedulerJob#perform(run_workflow_id = nil)` is cron-driven on the `stage_execution` queue (`schedule.yml`: every 3 minutes, in two entries for working hours 05–14 and off-hours, Asia/Ho_Chi_Minh). It walks every in-flight workflow in `position` order and never blocks on an agent. Three phases, in order:
 
-1. **Active workflows** — `implementing`/`reviewing`/`local_testing`, plus `merged`/`uat_testing` ones that are `processing`. Running ones are executed (polled) first so finished runs free their slot and clone; then eligible waiting ones are started while `Capacity#can_start?` holds, calling `started!` only if the workflow is `processing` after `execute`.
-2. **Post-merge** — skipped while any workflow is `implementing`/`local_testing` or any is `processing`. Otherwise `confirm_merges` runs `Stages::MergeCheck` for `done` development workflows with a PR URL that `tracks_jira_after_merge?`, then one non-processing `merged` workflow (lowest position) is executed.
-3. **UAT** — free slots = `max_concurrent_agents` minus all `processing` workflows (no idle wait, no clone check). Due = `uat_waiting` with `uat_test_at` passed (moved to `uat_testing` first) or `uat_testing` and not processing (a failed attempt retried); ordered by `uat_test_at`, limited to the free slots.
+1. **Active workflows** — `Scheduling::ActiveWorkflowRunner` handles `implementing`/`reviewing`/`local_testing`, plus `merged`/`uat_testing` ones that are `processing`. Running ones are executed (polled) first so finished runs free their slot and clone; then eligible waiting ones are started while `Capacity#can_start?` holds, calling `started!` only if the workflow is `processing` after `execute`.
+2. **Post-merge** — `Scheduling::PostMergePhase` is skipped while any workflow is `implementing`/`local_testing` or any is `processing`. Otherwise `confirm_merges` runs `Stages::MergeCheck` for `done` development workflows with a PR URL that `tracks_jira_after_merge?`, then one non-processing `merged` workflow (lowest position) is executed.
+3. **UAT** — `Scheduling::UatPhase` uses free slots = `max_concurrent_agents` minus all `processing` workflows (no idle wait, no clone check). Due = `uat_waiting` with `uat_test_at` passed (moved to `uat_testing` first) or `uat_testing` and not processing (a failed attempt retried); ordered by `uat_test_at`, limited to the free slots.
 
 `execute` rescues `StandardError` per workflow and logs `[scheduler]`, so one failure never stops the tick.
 
@@ -38,13 +51,13 @@ Capacity and head-of-line checks aren't atomic, so ticks must serialize: `config
 
 | Rule | Spec |
 |---|---|
-| Poll running before starting waiting | `workflow_scheduler_job_spec.rb` "polls processing workflows before starting…" |
-| One start per shared clone | `workflow_scheduler_job_spec.rb` "starts only one waiting workflow for a shared clone" |
-| Global max | `workflow_scheduler_job_spec.rb` "with one agent slot" |
-| Per-workflow failure isolation | `workflow_scheduler_job_spec.rb` "logs one executor failure and continues…" |
-| Post-merge idle gate, confirm + start one | `workflow_scheduler_job_spec.rb` "the post-merge phase" |
-| UAT due/retry and slot limit | `workflow_scheduler_job_spec.rb` "the UAT phase" |
-| Named non-auto-run runbook | `workflow_scheduler_job_spec.rb` "starts a named non-auto-run runbook" |
+| Poll running before starting waiting | `spec/services/scheduling/active_workflow_runner_spec.rb` "polls processing workflows before starting waiting ones" |
+| One start per shared clone | `spec/services/scheduling/active_workflow_runner_spec.rb` "starts only one waiting workflow per shared clone" |
+| Global max | `spec/services/scheduling/active_workflow_runner_spec.rb` "stops starting workflows once the slot is taken" |
+| Per-workflow failure isolation | `spec/services/scheduling/guarded_executor_spec.rb` "logs and swallows StandardError" |
+| Post-merge idle gate, confirm + start one | `spec/services/scheduling/post_merge_phase_spec.rb` "is skipped while work is in progress", "only checks jira-tracked done workflows that have a pr_check stage", and "executes only the first merged workflow" |
+| UAT due/retry and slot limit | `spec/services/scheduling/uat_phase_spec.rb` "moves due uat_waiting workflows to uat_testing and executes them", "retries idle uat_testing workflows", and "executes only the earliest due workflow" |
+| Named non-auto-run runbook | `spec/services/scheduling/active_workflow_runner_spec.rb` "starts a named non-auto-run runbook only when named" |
 | Head-of-line, PR-review exemption, runbook rules | `spec/services/scheduling/planner_spec.rb` `.eligible_waiting` |
 | Clone-key normalisation | `spec/services/scheduling/planner_spec.rb` `.clone_key` |
 | Slot/clone bookkeeping | `spec/services/scheduling/capacity_spec.rb` |
