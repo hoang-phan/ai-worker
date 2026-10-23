@@ -10,7 +10,8 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 ## File map
 
 - `app/models/workflows/runbook_navigator.rb` — `start!`, `advance!`, `next_stage`, `previous_stage` (reached via `Workflow#start_runbook!` / `#advance!` / `#previous_runbook_stage`).
-- `app/models/workflows/transitions.rb` — `start!` (runbook branch), `can_run_stage?`, `request_stage_run!`, `can_advance?`.
+- `app/models/workflows/transitions.rb` — `start!` (runbook branch), `resume!`, `can_run_stage?`, `request_stage_run!`, `can_advance?`; its `resume_status` forwards to `Workflows::ResumeStatus`.
+- `app/models/workflows/resume_status.rb` — selects the status for an errored workflow to resume; specified in `spec/models/workflows/resume_status_spec.rb`.
 - `app/models/workflows/current_stage.rb` — a runbook's current stage is `current_stage_id`, not status-resolved.
 - `app/models/workflows/stage_seeder.rb` — `COPIED_RUNBOOK_ATTRIBUTES`: stage columns copied from `copy_stages_from_id`.
 - `app/models/workflows/runbook_clone.rb` — Clone button: same stages, `input_variables` only.

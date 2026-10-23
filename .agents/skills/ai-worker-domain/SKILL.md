@@ -21,6 +21,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 - `app/models/workflows/stage_seeder.rb` — initial stages on create, by kind and project kind; runbooks copy another runbook's stages.
 - `app/models/workflows/runbook_clone.rb` — the runbook Clone button: same stages, only user-set variables.
 - `app/models/workflows/ci_loop_resume.rb` — where an errored `ci_loop` workflow resumes, from its newest pre-review run.
+- `app/models/workflows/resume_status.rb` — chooses an errored workflow's in-flight resume status (UAT, CI loop, unfinished local test, PR review, or implementation); specified in `spec/models/workflows/resume_status_spec.rb`.
 - `app/models/workflows/image_store.rb` — reference images as plain files under `tmp/workflow_images/<id>` (not Active Storage), exposed via `{IMAGES}`.
 - `app/models/workflows/label.rb` — `label` / `brief` / `heading` display text.
 - `app/models/workflows/variables.rb` — runbook variables: `NAME=value` text form and user-typed vs stage-emitted (`input_variables` / `output_variable_names`).

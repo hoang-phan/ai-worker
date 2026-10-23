@@ -25,15 +25,8 @@ module Workflows
       true
     end
 
-    # The in-flight status an errored workflow goes back to: reviewing once a PR
-    # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
     def resume_status
-      return :uat_testing if @workflow.uat_test_at.present?
-      ci_status = Workflows::CiLoopResume.new(@workflow).status
-      return ci_status if ci_status
-      return :local_testing if local_test_unfinished?
-
-      @workflow.development? && @workflow.github_pr_url.present? ? :reviewing : :implementing
+      Workflows::ResumeStatus.new(@workflow).call
     end
 
     def can_rollback_to_review?
@@ -68,14 +61,6 @@ module Workflows
     # The runbook's Next button is only valid while a finished stage is waiting for it.
     def can_advance?
       @workflow.runbook? && @workflow.awaiting_next?
-    end
-
-    private
-
-    # An errored workflow whose newest local test run started but never finished goes back to it, not to review
-    # (also true for a retest after a fix round: earlier completed rounds don't count).
-    def local_test_unfinished?
-      @workflow.stages.find_by(stage_type: :local_test)&.local_test_unfinished? || false
     end
   end
 end

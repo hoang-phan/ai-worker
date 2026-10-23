@@ -94,48 +94,21 @@ RSpec.describe Workflows::Transitions do
       expect(workflow.reload).to be_reviewing
     end
 
-    it "goes back to implementing without a PR and logs 'resumed' on the implementation stage" do
-      expect(transitions.resume!).to be true
-      expect(workflow.reload).to be_implementing
-      expect(stage_run_actions(workflow.stages.find_by(stage_type: :implementation))).to eq(%w[resumed])
-    end
-
-    it "goes back to reviewing once a PR exists and logs 'resumed' on the pr_check stage" do
+    it "uses ResumeStatus and logs one 'resumed' StageRun on the resulting current stage" do
       workflow.update!(github_pr_url: pr_url)
-      expect(transitions.resume!).to be true
+      resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
+      allow(Workflows::ResumeStatus).to receive(:new).with(workflow).and_return(resume_status)
+
+      expect { expect(transitions.resume!).to be true }.to change(StageRun, :count).by(1)
       expect(workflow.reload).to be_reviewing
       expect(stage_run_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[resumed])
     end
 
-    it "goes back to uat_testing when a UAT test was scheduled" do
-      workflow.update!(github_pr_url: pr_url, uat_test_at: 1.hour.ago)
-      expect(transitions.resume!).to be true
-      expect(workflow.reload).to be_uat_testing
-      expect(stage_run_actions(workflow.stages.find_by(stage_type: :uat_test))).to eq(%w[resumed])
-    end
-
-    it "goes back to local_testing when the last local test run never finished" do
-      workflow.update!(github_pr_url: pr_url)
-      local = workflow.stages.create!(stage_type: :local_test)
-      local.stage_runs.create!(action: "local_test_failing")
-      expect(transitions.resume!).to be true
-      expect(workflow.reload).to be_local_testing
-      expect(stage_run_actions(local)).to eq(%w[local_test_failing resumed])
-    end
-
-    it "returns to reviewing when the last local test run completed" do
-      workflow.update!(github_pr_url: pr_url)
-      local = workflow.stages.create!(stage_type: :local_test)
-      local.stage_runs.create!(action: "local_test_completed")
-      expect(transitions.resume!).to be true
-      expect(workflow.reload).to be_reviewing
-    end
-
-    it "resumes a runbook on its current stage" do
+    it "updates a runbook and logs one 'resumed' StageRun on its current stage" do
       runbook = project.workflows.create!(kind: :runbook)
       step = runbook.stages.create!(stage_type: :runbook_step, name: "One", position: 1)
       runbook.update!(status: :errored, current_stage_id: step.id)
-      expect(Workflows::Transitions.new(runbook).resume!).to be true
+      expect { expect(Workflows::Transitions.new(runbook).resume!).to be true }.to change(StageRun, :count).by(1)
       expect(runbook.reload).to be_implementing
       expect(stage_run_actions(step)).to eq(%w[resumed])
     end
@@ -170,32 +143,11 @@ RSpec.describe Workflows::Transitions do
   end
 
   describe "#resume_status" do
-    it "is implementing without a PR" do
-      expect(transitions.resume_status).to eq(:implementing)
-    end
+    it "forwards to ResumeStatus" do
+      resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
+      allow(Workflows::ResumeStatus).to receive(:new).with(workflow).and_return(resume_status)
 
-    it "is implementing for a PR-less personal workflow and reviewing only for development with a PR" do
-      workflow.update!(github_pr_url: pr_url)
       expect(transitions.resume_status).to eq(:reviewing)
-      expect(transitions_for(project.workflows.build(kind: :pr_review, github_pr_url: pr_url)).resume_status).to eq(:implementing)
-    end
-
-    it "is local_testing when the newest local test run never finished" do
-      workflow.update!(github_pr_url: pr_url)
-      workflow.stages.create!(stage_type: :local_test).stage_runs.create!(action: "local_test_failing")
-      expect(transitions.resume_status).to eq(:local_testing)
-    end
-
-    it "is reviewing when the newest local test run completed" do
-      workflow.update!(github_pr_url: pr_url)
-      workflow.stages.create!(stage_type: :local_test).stage_runs.create!(action: "local_test_completed")
-      expect(transitions.resume_status).to eq(:reviewing)
-    end
-
-    it "is uat_testing when a UAT test was scheduled, ahead of local_testing" do
-      workflow.update!(github_pr_url: pr_url, uat_test_at: 1.hour.ago)
-      workflow.stages.create!(stage_type: :local_test).stage_runs.create!(action: "local_test_failing")
-      expect(transitions.resume_status).to eq(:uat_testing)
     end
   end
 
