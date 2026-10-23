@@ -58,34 +58,34 @@ RSpec.describe Stages::TaskFinish, type: :service do
 
     def follow_up_workflows = project.workflows.where.not(id: workflow.id).order(:id)
 
-    it "creates pending workflows and logs follow_ups_created" do
+    it "imports the proposals and logs follow_ups_created" do
       finish(block("Fix A"))
 
-      expect(follow_up_workflows.map { |w| [ w.summary, w.task_description, w.status, w.skills ] })
-        .to eq([ [ "Fix A", "Task for Fix A", "pending", "ruby" ] ])
-      expect(follow_up_workflows.first.position).to be > workflow.position
+      expect(follow_up_workflows.pluck(:summary)).to eq([ "Fix A" ])
       expect(actions).to eq(%w[task_completed follow_ups_created task_pushed])
       expect(stage.stage_runs.find_by(action: "follow_ups_created").output).to include("Created 1 follow-up workflow", "Fix A")
-    end
-
-    it "creates at most 2" do
-      finish(block("Fix A", "Fix B", "Fix C"))
-      expect(follow_up_workflows.map(&:summary)).to eq([ "Fix A", "Fix B" ])
-    end
-
-    it "skips summaries matching an existing non-done workflow, but not a done one" do
-      build_task_workflow(project, summary: "fix a!", status: :pending)
-      build_task_workflow(project, summary: "Fix B", status: :done)
-
-      finish(block("Fix A", "Fix B"))
-      expect(follow_up_workflows.pluck(:summary)).to eq([ "fix a!", "Fix B", "Fix B" ])
-      expect(stage.stage_runs.find_by(action: "follow_ups_created").output).to include("Created 1")
     end
 
     it "does nothing without a block" do
       finish
       expect(follow_up_workflows).to be_empty
       expect(actions).not_to include("follow_ups_created")
+    end
+
+    it "does not log when the importer creates nothing" do
+      build_task_workflow(project, summary: "Fix A", status: :pending)
+
+      finish(block("Fix A"))
+      expect(actions).to eq(%w[task_completed task_pushed])
+    end
+
+    it "skips follow-ups for a non-personal project" do
+      jira_project = build_jira_project(local_directory: local_directory)
+      jira_workflow = build_jira_workflow(jira_project, jira_ticket: "TASK-2", branch_name: "t2", status: :implementing)
+      jira_stage = jira_workflow.stages.create!(stage_type: :task, name: "task")
+
+      described_class.new(workflow: jira_workflow, stage: jira_stage, project: jira_project, git: git).call(block("Fix A"))
+      expect(jira_project.workflows.count).to eq 1
     end
 
     it "never fails the task when creating follow-ups raises" do

@@ -37,7 +37,8 @@ Scope: `app/services/stage_executor.rb`, `app/services/stages/**` except `run_to
 - `app/services/stages/runbook_step_finish.rb` — requires message stages to confirm posting, saves output variables and waiting state, then optionally advances and enqueues the workflow. Runbook lifecycle and invariants: `ai-worker-runbooks`.
 - `app/services/stages/simple_implementation_finish.rb` — completes a ci-loop implementation run into `opening_pr` and logs its output.
 - `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
-- `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort pushes its commits and logs that outcome.
+- `app/services/stages/follow_up_importer.rb` — creates pending development workflows from FOLLOW_UPS proposals.
+- `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups (via `follow_up_importer.rb`, which owns the cap of 2, dedupe via `Workflows::SummaryKey`, and the pending workflow build) and pushes its commits, logging each outcome.
 - `app/services/stages/workflow_run_gate.rb` — gates a runbook step on the newest relevant GitHub Actions run, logging pass/wait once and raising for a failed run.
 
 ## Conventions

@@ -17,8 +17,6 @@ module Stages
 
     private
 
-    MAX_FOLLOW_UPS = 2
-
     attr_reader :workflow, :stage, :project, :git
 
     # Work the agent found outside this task's scope becomes pending workflows, never started automatically. Best
@@ -29,33 +27,12 @@ module Stages
       proposals = AiCli::Output.new(output).follow_ups
       return if proposals.empty?
 
-      created = create_follow_ups(proposals)
+      created = FollowUpImporter.new(project).call(proposals)
       return if created.empty?
 
       stage.log_run!("follow_ups_created", output: "Created #{created.size} follow-up #{'workflow'.pluralize(created.size)}: #{created.join('; ')}")
     rescue StandardError => e
       Rails.logger.warn("follow-ups failed for workflow #{workflow.id}: #{e.message}")
-    end
-
-    def create_follow_ups(proposals)
-      known = project.workflows.where.not(status: :done).map { |other| normalize(other.brief) }.to_set
-      created = []
-      proposals.each do |proposal|
-        break if created.size >= MAX_FOLLOW_UPS
-        next unless known.add?(normalize(proposal["summary"]))
-
-        created << proposal["summary"] if build_follow_up(proposal).save
-      end
-      created
-    end
-
-    def build_follow_up(proposal)
-      project.workflows.new(summary: proposal["summary"], task_description: proposal["task"], status: :pending,
-                            kind: :development, skills: project.default_skills, position: project.next_workflow_position)
-    end
-
-    def normalize(text)
-      text.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip
     end
 
     # The task prompt may or may not tell the agent to push, so do it here. Best effort and after the workflow is

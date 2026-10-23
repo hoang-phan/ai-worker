@@ -32,7 +32,7 @@ module Brainstorm
     attr_reader :project, :in_flight
 
     def known_keys
-      in_flight.map { |workflow| normalize(workflow.brief) }.to_set
+      in_flight.map { |workflow| Workflows::SummaryKey.call(workflow.brief) }.to_set
     end
 
     # Only created workflows count towards the maximum; skipped proposals don't.
@@ -41,7 +41,7 @@ module Brainstorm
     end
 
     def import_proposal(proposal, known, result)
-      key = normalize(proposal["summary"])
+      key = Workflows::SummaryKey.call(proposal["summary"])
       return result.skipped << proposal["summary"] if known.include?(key)
 
       workflow = build(proposal)
@@ -67,10 +67,6 @@ module Brainstorm
       return project.default_skills if extra.blank?
 
       [ project.default_skills, extra ].flat_map { |list| list.to_s.split(",").map(&:strip) }.reject(&:blank?).uniq.join(", ")
-    end
-
-    def normalize(text)
-      text.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip
     end
   end
 end
