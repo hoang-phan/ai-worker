@@ -143,6 +143,16 @@ class Workflow < ApplicationRecord
 
   def current_stage = Workflows::CurrentStage.new(self).call
 
+  # Development workflows on a project set up for local testing: the PR goes to local testing before review.
+  def local_test_before_review?
+    development? && project.local_test_ready?
+  end
+
+  # Where a workflow goes once its PR is up and checked.
+  def post_pr_status
+    local_test_before_review? ? :local_testing : :reviewing
+  end
+
   # Jira-project development workflows that got a PR: the ones whose ticket
   # moves to UAT/Releaseable once the PR is merged.
   def tracks_jira_after_merge?

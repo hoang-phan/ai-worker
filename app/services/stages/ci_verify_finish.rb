@@ -24,8 +24,8 @@ module Stages
     attr_reader :workflow, :stage, :project, :handoff
 
     def passed(output)
-      testing_locally = workflow.development? && project.local_test_ready?
-      workflow.finish_ai_run!(status: testing_locally ? :local_testing : :reviewing)
+      testing_locally = workflow.local_test_before_review?
+      workflow.finish_ai_run!(status: workflow.post_pr_status)
       stage.log_run!("ci_verify_passed", output: output)
       handoff.notify_reviewers! unless testing_locally
     end

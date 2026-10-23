@@ -16,8 +16,8 @@ module Stages
     # blocks the merge until it passes.
     def call(output, action:, checks_follow: false)
       pr_url = github.find_pr_url(branch_name: workflow.branch_name, jira_ticket: workflow.jira_ticket, output: output)
-      testing_locally = workflow.development? && project.local_test_ready?
-      next_status = if checks_follow then :ci_checking else (testing_locally ? :local_testing : :reviewing) end
+      testing_locally = workflow.local_test_before_review?
+      next_status = if checks_follow then :ci_checking else workflow.post_pr_status end
       workflow.finish_ai_run!(github_pr_url: pr_url, status: next_status)
       stage.log_run!(action, output: output)
       # Auto-merge waits until the local test passed, so a PR can't merge while it is still being tested.

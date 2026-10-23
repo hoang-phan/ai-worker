@@ -105,4 +105,30 @@ RSpec.describe Workflow, type: :model do
       expect(workflow.pr_skill_list).to eq([])
     end
   end
+
+  describe "#local_test_before_review? and #post_pr_status" do
+    let(:ready_project) { build_jira_project(local_test_enabled: true, local_url: "http://localhost:3000") }
+    let(:plain_project) { build_jira_project(local_test_enabled: false, local_url: "http://localhost:3000") }
+
+    it "is true for a development workflow on a local-test-ready project" do
+      wf = build_jira_workflow(ready_project)
+      expect(wf).to be_local_test_before_review
+      expect(wf.post_pr_status).to eq(:local_testing)
+    end
+
+    it "is false when the project has local testing disabled" do
+      wf = build_jira_workflow(plain_project)
+      expect(wf).not_to be_local_test_before_review
+      expect(wf.post_pr_status).to eq(:reviewing)
+    end
+
+    it "is false for pr_review and runbook workflows even on a ready project" do
+      %i[pr_review runbook].each do |kind|
+        wf = build_jira_workflow(ready_project)
+        wf.kind = kind
+        expect(wf).not_to be_local_test_before_review
+        expect(wf.post_pr_status).to eq(:reviewing)
+      end
+    end
+  end
 end
