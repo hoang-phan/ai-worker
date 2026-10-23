@@ -43,7 +43,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 - Brainstorm specs: see `ai-worker-brainstorm`.
 - Fetcher specs (`spec/services/{jira,slack,bugsnag}/*_spec.rb`): pass `root: Pathname(tmp)` (no `stub_const`); for `start`/`poll` pass a fake `run:` that records `start`'s kwargs and assert cwd, allowed_tools and the result file named in the prompt, write a result file with good and junk rows, assert `poll` returns only the filtered rows; also cover missing file, bad JSON, non-array, and staleness (pid alive and `started_at` older than `STALE_AFTER` raises `FetchError` and clears the pid).
 - Sync specs: each `blockers` reason, `import` creating records, idempotent re-import, a row that fails validation landing in `failed`.
-- Job specs (`spec/jobs/*_sync_job_spec.rb`): stub the fetcher; assert import-before-start, no start while running or blocked, FetchError recorded as `"failed: ..."`.
+- Job specs (`spec/jobs/*_sync_job_spec.rb`): stub `AgentRuns::SyncCycle.call`; assert the job's record selection plus one exact call per selected record (the wrapping source class, log prefix, and rescue-errors list), and only retain one thin real-cycle example that an expected error is recorded as `"failed: ..."` while the next record runs. Keep cadence, blockers, import/start ordering, summaries, and source persistence in the `AgentRuns` and source/sync specs.
 - Run with `RAILS_ENV=test bundle exec rspec`.
 
 ## Safety
