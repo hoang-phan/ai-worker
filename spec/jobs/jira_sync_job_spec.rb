@@ -28,7 +28,7 @@ RSpec.describe JiraSyncJob, type: :job do
     failing_sync = project.jira_syncs.create!
     next_sync = project.jira_syncs.create!
     failing_source = instance_double(Jira::SyncCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Jira::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil)
+    next_source = instance_double(Jira::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Jira::FetchError, "bad json")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_sync.update!(last_result: message) }

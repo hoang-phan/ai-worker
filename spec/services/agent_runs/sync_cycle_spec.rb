@@ -146,25 +146,23 @@ RSpec.describe AgentRuns::SyncCycle do
       end
     end
 
-    context "with a duck-typed source lacking the hooks" do
-      let(:duck) do
-        Struct.new(:calls) do
+    context "with a bare CycleSource subclass" do
+      let(:bare) do
+        Class.new(AgentRuns::CycleSource) do
+          def initialize(calls) = @calls = calls
           def poll = "p"
           def import(p) = "r-#{p}"
           def summary(r) = "s(#{r})"
           def persist!(*) = nil
           def persist_failure!(*) = nil
-          def eligible? = true
-          def idle? = true
-          def due? = true
-          def blockers = []
-          def start! = calls << :start
+          def start! = @calls << :start
         end.new(calls)
       end
-      let(:args) { super().merge(source: duck) }
+      let(:args) { super().merge(source: bare) }
 
-      it "skips the hooks and logs the default line" do
+      it "uses the default hooks and logs the default line" do
         expect(outcome).to have_attributes(imported: true, started: true)
+        expect(calls).to eq([ :start ])
         expect(logger).to have_received(:info).with("[Spec] thing=1 s(r-p)")
       end
     end

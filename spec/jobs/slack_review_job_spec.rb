@@ -26,7 +26,7 @@ RSpec.describe SlackReviewJob, type: :job do
     failing_project = build_jira_project(slack_review_enabled: true)
     next_project = build_jira_project(slack_review_enabled: true)
     failing_source = instance_double(Slack::ReviewCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Slack::ReviewCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil)
+    next_source = instance_double(Slack::ReviewCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Slack::FetchError, "slack down")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_project.update!(slack_last_result: message) }

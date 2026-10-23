@@ -32,7 +32,7 @@ RSpec.describe BugsnagSyncJob, type: :job do
     failing_sync = project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB")
     next_sync = project.bugsnag_syncs.create!(bugsnag_project: "api", jira_project: "API")
     failing_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil)
+    next_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Bugsnag::FetchError, "no result")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_sync.update!(last_result: message) }

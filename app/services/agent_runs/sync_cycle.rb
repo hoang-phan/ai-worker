@@ -3,7 +3,7 @@
 # when the record is eligible, idle, due and unblocked. Expected errors are
 # recorded and logged so later records in the calling job still run.
 #
-# The source is a duck-typed object (see AgentRuns::CycleSource):
+# The source is an AgentRuns::CycleSource subclass:
 #   poll                        -> finished payload or nil
 #   import(payload)             -> result
 #   summary(result)             -> string
@@ -12,9 +12,9 @@
 #   eligible? / idle? / due?    -> may start / nothing in flight / cadence allows
 #   blockers                    -> array of reasons not to start
 #   start!                      -> start the detached run
-#   log_message(result, summary) (optional) -> info line body; defaults to "<log_prefix> <summary>"
-#   after_import(result)        (optional) -> post-import hook
-#   after_start                 (optional) -> hook run after a successful start
+#   log_message(result, summary) -> info line body, or nil for "<log_prefix> <summary>"
+#   after_import(result)        -> post-import hook (default no-op)
+#   after_start                 -> hook run after a successful start (default no-op)
 module AgentRuns
   class SyncCycle
     Outcome = Struct.new(:imported, :started, :blocked, :failed, keyword_init: true) do
@@ -46,7 +46,7 @@ module AgentRuns
         outcome.blocked = true
       else
         @source.start!
-        @source.after_start if @source.respond_to?(:after_start)
+        @source.after_start
         outcome.started = true
       end
       outcome
@@ -60,15 +60,9 @@ module AgentRuns
 
     def record(result)
       summary = @source.summary(result)
-      @logger.info(log_message(result, summary))
+      @logger.info(@source.log_message(result, summary) || "#{@log_prefix} #{summary}")
       @source.persist!(result, summary)
-      @source.after_import(result) if @source.respond_to?(:after_import)
-    end
-
-    def log_message(result, summary)
-      return "#{@log_prefix} #{summary}" unless @source.respond_to?(:log_message)
-
-      @source.log_message(result, summary)
+      @source.after_import(result)
     end
   end
 end
