@@ -84,6 +84,34 @@ RSpec.describe Project, type: :model do
     end
   end
 
+  describe "jira site" do
+    def stored_project(name, kind:, jira_base_url:)
+      described_class.new(name: name, kind: kind, jira_base_url: jira_base_url, local_directory: local_directory)
+                     .tap { |record| record.save!(validate: false) }
+    end
+
+    let!(:with_url) { stored_project("with-site-url", kind: :jira, jira_base_url: "https://site.atlassian.net") }
+    let!(:nil_url) { stored_project("with-nil-url", kind: :jira, jira_base_url: nil) }
+    let!(:blank_url) { stored_project("with-blank-url", kind: :jira, jira_base_url: "") }
+    let!(:personal) { stored_project("personal-with-url", kind: :personal, jira_base_url: "https://site.atlassian.net") }
+
+    describe ".with_jira_site" do
+      it "includes Jira projects with a URL" do
+        expect(described_class.with_jira_site).to include(with_url)
+      end
+
+      it "excludes Jira projects with a nil or blank URL and personal projects" do
+        expect(described_class.with_jira_site).not_to include(nil_url, blank_url, personal)
+      end
+    end
+
+    describe "#jira_site?" do
+      it "is true only for a Jira project with a URL" do
+        expect([ with_url, nil_url, blank_url, personal ].map(&:jira_site?)).to eq([ true, false, false, false ])
+      end
+    end
+  end
+
   describe "#slack_user_id_for" do
     it "delegates to Projects::SlackUserMap" do
       project = Project.new(slack_user_map: "octocat=U1")

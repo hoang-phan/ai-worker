@@ -33,7 +33,7 @@ module Jira
     end
 
     def workflows_by_site
-      Project.where(kind: :jira).where.not(jira_base_url: [ nil, "" ]).includes(:workflows).group_by(&:jira_base_url)
+      Project.with_jira_site.includes(:workflows).group_by(&:jira_base_url)
              .transform_values { |projects| projects.flat_map { |project| project.workflows.select(&:development?) } }
     end
 

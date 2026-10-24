@@ -16,6 +16,9 @@ class Project < ApplicationRecord
   # number of `Workflow#kind = runbook` workflows, each with its own stages.
   enum :kind, { jira: 0, personal: 1 }
 
+  # Jira projects that have a site URL; the only ones the Jira sync and hours sync act on.
+  scope :with_jira_site, -> { jira.where.not(jira_base_url: [ nil, "" ]) }
+
   # UAT login the agent types into the browser during the post-UAT test; stored encrypted.
   encrypts :uat_password
   # Login for the local (development server) test that runs before review; stored encrypted too.
@@ -63,6 +66,9 @@ class Project < ApplicationRecord
   def ci_loop_ready?
     jira? && flow_ci_loop?
   end
+
+  # Instance form of the `with_jira_site` scope.
+  def jira_site? = jira? && jira_base_url.present?
 
   def local_test_ready?
     jira? && local_test_enabled? && local_url.present?

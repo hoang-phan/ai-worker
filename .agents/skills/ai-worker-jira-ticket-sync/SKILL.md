@@ -9,7 +9,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 ## Flow
 
-`JiraSyncJob` → `AgentRuns::SyncCycle` with `Jira::SyncCycleSource` → poll `AgentFetcher` → `TicketSync#import` → `TicketImporter` creates workflows; then starts a new fetch if idle and due.
+`JiraSyncJob` (skips projects that aren't `jira_site?`) → `AgentRuns::SyncCycle` with `Jira::SyncCycleSource` → poll `AgentFetcher` → `TicketSync#import` → `TicketImporter` creates workflows; then starts a new fetch if idle and due.
 
 ## File map (file — role; spec)
 

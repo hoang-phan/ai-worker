@@ -7,7 +7,7 @@ class JiraSyncJob < ApplicationJob
   def perform
     JiraSync.includes(:project).find_each do |jira_sync|
       project = jira_sync.project
-      next unless project.jira? && project.jira_base_url.present?
+      next unless project.jira_site?
 
       log_prefix = "[JiraSyncJob] jira_sync=#{jira_sync.id}"
       AgentRuns::SyncCycle.call(
