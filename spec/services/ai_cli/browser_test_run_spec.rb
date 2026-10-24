@@ -13,30 +13,12 @@ RSpec.describe AiCli::BrowserTestRun do
   def run_for(kind) = described_class.new(project, workflow, kind: kind, root: root)
 
   describe "#validate!" do
-    {
-      uat: { url: :uat_url, user: :uat_username, pass: :uat_password, label: "UAT" },
-      local: { url: :local_url, user: :local_username, pass: :local_password, label: "local" }
-    }.each do |kind, f|
-      it "requires a #{kind} URL" do
-        project[f[:url]] = ""
-        expect { run_for(kind).validate! }.to raise_error(ArgumentError, "project Acme has no #{f[:label]} URL")
-      end
+    it "delegates to the credentials" do
+      credentials = instance_double(AiCli::BrowserTestCredentials, validate!: nil)
+      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials)
 
-      %i[user pass].each do |field|
-        it "requires a #{kind} #{field}" do
-          project[f[field]] = nil
-          expect { run_for(kind).validate! }
-            .to raise_error(ArgumentError, "project Acme has no #{f[:label]} login (username/password)")
-        end
-      end
-
-      it "passes with everything set for #{kind}" do
-        expect { run_for(kind).validate! }.not_to raise_error
-      end
-    end
-
-    it "rejects unknown kinds" do
-      expect { run_for(:other) }.to raise_error(ArgumentError)
+      expect(run.validate!).to equal(run)
+      expect(credentials).to have_received(:validate!)
     end
   end
 
@@ -53,16 +35,17 @@ RSpec.describe AiCli::BrowserTestRun do
   end
 
   describe "#env" do
-    it "has the UAT keys" do
-      run = run_for(:uat)
+    it "merges credentials with each kind's run environment" do
+      credentials = instance_double(AiCli::BrowserTestCredentials, env: { "UAT_USERNAME" => "u", "UAT_PASSWORD" => "p" })
+      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials)
+
       expect(run.env).to eq("UAT_USERNAME" => "u", "UAT_PASSWORD" => "p", "UAT_OUTPUT_DIR" => run.output_dir.to_s,
                             "JIRA_BASE_URL" => "https://acme.atlassian.net")
-    end
 
-    it "has the local keys" do
-      run = run_for(:local)
-      expect(run.env).to eq("LOCAL_USERNAME" => "lu", "LOCAL_PASSWORD" => "lp", "LOCAL_URL" => "http://localhost:3000",
-                            "LOCAL_OUTPUT_DIR" => run.output_dir.to_s)
+      local_credentials = instance_double(AiCli::BrowserTestCredentials, env: { "LOCAL_USERNAME" => "lu", "LOCAL_PASSWORD" => "lp" }, url: "http://localhost:3000")
+      local_run = described_class.new(project, workflow, kind: :local, root: root, credentials: local_credentials)
+      expect(local_run.env).to eq("LOCAL_USERNAME" => "lu", "LOCAL_PASSWORD" => "lp", "LOCAL_URL" => "http://localhost:3000",
+                                  "LOCAL_OUTPUT_DIR" => local_run.output_dir.to_s)
     end
   end
 

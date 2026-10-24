@@ -1,6 +1,6 @@
 ---
 name: ai-worker-browser-tests
-description: Applies ai-worker's agent-driven browser-test discipline (uat_test and local_test). Use for any task touching app/services/ai_cli/{browser_test_run,cursor_mcp_file}.rb; app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb; app/services/scheduling/uat_phase.rb; app/services/prompts/stage_sections/local_feedback.rb or app/services/prompts/defaults/{uat_test,local_test}.md; app/views/projects/form/{_uat_test,_local_test}.html.erb; or spec/services/ai_cli/{browser_test_run,cursor_mcp_file}_spec.rb, spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb, spec/services/scheduling/uat_phase_spec.rb, or spec/services/prompts/stage_sections/local_feedback_spec.rb.
+description: Applies ai-worker's agent-driven browser-test discipline (uat_test and local_test). Use for any task touching app/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}.rb; app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb; app/services/scheduling/uat_phase.rb; app/services/prompts/stage_sections/local_feedback.rb or app/services/prompts/defaults/{uat_test,local_test}.md; app/views/projects/form/{_uat_test,_local_test}.html.erb; or spec/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}_spec.rb, spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb, spec/services/scheduling/uat_phase_spec.rb, or spec/services/prompts/stage_sections/local_feedback_spec.rb.
 ---
 
 # ai-worker-browser-tests
@@ -9,7 +9,8 @@ description: Applies ai-worker's agent-driven browser-test discipline (uat_test 
 
 ## File map
 
-- `app/services/ai_cli/browser_test_run.rb` — per-kind settings, validation, env, output directory, and Playwright MCP config.
+- `app/services/ai_cli/browser_test_credentials.rb` — per-kind credential settings, validation, URL, and credential environment.
+- `app/services/ai_cli/browser_test_run.rb` — output directory, Playwright MCP config, and run-specific environment plumbing.
 - `app/services/ai_cli/cursor_mcp_file.rb` — Cursor's transient `.cursor/mcp.json` delivery.
 - `app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb` — start, result handling, and retest decisions.
 - `app/services/scheduling/uat_phase.rb` — due-UAT selection, slot limit, and retry of non-processing `uat_testing` runs.
@@ -27,7 +28,7 @@ Related files owned elsewhere (read them, but follow the owning skill when chang
 
 ## Browser run and MCP
 
-`AiCli::BrowserTestRun::KIND_SETTINGS` maps `:uat` to `uat_runs`/`UAT_*` and `:local` to `local_test_runs`/`LOCAL_*`; output is `tmp/<dir>/<workflow id>/<timestamp>`. `validate!` requires the kind URL plus username and password. `env` supplies credentials only as `UAT_USERNAME`/`UAT_PASSWORD` or `LOCAL_USERNAME`/`LOCAL_PASSWORD`: never put them in a prompt or app-written log. UAT also receives `UAT_OUTPUT_DIR` and `JIRA_BASE_URL`; local receives `LOCAL_URL` and `LOCAL_OUTPUT_DIR`.
+`AiCli::BrowserTestCredentials::KIND_SETTINGS` maps `:uat` to `UAT_*` and `:local` to `LOCAL_*`; `BrowserTestRun::KIND_SETTINGS` remains its compatibility alias. `BrowserTestRun` maps kinds to `uat_runs` or `local_test_runs`, with output at `tmp/<dir>/<workflow id>/<timestamp>`. Credential validation requires the kind URL plus username and password. `env` supplies credentials only as `UAT_USERNAME`/`UAT_PASSWORD` or `LOCAL_USERNAME`/`LOCAL_PASSWORD`: never put them in a prompt or app-written log. UAT also receives `UAT_OUTPUT_DIR` and `JIRA_BASE_URL`; local receives `LOCAL_URL` and `LOCAL_OUTPUT_DIR`.
 
 Its MCP JSON starts `npx -y @playwright/mcp@0.0.83 --headless --isolated --caps devtools --output-dir <output dir>`; `mcp_config_path` writes it only when launching. `UAT_DISALLOWED_TOOLS` denies `gh workflow run` and `gh api` for both browser-test kinds. Claude receives the config with `--mcp-config`; Codex reads its servers and emits `-c mcp_servers...` overrides; Cursor's `CursorMcpFile` temporarily writes `.cursor/mcp.json`, preserves/restores a prior file, and adds both transient files to `.git/info/exclude`.
 
@@ -52,10 +53,10 @@ Its MCP JSON starts `npx -y @playwright/mcp@0.0.83 --headless --isolated --caps 
 
 ## Specs
 
-`spec/services/ai_cli/{browser_test_run,cursor_mcp_file}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/stage_sections/local_feedback_spec.rb`. When a change also touches a file owned elsewhere, run that skill's specs too (e.g. `output_spec.rb` for markers, `jira_update_finish_spec.rb` / `pr_check_finish_spec.rb` for handoffs, `transitions_spec.rb` for resume).
+`spec/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/stage_sections/local_feedback_spec.rb`. When a change also touches a file owned elsewhere, run that skill's specs too (e.g. `output_spec.rb` for markers, `jira_update_finish_spec.rb` / `pr_check_finish_spec.rb` for handoffs, `transitions_spec.rb` for resume).
 
 Run:
 
 ```sh
-RAILS_ENV=test bundle exec rspec spec/services/ai_cli/browser_test_run_spec.rb spec/services/ai_cli/cursor_mcp_file_spec.rb spec/services/stages/browser_test_start_spec.rb spec/services/stages/local_test_policy_spec.rb spec/services/stages/local_test_finish_spec.rb spec/services/stages/uat_test_finish_spec.rb spec/services/scheduling/uat_phase_spec.rb spec/services/prompts/stage_sections/local_feedback_spec.rb
+RAILS_ENV=test bundle exec rspec spec/services/ai_cli/browser_test_run_spec.rb spec/services/ai_cli/browser_test_credentials_spec.rb spec/services/ai_cli/cursor_mcp_file_spec.rb spec/services/stages/browser_test_start_spec.rb spec/services/stages/local_test_policy_spec.rb spec/services/stages/local_test_finish_spec.rb spec/services/stages/uat_test_finish_spec.rb spec/services/scheduling/uat_phase_spec.rb spec/services/prompts/stage_sections/local_feedback_spec.rb
 ```

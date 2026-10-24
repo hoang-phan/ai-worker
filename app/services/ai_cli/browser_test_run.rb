@@ -1,9 +1,8 @@
 require "fileutils"
 
 module AiCli
-  # Per-run setup shared by the browser-testing stages (uat_test, local_test): credential checks, the timestamped
-  # output directory, the Playwright MCP config and the environment of credentials. Credentials only travel as
-  # environment variables of the agent process, never in the prompt or the logs we write.
+  # Per-run setup shared by the browser-testing stages (uat_test, local_test): the timestamped output directory,
+  # Playwright MCP config and environment plumbing.
   class BrowserTestRun
     # The agent must not dispatch GitHub Actions itself (a project's UAT instructions can provide a guarded wrapper
     # script for test data instead). Denied for these stages only: other stages, e.g. runbooks, may legitimately use these.
@@ -12,41 +11,32 @@ module AiCli
     # Playwright MCP, pinned: headless, throwaway profile, `devtools` capability for the video/trace tools.
     PLAYWRIGHT_MCP_PACKAGE = "@playwright/mcp@0.0.83".freeze
 
-    # Per kind: the label used in error messages, the directory under the root, the env-variable prefix, the Project
-    # attributes holding the URL and login, and the extra env (key => name of a private reader) added to the credentials.
-    # Adding a kind means adding one entry here.
-    KIND_SETTINGS = {
+    # Per kind: the directory under the root and extra env (key => name of a private reader) added to the credentials.
+    # Adding a kind means adding one entry here and one to BrowserTestCredentials.
+    RUN_SETTINGS = {
       uat: {
-        label: "UAT", dir_name: "uat_runs", env_prefix: "UAT",
-        url_attr: :uat_url, username_attr: :uat_username, password_attr: :uat_password,
+        dir_name: "uat_runs",
         extra_env: { "UAT_OUTPUT_DIR" => :output_dir_value, "JIRA_BASE_URL" => :jira_base_url_value }.freeze
       }.freeze,
       local: {
-        label: "local", dir_name: "local_test_runs", env_prefix: "LOCAL",
-        url_attr: :local_url, username_attr: :local_username, password_attr: :local_password,
+        dir_name: "local_test_runs",
         extra_env: { "LOCAL_URL" => :url, "LOCAL_OUTPUT_DIR" => :output_dir_value }.freeze
       }.freeze
     }.freeze
 
-    KINDS = KIND_SETTINGS.keys.freeze
+    KIND_SETTINGS = BrowserTestCredentials::KIND_SETTINGS
+    KINDS = BrowserTestCredentials::KINDS
 
-    def initialize(project, workflow, kind:, root: Rails.root.join("tmp"))
-      raise ArgumentError, "unknown browser test kind #{kind.inspect}" unless KINDS.include?(kind)
-
+    def initialize(project, workflow, kind:, root: Rails.root.join("tmp"), credentials: BrowserTestCredentials.new(project, kind: kind))
       @project = project
       @workflow = workflow
       @kind = kind
       @root = Pathname(root)
+      @credentials = credentials
     end
 
     def validate!
-      if url.blank?
-        raise ArgumentError, "project #{@project.name} has no #{label} URL"
-      end
-      if username.blank? || password.blank?
-        raise ArgumentError, "project #{@project.name} has no #{label} login (username/password)"
-      end
-
+      @credentials.validate!
       self
     end
 
@@ -80,11 +70,7 @@ module AiCli
     private
 
     def settings
-      KIND_SETTINGS.fetch(@kind)
-    end
-
-    def label
-      settings[:label]
+      RUN_SETTINGS.fetch(@kind)
     end
 
     def dir_name
@@ -92,8 +78,7 @@ module AiCli
     end
 
     def credential_env
-      prefix = settings[:env_prefix]
-      { "#{prefix}_USERNAME" => username, "#{prefix}_PASSWORD" => password }
+      @credentials.env
     end
 
     def extra_env
@@ -109,15 +94,7 @@ module AiCli
     end
 
     def url
-      @project.public_send(settings[:url_attr])
-    end
-
-    def username
-      @project.public_send(settings[:username_attr])
-    end
-
-    def password
-      @project.public_send(settings[:password_attr])
+      @credentials.url
     end
   end
 end
