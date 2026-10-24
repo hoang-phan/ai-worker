@@ -44,29 +44,10 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
 
     def lessons_output(*lines) = "LESSONS_BEGIN\n#{lines.map { |l| "- #{l}" }.join("\n")}\nLESSONS_END\nLOCAL_RETEST: NO"
 
-    it "appends new lessons one per line, skipping case-insensitive duplicates" do
-      project.update!(agent_lessons: "Use partial A")
-
-      finish(lessons_output("use PARTIAL a", "Prefer services"))
-
-      expect(project.reload.agent_lessons).to eq("Use partial A\nPrefer services")
-    end
-
-    it "starts the list when there are none yet" do
+    it "records lessons from the LESSONS block" do
       finish(lessons_output("Prefer services"))
 
       expect(project.reload.agent_lessons).to eq("Prefer services")
-    end
-
-    it "keeps only the newest 40 lines" do
-      project.update!(agent_lessons: (1..40).map { |i| "old #{i}" }.join("\n"))
-
-      finish(lessons_output("new 1", "new 2"))
-
-      lines = project.reload.agent_lessons.lines.map(&:strip)
-      expect(lines.size).to eq(40)
-      expect(lines.first).to eq("old 3")
-      expect(lines.last).to eq("new 2")
     end
 
     it "leaves the lessons unchanged when there is no block" do

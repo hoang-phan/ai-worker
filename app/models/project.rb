@@ -81,6 +81,14 @@ class Project < ApplicationRecord
 
   def skill_catalog = Projects::SkillCatalog.new(local_directory)
 
+  # Append distilled review lessons to `agent_lessons` via Projects::AgentLessons
+  # (case-insensitive de-dup, newest MAX lines). Skips validations/callbacks.
+  def add_agent_lessons(lessons)
+    return if Array(lessons).empty?
+
+    update_column(:agent_lessons, Projects::AgentLessons.new(agent_lessons).merge(lessons))
+  end
+
   def uat_test_ready?
     uat_test_enabled? && uat_url.present?
   end

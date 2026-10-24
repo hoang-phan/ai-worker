@@ -118,4 +118,30 @@ RSpec.describe Project, type: :model do
       expect(project.slack_user_id_for("@Octocat")).to eq("U1")
     end
   end
+
+  describe "#add_agent_lessons" do
+    before { project.save! }
+
+    it "appends new lessons to the stored list" do
+      project.update_column(:agent_lessons, "Use partial A")
+
+      project.add_agent_lessons([ "Prefer services" ])
+
+      expect(project.reload.agent_lessons).to eq("Use partial A\nPrefer services")
+    end
+
+    it "is a no-op for an empty list" do
+      project.update_column(:agent_lessons, "Use partial A")
+
+      expect { project.add_agent_lessons([]) }.not_to change { project.reload.agent_lessons }
+    end
+
+    it "uses Projects::AgentLessons merge rules" do
+      project.update_column(:agent_lessons, "Use partial A")
+
+      project.add_agent_lessons([ "use PARTIAL a", "Prefer services" ])
+
+      expect(project.reload.agent_lessons).to eq("Use partial A\nPrefer services")
+    end
+  end
 end

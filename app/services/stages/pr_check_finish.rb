@@ -27,9 +27,7 @@ module Stages
 
     # Best effort: a lesson that cannot be saved never fails the stage.
     def record_lessons(new_lessons)
-      return if new_lessons.empty?
-
-      project.update_column(:agent_lessons, Projects::AgentLessons.new(project.agent_lessons).merge(new_lessons))
+      project.add_agent_lessons(new_lessons)
     rescue StandardError => e
       Rails.logger.warn("Could not save agent lessons for project #{project.id}: #{e.message}")
     end
