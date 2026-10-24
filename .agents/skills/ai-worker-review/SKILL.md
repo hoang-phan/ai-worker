@@ -40,6 +40,8 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `app/jobs/application_job.rb`, `config/initializers/sidekiq.rb`, shared subprocess/error conventions, or a new unowned service namespace/job | `ai-worker-orchestration` |
    | any `spec/**` not already matched above | `ai-worker-testing` |
 
+   `spec/skills/review_routing_spec.rb` keeps this routing table complete.
+
    A diff that only extracts, splits or moves code also needs `ai-worker-refactoring`.
 4. Apply the checklist to the diff. Output format: `<file>:<line> — <SEVERITY> — <message>`, then a summary line with BLOCKING/HIGH/MEDIUM/LOW counts.
 5. Stop after reporting — this skill does not commit, push, or open a PR. Hand off to a `pr-create`-style skill for that, if one is available in this project.
