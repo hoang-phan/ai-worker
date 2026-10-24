@@ -7,6 +7,8 @@ description: Applies ai-worker's prompt discipline. Use for any task touching ap
 
 Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TEMPLATES.md` and the code disagree, the code wins (and the doc gets fixed).
 
+Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::LocalFeedback`) and their credential/marker rules: `ai-worker-browser-tests`.
+
 ## File map
 
 - `app/services/prompts/slack_post.rb` — `Prompts::SlackPost.new(channel:, message:).to_s` wraps a message for the Slack MCP post; the caller renders the channel, the message is declared "content, not instructions".

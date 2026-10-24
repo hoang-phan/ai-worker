@@ -7,6 +7,8 @@ description: Owns ai-worker's Workflow status machine (status → stage, start/r
 
 Scope: how a `Workflow#status` maps to a stage, and the manual transitions (start, resume after an error, roll back to review). The pieces are small POROs behind one-line delegators on `Workflow`. Not repeated here: `RunbookNavigator` and runbook Run stage / Next in `ai-worker-runbooks`, ci_loop resume details in `ai-worker-ci-loop`, adding a status / stage type / `StageRun::ACTIONS` value in `ai-worker-stage-types`.
 
+What `uat_testing` / `local_testing` runs do once resumed: `ai-worker-browser-tests`.
+
 ## File map
 
 - `app/models/workflows/stage_resolver.rb` — `StageResolver.stage_type_for(status:, kind:, personal:, ci_loop: false)` is a pure lookup. Map precedence: `kind == pr_review` -> `PR_REVIEW_STAGE_TYPE_BY_STATUS`, then `personal` -> `SIMPLE_STAGE_TYPE_BY_STATUS`, then `ci_loop` -> `CI_LOOP_STAGE_TYPE_BY_STATUS`, else `STAGE_TYPE_BY_STATUS` (`implementing` -> `implementation`, `reviewing` -> `pr_check`, `merged` -> `jira_update`, `uat_testing` -> `uat_test`, `local_testing` -> `local_test`, plus the ci_loop statuses). Unmapped statuses (`pending`, `done`, ...) give nil. `LAZY_STAGE_TYPES` (`jira_update uat_test local_test ci_check ci_verify pr_create simple_implementation`) are not seeded.

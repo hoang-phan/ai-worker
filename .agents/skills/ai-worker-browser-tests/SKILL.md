@@ -1,6 +1,6 @@
 ---
 name: ai-worker-browser-tests
-description: Applies ai-worker's agent-driven browser-test discipline. Use for any task touching app/services/ai_cli/{browser_test_run,cursor_mcp_file}.rb, app/services/ai_cli/{runner,command,provider}.rb or app/services/ai_cli/{command,provider}/{claude,codex,cursor}.rb; app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish,jira_update_finish,pr_check_finish,pr_check_decision,review_handoff}.rb; app/services/scheduling/uat_phase.rb; app/services/prompts/stage_sections/local_feedback.rb or app/services/prompts/defaults/{uat_test,local_test}.md; app/models/{project,stage,stage_run}.rb, app/models/stages/run_history.rb, app/models/workflows/transitions.rb; app/views/projects/form/{_uat_test,_local_test}.html.erb; or spec/services/ai_cli/{browser_test_run,cursor_mcp_file,output}_spec.rb, spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish,jira_update_finish,pr_check_finish,pr_check_decision,review_handoff,start_handler,completion_handler}_spec.rb, spec/services/scheduling/uat_phase_spec.rb, spec/services/prompts/{defaults_spec,stage_prompt_spec}.rb, spec/services/prompts/stage_sections/local_feedback_spec.rb, spec/models/{project,stage}_spec.rb, spec/models/stages/run_history_spec.rb, or spec/models/workflows/{current_stage,transitions}_spec.rb.
+description: Applies ai-worker's agent-driven browser-test discipline (uat_test and local_test). Use for any task touching app/services/ai_cli/{browser_test_run,cursor_mcp_file}.rb; app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb; app/services/scheduling/uat_phase.rb; app/services/prompts/stage_sections/local_feedback.rb or app/services/prompts/defaults/{uat_test,local_test}.md; app/views/projects/form/{_uat_test,_local_test}.html.erb; or spec/services/ai_cli/{browser_test_run,cursor_mcp_file}_spec.rb, spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb, spec/services/scheduling/uat_phase_spec.rb, or spec/services/prompts/stage_sections/local_feedback_spec.rb.
 ---
 
 # ai-worker-browser-tests
@@ -10,12 +10,20 @@ description: Applies ai-worker's agent-driven browser-test discipline. Use for a
 ## File map
 
 - `app/services/ai_cli/browser_test_run.rb` — per-kind settings, validation, env, output directory, and Playwright MCP config.
-- `app/services/ai_cli/{runner,command,provider}.rb`, `command/{claude,codex,cursor}.rb`, `provider/{claude,codex,cursor}.rb`, `cursor_mcp_file.rb` — launch and provider-specific MCP delivery.
-- `app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish,jira_update_finish,pr_check_finish}.rb` — start, result/retest decisions, and delayed-UAT handoff.
+- `app/services/ai_cli/cursor_mcp_file.rb` — Cursor's transient `.cursor/mcp.json` delivery.
+- `app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb` — start, result handling, and retest decisions.
 - `app/services/scheduling/uat_phase.rb` — due-UAT selection, slot limit, and retry of non-processing `uat_testing` runs.
-- `app/services/ai_cli/output.rb`, `app/services/prompts/stage_sections/local_feedback.rb`, `app/services/prompts/defaults/{uat_test,local_test}.md` — result protocol and prompts.
-- `app/models/{project,stage,stage_run}.rb`, `app/models/stages/run_history.rb`, `app/models/workflows/transitions.rb` — readiness, action history, and resume routing.
+- `app/services/prompts/stage_sections/local_feedback.rb`, `app/services/prompts/defaults/{uat_test,local_test}.md` — retest feedback section and prompts.
 - `app/views/projects/form/{_uat_test,_local_test}.html.erb` — project opt-in/configuration screens.
+
+Related files owned elsewhere (read them, but follow the owning skill when changing them):
+
+- Launching the CLI (`AiCli::Runner`, `Command`, `command/{claude,codex,cursor}.rb`) with `--mcp-config` / Codex `-c mcp_servers...` overrides, and the result-marker parser `AiCli::Output`: `ai-worker-agent-cli`.
+- `AiCli::Provider` and `provider/{claude,codex,cursor}.rb` (provider registry and selection): `ai-worker-cli-selection`.
+- `Stages::{JiraUpdateFinish,PrCheckFinish,PrCheckDecision,ReviewHandoff}` — the UAT scheduling handoff, retest branch and reviewer/auto-merge handoff live inside general stage finishers, and `StartHandler` / `CompletionHandler` dispatch: `ai-worker-stage-pipeline`.
+- Readiness predicates on `Project`, `Stage#local_test_unfinished?`, `StageRun::ACTIONS`, `Stages::RunHistory`: `ai-worker-domain`.
+- Resume routing (`Workflows::Transitions#resume_status`, `Workflows::CurrentStage`): `ai-worker-workflow-lifecycle`.
+- `Prompts::StagePrompt` and `Prompts::Defaults`: `ai-worker-prompts`.
 
 ## Browser run and MCP
 
@@ -44,10 +52,10 @@ Its MCP JSON starts `npx -y @playwright/mcp@0.0.83 --headless --isolated --caps 
 
 ## Specs
 
-`spec/services/ai_cli/{browser_test_run,cursor_mcp_file,output}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish,jira_update_finish,pr_check_finish,pr_check_decision,review_handoff,start_handler,completion_handler}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/{defaults_spec,stage_prompt_spec}.rb`, `spec/services/prompts/stage_sections/local_feedback_spec.rb`; `spec/models/{project,stage}_spec.rb`, `spec/models/stages/run_history_spec.rb`, and `spec/models/workflows/{current_stage,transitions}_spec.rb`.
+`spec/services/ai_cli/{browser_test_run,cursor_mcp_file}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/stage_sections/local_feedback_spec.rb`. When a change also touches a file owned elsewhere, run that skill's specs too (e.g. `output_spec.rb` for markers, `jira_update_finish_spec.rb` / `pr_check_finish_spec.rb` for handoffs, `transitions_spec.rb` for resume).
 
 Run:
 
 ```sh
-RAILS_ENV=test bundle exec rspec spec/services/ai_cli/browser_test_run_spec.rb spec/services/ai_cli/cursor_mcp_file_spec.rb spec/services/ai_cli/output_spec.rb spec/services/stages/browser_test_start_spec.rb spec/services/stages/local_test_policy_spec.rb spec/services/stages/local_test_finish_spec.rb spec/services/stages/uat_test_finish_spec.rb spec/services/stages/jira_update_finish_spec.rb spec/services/stages/pr_check_finish_spec.rb spec/services/stages/pr_check_decision_spec.rb spec/services/stages/review_handoff_spec.rb spec/services/stages/start_handler_spec.rb spec/services/stages/completion_handler_spec.rb spec/services/scheduling/uat_phase_spec.rb spec/services/prompts/defaults_spec.rb spec/services/prompts/stage_prompt_spec.rb spec/services/prompts/stage_sections/local_feedback_spec.rb spec/models/project_spec.rb spec/models/stage_spec.rb spec/models/stages/run_history_spec.rb spec/models/workflows/current_stage_spec.rb spec/models/workflows/transitions_spec.rb
+RAILS_ENV=test bundle exec rspec spec/services/ai_cli/browser_test_run_spec.rb spec/services/ai_cli/cursor_mcp_file_spec.rb spec/services/stages/browser_test_start_spec.rb spec/services/stages/local_test_policy_spec.rb spec/services/stages/local_test_finish_spec.rb spec/services/stages/uat_test_finish_spec.rb spec/services/scheduling/uat_phase_spec.rb spec/services/prompts/stage_sections/local_feedback_spec.rb
 ```

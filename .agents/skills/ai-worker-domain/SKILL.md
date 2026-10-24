@@ -9,6 +9,8 @@ Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`,
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
 
+Browser-test behaviour behind the UAT/local readiness predicates, `Stage#local_test_unfinished?` and the `uat_*`/`local_test_*` run actions: `ai-worker-browser-tests`.
+
 ## File map (the whole scope)
 
 - `app/models/project.rb` — a local checkout plus, for `jira` projects, its GitHub repo. `enum :kind, { jira: 0, personal: 1 }` (jira = GitHub/PR flow driven by tickets; personal = local-only, one task description per workflow, no PR). `has_many :workflows, :agents, :jira_syncs, :bugsnag_syncs` (all `dependent: :destroy`). Holds per-project settings, grouped: defaults for new workflows (skills, reviewers), Jira (site URL, assignee, tester), Slack PR review and review pings (enable flag, mention, channels, GitHub→Slack user map), UAT testing (enable flag, URL, login, delay), local pre-review testing (same shape), shared test/CI instructions, and brainstorming (goal, limits, auto-start, last-run bookkeeping). UAT and local passwords are Active Record `encrypts` columns. Validations are conditional on kind or on the feature's enable flag. It also refuses a `local_directory` that is this app's own live checkout (agents branch, merge and migrate inside the clone).
