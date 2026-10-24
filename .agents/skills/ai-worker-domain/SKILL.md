@@ -8,6 +8,7 @@ description: Applies ai-worker's data model discipline. Use for any task touchin
 Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+Per-project settings across model, form, controller, prompts, tests, and onboarding docs: `ai-worker-project-settings`.
 
 Browser-test behaviour behind the UAT/local readiness predicates, `Stage#local_test_unfinished?` and the `uat_*`/`local_test_*` run actions: `ai-worker-browser-tests`.
 

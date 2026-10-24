@@ -29,6 +29,6 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | other `app/jobs/**`, `app/services/**` | `ai-worker-orchestration` |
    | `spec/**` | `ai-worker-testing` |
 
-   Narrower skills (`ai-worker-ci-loop`, `ai-worker-runbooks`, `ai-worker-browser-tests`, `ai-worker-workflow-lifecycle`, `ai-worker-cli-selection`, `ai-worker-project-dashboard`, `ai-worker-stage-types`, `ai-worker-detached-agent-runs`, `ai-worker-ui`) apply when the diff touches the files their descriptions name. A diff that only extracts, splits or moves code also needs `ai-worker-refactoring`.
+   Narrower skills (`ai-worker-ci-loop`, `ai-worker-runbooks`, `ai-worker-browser-tests`, `ai-worker-workflow-lifecycle`, `ai-worker-cli-selection`, `ai-worker-project-dashboard`, `ai-worker-project-settings`, `ai-worker-stage-types`, `ai-worker-detached-agent-runs`, `ai-worker-ui`) apply when the diff touches the files their descriptions name. A diff that only extracts, splits or moves code also needs `ai-worker-refactoring`.
 4. Apply the checklist to the diff. Output format: `<file>:<line> — <SEVERITY> — <message>`, then a summary line with BLOCKING/HIGH/MEDIUM/LOW counts.
 5. Stop after reporting — this skill does not commit, push, or open a PR. Hand off to a `pr-create`-style skill for that, if one is available in this project.

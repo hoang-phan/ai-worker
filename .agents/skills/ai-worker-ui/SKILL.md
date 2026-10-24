@@ -8,6 +8,7 @@ description: Applies ai-worker's CRUD-screen discipline. Use for any task touchi
 Scope: `app/controllers/**`, `app/views/**`, `config/routes.rb`. Read `app/models/*.rb` only for attribute/validation/enum names when building forms — do not modify models here (that's `ai-worker-domain`'s scope) and do not touch `app/jobs`/`app/services` (that's `ai-worker-orchestration`'s scope).
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+Per-project settings across model, form, controller, prompts, tests, and onboarding docs: `ai-worker-project-settings`.
 
 ## File map (the whole scope)
 
