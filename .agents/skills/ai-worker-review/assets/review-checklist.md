@@ -1,3 +1,8 @@
+---
+name: ai-worker-review
+description: Checklist for reviewing ai-worker changes before opening a pull request.
+---
+
 # ai-worker review checklist
 
 ## Subprocess safety

@@ -1,6 +1,8 @@
 require "spec_helper"
+require_relative "../support/skill_path_helper"
 
 RSpec.describe "skill file maps" do
+  include SkillPathHelper
   APP_LAYERS = %w[models services controllers helpers jobs].freeze
   EXEMPT_FILES = %w[
     app/models/application_record.rb
@@ -16,15 +18,6 @@ RSpec.describe "skill file maps" do
         [ line, *line.scan(%r{[A-Za-z0-9_./{}*,:-]+}).flat_map { |token| expand_braces(token) } ]
       end
     end.join("\n")
-  end
-
-  def expand_braces(text)
-    match = text.match(/\{([^{}]+)\}/)
-    return [ text ] unless match
-
-    match[1].split(",").flat_map do |choice|
-      expand_braces(text.sub(match[0], choice))
-    end
   end
 
   def constant_name(path)
