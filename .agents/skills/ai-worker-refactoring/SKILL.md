@@ -17,6 +17,7 @@ Use this skill for behaviour-preserving structural work. It complements the skil
 
 ## Specs and file maps
 
+- `spec/skills/file_map_coverage_spec.rb` enforces the file-map rule for production Ruby files.
 - Move examples with the extracted code: add one spec file per new class and slim the original spec to orchestration/public-delegation coverage. Preserve all coverage; compare `rspec --dry-run` example counts before and after the move.
 - In the same commit, update the matching owning skill's file map so it describes every new production file and where its spec belongs. Point to the owning skills for subsystem-specific rules rather than duplicating them here.
 

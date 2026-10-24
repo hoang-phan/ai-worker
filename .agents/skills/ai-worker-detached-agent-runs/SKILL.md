@@ -1,6 +1,6 @@
 ---
 name: ai-worker-detached-agent-runs
-description: Checklist for adding or changing an agent-backed fetch/sync/triage service and its job — Jira::AgentFetcher, Slack::MentionFetcher, Bugsnag::Triager on AiCli::DetachedRun. Use when a task adds a new detached-agent service, changes its result file, prompt, tool allowlist, blockers, import, sync job or schedule.yml entry, or touches AiCli::DetachedRun.
+description: Checklist for adding or changing an agent-backed fetch/sync/triage service and its job — Jira::AgentFetcher, Slack::MentionFetcher, Bugsnag::Triager on AiCli::DetachedRun. Use when a task adds a new detached-agent service, changes its result file, prompt, tool allowlist, blockers, import, sync job or schedule.yml entry, or touches AiCli::DetachedRun or app/services/agent_runs/**.
 ---
 
 # ai-worker-detached-agent-runs
@@ -22,7 +22,11 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 - **Jira** — ticket import (assigned tickets → development workflows): see the `ai-worker-jira-ticket-sync` skill.
 - **Slack** — PR-review mention import: see the `ai-worker-pr-review-workflows` skill; outbound review pings: see the `ai-worker-slack-review-pings` skill.
 - **Bugsnag** — file map, invariants and change checklist: see the `ai-worker-bugsnag-triage` skill.
-- **`AgentRuns::*`** (`app/services/agent_runs/`) — `sync_cycle.rb` (`SyncCycle.call(source:, log_prefix:, rescue_errors:, logger:)`: one poll → import → start pass per record, shared by the sync jobs; records expected errors so later records still run), `cycle_source.rb` (`CycleSource`, base for the `source:` object: `poll`, `import(payload)`, `summary(result)`, `persist!(result, summary)`, `persist_failure!(message)`, `start!` are required; `eligible?`/`idle?`/`due?` default true, `blockers` `[]`; hooks `log_message(result, summary)` (default `nil` → `"<log_prefix> <summary>"`; overrides must return a String), `after_import(result)` and `after_start` (default no-ops) are always called by `SyncCycle`), `fetcher_cycle_source.rb` (`FetcherCycleSource`, the shared fetcher + sync-wrapper implementation of `poll`, `import`, `summary`, `idle?`, `blockers`, and `start!`; record-specific sources supply persistence, eligibility, cadence and hooks). `Jira::SyncCycleSource`, `Slack::ReviewCycleSource`, and `Bugsnag::SyncCycleSource` subclass it; `Brainstorm::CycleSource` remains planner-shaped. `cadence.rb` has pure `due:` rules (see Job above), and `manual_start.rb` (`ManualStart`: the "run now" button flow — blocked/skipped/started/already_running/failed statuses that controllers map to flashes).
+- `app/services/agent_runs/sync_cycle.rb` — `AgentRuns::SyncCycle` performs one poll/import/start pass (`spec/services/agent_runs/sync_cycle_spec.rb`).
+- `app/services/agent_runs/cycle_source.rb` — `AgentRuns::CycleSource` defines source defaults and hooks (`spec/services/agent_runs/sync_cycle_spec.rb`).
+- `app/services/agent_runs/fetcher_cycle_source.rb` — `AgentRuns::FetcherCycleSource` adapts a fetcher and sync wrapper (`spec/services/agent_runs/fetcher_cycle_source_spec.rb`).
+- `app/services/agent_runs/cadence.rb` — `AgentRuns::Cadence` supplies pure due-time rules (`spec/services/agent_runs/cadence_spec.rb`).
+- `app/services/agent_runs/manual_start.rb` — `AgentRuns::ManualStart` implements the manual-run result flow (`spec/services/agent_runs/manual_start_spec.rb`).
 - **Job behaviour**: each sync job imports a finished result first, then starts a new run only if none is running and its trigger rule holds (last fetch old enough for Jira/Slack, once per weekday after a set hour for Bugsnag, no pending workflow for brainstorm); fetch errors are logged and recorded on the sync/project as its "last result".
 
 ## Checklist for a new one
