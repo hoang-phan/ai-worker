@@ -8,6 +8,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Layout and running
 
 - Specs live in `spec/{models,services,jobs,requests}`, mirroring `app/`. Helpers: `spec/rails_helper.rb`, `spec/spec_helper.rb`.
+- New classes under `app/{models,services,jobs,helpers}` need a mirrored `spec/<same path>_spec.rb`; `spec/structure/spec_mirror_spec.rb` enforces this (controllers out of scope; only add to its EXEMPT list when a focused unit spec is not useful — error-only / Rails base / abstract base covered elsewhere).
 - Always run with the environment set explicitly: `RAILS_ENV=test bundle exec rspec` (or a single file/line). Never rely on the default environment — it is development, which is real data. Test DB is `storage/test.sqlite3`; prepare with `RAILS_ENV=test bin/rails db:test:prepare`.
 - Transactional fixtures are on (`use_transactional_fixtures = true`); records created in an example roll back automatically.
 - Request specs use `let_tmpdir` + `RecordHelper` (`build_jira_project`, `build_personal_project`, `build_jira_workflow`, `build_task_workflow`, `build_runbook_workflow`, `build_pr_review_workflow`, `build_runbook_stage`); tag a describe with `active_job_test_adapter: true` (`spec/support/active_job_test_adapter.rb`) to swap ActiveJob's queue adapter to `:test` for its examples instead of copying an `around` block.
