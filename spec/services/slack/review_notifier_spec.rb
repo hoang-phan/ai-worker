@@ -62,11 +62,6 @@ RSpec.describe Slack::ReviewNotifier do
       expect(Dir.children(tmp_root.join(workflow.id.to_s))).to eq([ "1760000000" ])
     end
 
-    it "writes the pid to <dir>/pid" do
-      notify
-      expect(run_dir.join("pid").read).to eq("42")
-    end
-
     it "wraps a CommandError from the runner in NotifyError" do
       allow(runner).to receive(:start).and_raise(AiCli::CommandError, "boom")
       expect { notify }.to raise_error(Slack::NotifyError, /failed to start: boom/)

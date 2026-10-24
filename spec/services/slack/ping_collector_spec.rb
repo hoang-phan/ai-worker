@@ -56,13 +56,6 @@ RSpec.describe Slack::PingCollector do
     expect(path).not_to exist
   end
 
-  it "treats a dir without a pid file as finished" do
-    ping(pid: nil, log: link)
-    expect(poller).not_to receive(:call)
-    expect(workflow).to receive(:update!)
-    collector.collect(workflow)
-  end
-
   it "keeps the workflow dir while a run is going" do
     ping(started_at: 1.minute.ago.to_i, pid: 1, log: link)
     ping(pid: 2, log: "")

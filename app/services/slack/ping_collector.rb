@@ -40,7 +40,7 @@ module Slack
     # A finished run with a permalink is removed; one without is logged and kept.
     def collect_run(workflow, dir)
       run = PingRun.new(dir)
-      return :running if running?(run)
+      return :running if run.running?(poller)
 
       link = run.permalink
       if link.blank?
@@ -50,12 +50,6 @@ module Slack
         FileUtils.rm_rf(dir)
       end
       :finished
-    end
-
-    # Fresh and still alive; stale runs count as finished.
-    def running?(run)
-      state = run.pid_file.exist? ? poller.call(run.pid_file.read.to_i) : [ :completed, nil ]
-      state == :running && !run.stale?
     end
 
     def remove_if_empty(workflow_dir)

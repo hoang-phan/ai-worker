@@ -46,4 +46,54 @@ RSpec.describe Slack::PingRun do
       expect(run.permalink).to eq(link)
     end
   end
+
+  describe "#start!" do
+    let(:runner) { double("runner", start: 42) }
+    let(:fresh_run) { described_class.for(tmp_root, 9, Time.zone.at(1_760_000_000)) }
+
+    it "creates the dir, starts the run with the log path and options, and writes the pid" do
+      fresh_run.start!(runner, "prompt", allowed_tools: %w[t], model: "haiku")
+
+      expect(runner).to have_received(:start).with(
+        fresh_run.to_s, "prompt", log_path: fresh_run.log_file.to_s, allowed_tools: %w[t], model: "haiku"
+      )
+      expect(fresh_run.pid_file.read).to eq("42")
+    end
+
+    it "writes no pid when the runner raises" do
+      allow(runner).to receive(:start).and_raise(AiCli::CommandError, "boom")
+      expect { fresh_run.start!(runner, "p") }.to raise_error(AiCli::CommandError)
+      expect(fresh_run.pid_file).not_to exist
+    end
+  end
+
+  describe "#running?" do
+    let(:poller) { double("poller") }
+    let(:fresh) { run.started_at + 1.minute }
+    let(:stale) { run.started_at + 10.minutes }
+
+    before { dir.join("pid").write("42") }
+
+    it "is true when the pid is alive and the run is fresh" do
+      allow(poller).to receive(:call).with(42).and_return(:running)
+      expect(run.running?(poller, fresh)).to be(true)
+    end
+
+    it "is false when alive but stale" do
+      allow(poller).to receive(:call).with(42).and_return(:running)
+      expect(run.running?(poller, stale)).to be(false)
+    end
+
+    it "is false when the pid is dead" do
+      allow(poller).to receive(:call).with(42).and_return([ :completed, nil ])
+      expect(run.running?(poller, fresh)).to be(false)
+    end
+
+    it "is false without a pid file and does not poll" do
+      dir.join("pid").delete
+      allow(poller).to receive(:call)
+      expect(run.running?(poller, fresh)).to be(false)
+      expect(poller).not_to have_received(:call)
+    end
+  end
 end

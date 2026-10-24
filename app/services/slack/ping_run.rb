@@ -1,6 +1,8 @@
+require "fileutils"
+
 module Slack
-  # One ping run dir: tmp/slack_pings/<workflow_id>/<started_at>/{pid,agent.log}. ReviewNotifier creates it,
-  # PingCollector reads it back.
+  # One ping run dir: tmp/slack_pings/<workflow_id>/<started_at>/{pid,agent.log}. Owns both halves of that
+  # layout: `start!` (ReviewNotifier) creates it, `running?` / `permalink` (PingCollector) read it back.
   class PingRun
     ROOT = Rails.root.join("tmp", "slack_pings")
     STALE_AFTER = 5.minutes
@@ -26,6 +28,19 @@ module Slack
 
     def started_at
       Time.zone.at(dir.basename.to_s.to_i)
+    end
+
+    # Creates the dir, starts the detached run in it (logging to agent.log) and records its pid.
+    def start!(runner, prompt, **run_options)
+      FileUtils.mkdir_p(dir)
+      pid = runner.start(to_s, prompt, log_path: log_file.to_s, **run_options)
+      pid_file.write(pid)
+    end
+
+    # Alive and fresh. A missing pid file counts as finished, as does a stale run.
+    def running?(poller, now = Time.current)
+      state = pid_file.exist? ? poller.call(pid_file.read.to_i) : [ :completed, nil ]
+      state == :running && !stale?(now)
     end
 
     def stale?(now = Time.current)

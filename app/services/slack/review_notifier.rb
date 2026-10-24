@@ -1,5 +1,3 @@
-require "fileutils"
-
 module Slack
   # Posts a one-line "please review" message to the project's Slack channel once a PR is up for review,
   # tagging the Slack users that map to the PR's GitHub reviewers (Project#slack_user_map). Optional:
@@ -47,7 +45,8 @@ module Slack
 
       msg = review_message(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed)
       prompt = msg.prompt(channel: project.slack_review_channel, thread_ts: thread_ts)
-      spawn(PingRun.for(root, workflow.id, clock.call), prompt)
+      PingRun.for(root, workflow.id, clock.call)
+             .start!(runner, prompt, allowed_tools: ALLOWED_TOOLS, model: self.class.model)
       nil
     rescue AiCli::CommandError, SystemCallError => e
       raise NotifyError, "Slack ping failed to start: #{e.message}"
@@ -61,13 +60,6 @@ module Slack
     private
 
     attr_reader :project, :runner, :clock, :root, :collector
-
-    def spawn(run, prompt)
-      FileUtils.mkdir_p(run.dir)
-      pid = runner.start(run.to_s, prompt, log_path: run.log_file.to_s,
-                         allowed_tools: ALLOWED_TOOLS, model: self.class.model)
-      run.pid_file.write(pid)
-    end
 
     def review_message(pr_url:, label:, reviewers:, again:, fixed:)
       ReviewMessage.new(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed,
