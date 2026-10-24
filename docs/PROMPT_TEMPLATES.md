@@ -22,7 +22,7 @@ substituted by `Prompts::Renderer` at execution time:
 | `{TASK}` | `workflow.task_description` | The free-text task description; blank if none. |
 | `{STARTED_ON}` | `workflow.created_at` | Date the workflow was created, dd/mm/yyyy, Brisbane time. |
 | `{STAGE_NAME}` | `workflow.current_stage.display_name` | Name of the current stage. |
-| `{PREV_OUTPUT}` | previous runbook stage's output | Last 3000 characters of what the previous stage's agent printed (runbook workflows). |
+| `{PREV_OUTPUT}` | previous runbook stage's output | Last 3000 characters of what the agent printed in the previous stage (runbook workflows). |
 
 Exactly one `PromptTemplate` per `stage_type` should have `active: true` —
 that's the default a `Stage` uses when it doesn't have a `prompt_template_id`

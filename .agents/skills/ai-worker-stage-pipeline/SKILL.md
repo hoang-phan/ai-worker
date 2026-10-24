@@ -16,7 +16,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 ## File map
 
 - `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; persists poller log offsets, dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.
-- `RunProvider` selection: see `ai-worker-project-agents`.
+- `RunProvider` selection: see `ai-worker-cli-selection`.
 - `app/services/stages/ai_run_launcher.rb` — starts the injected runner, persists the workflow's detached-run pid/log/start/offset state, and logs the supplied start action.
 - `app/services/stages/browser_test_start.rb` — validates a UAT/local `BrowserTestRun`, checks out the PR branch for local testing, then launches the browser-configured prompt with its MCP config, environment, and tool restrictions.
 - `app/services/stages/ci_check_finish.rb` — moves a completed CI command to `ci_verifying`, stores its log path and exit status, and logs the output tail.

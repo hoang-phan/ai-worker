@@ -39,7 +39,7 @@ module Prompts
 
     attr_reader :workflow
 
-    # What the previous runbook stage's agent printed, so a stage can build on it.
+    # What the agent printed in the previous runbook stage, so a stage can build on it.
     def previous_output
       previous = workflow.runbook? ? workflow.previous_runbook_stage : nil
       Workflows::StageOutputs.new(workflow).latest_for(previous).to_s.last(PREV_OUTPUT_LIMIT)

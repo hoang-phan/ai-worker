@@ -1,13 +1,13 @@
 ---
-name: ai-worker-project-agents
-description: Applies ai-worker's agent CLI selection discipline (which CLI a stage run uses). Use for app/services/stages/run_provider.rb; app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb; and their listed specs. There are no app-managed project agents or subagents.
+name: ai-worker-cli-selection
+description: Selects the agent CLI and provider for a run — rotation (AiCli::Rotation, Workflow#rotation_provider!), the app-wide AgentSetting fallback and the AiCli::Providers registry, resolved by Stages::RunProvider. Use for app/services/stages/run_provider.rb; app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb; and their listed specs.
 ---
 
 # ai-worker CLI selection
 
 Scope: `app/services/stages/run_provider.rb`, `app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb`, and their specs. Read the affected code: this is a map, not a substitute for it.
 
-The app has no agent / subagent model: no `Agent` records, delegations or per-stage agent. A project that wants subagents defines them in its own folder (e.g. `.claude/agents/`) and the agent CLI loads them itself; ai-worker neither lists nor orchestrates them.
+There are no app-managed project agents or subagents: no `Agent` records, delegations or per-stage agent. A project that wants subagents defines them in its own folder (e.g. `.claude/agents/`) and the agent CLI loads them itself; ai-worker neither lists nor orchestrates them.
 
 ## CLI selection and provider registry
 
@@ -19,3 +19,6 @@ The app has no agent / subagent model: no `Agent` records, delegations or per-st
 
 - `spec/services/stages/run_provider_spec.rb`: rotation > app setting precedence and workflow pinning.
 - `spec/services/ai_cli/rotation_spec.rb`: disabled default, weighted cycling, and invalid weights/providers.
+- `spec/services/ai_cli/providers_spec.rb`: display order, `find`/`fetch` lookup, and each provider's capabilities.
+- `spec/services/ai_cli/provider/provider_spec.rb`: per-provider argv builder, run wrapper (cursor MCP file) and outcome parsing.
+- `spec/services/ai_cli/agent_setting_spec.rb`: `current` fallback chain (cache > `AGENT` > `claude`), writer validation, and `available`.
