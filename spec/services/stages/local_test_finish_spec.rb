@@ -13,15 +13,11 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
     described_class.new(workflow: workflow, stage: stage, handoff: handoff).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   it "moves to reviewing, enables auto-merge on PASSED and notifies reviewers" do
     finish("LOCAL_TEST_RESULT: PASSED")
 
-    expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil,
-                                                processing: false, ai_pid: nil, ai_log_path: nil,
-                                                ai_started_at: nil, ai_log_offset: 0)
-    expect(actions).to eq(%w[local_test_completed])
+    expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil).and have_finished_ai_run
+    expect(stage_actions(stage)).to eq(%w[local_test_completed])
     expect(handoff).to have_received(:enable_auto_merge!).with(workflow.github_pr_url)
     expect(handoff).to have_received(:notify_reviewers!).with(no_args)
   end
@@ -30,7 +26,7 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
     finish("LOCAL_TEST_FEEDBACK_BEGIN\nThe login button is broken\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_RESULT: FAILED")
 
     expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: "The login button is broken")
-    expect(actions).to eq(%w[local_test_completed])
+    expect(stage_actions(stage)).to eq(%w[local_test_completed])
     expect(handoff).not_to have_received(:enable_auto_merge!)
     expect(handoff).to have_received(:notify_reviewers!).with(no_args)
   end
@@ -41,7 +37,7 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
     finish("LOCAL_TEST_FEEDBACK_BEGIN\nThe login button is broken\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_RESULT: FAILED")
 
     expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil)
-    expect(actions).to eq(%w[local_test_completed local_test_completed local_test_completed local_test_rounds_exhausted])
+    expect(stage_actions(stage)).to eq(%w[local_test_completed local_test_completed local_test_completed local_test_rounds_exhausted])
     expect(handoff).not_to have_received(:enable_auto_merge!)
     expect(handoff).to have_received(:notify_reviewers!).with(no_args)
   end

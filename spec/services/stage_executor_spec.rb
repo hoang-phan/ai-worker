@@ -125,7 +125,7 @@ RSpec.describe StageExecutor, type: :service do
         described_class.new(workflow, stage).call
 
         expect(workflow.reload).to have_attributes(processing: true, ai_pid: 777)
-        expect(stage.stage_runs.reorder(:id).pluck(:action)).to eq %w[started]
+        expect(stage_actions(stage)).to eq %w[started]
       end
     end
 
@@ -145,7 +145,7 @@ RSpec.describe StageExecutor, type: :service do
       allow(AiCli::RunPoller).to receive(:new).and_return(instance_double(AiCli::RunPoller, call: [ :finished, "merged" ], log_offset: 0))
       described_class.new(workflow, stage).call
 
-      expect(stage.stage_runs.reorder(:id).pluck(:action)).to eq %w[conflicts_resolved started]
+      expect(stage_actions(stage)).to eq %w[conflicts_resolved started]
       expect(workflow.reload).to have_attributes(processing: true, ai_pid: 777)
     end
   end

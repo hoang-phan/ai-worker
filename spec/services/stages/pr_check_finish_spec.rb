@@ -13,8 +13,6 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   it "schedules a retest, clears feedback, and does not notify reviewers" do
     workflow.update!(local_test_feedback: "The login button is broken")
     workflow.stages.create!(stage_type: :local_test, name: "local_test")
@@ -23,10 +21,8 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
     finish("LOCAL_RETEST: YES\nFIXED_SUMMARY_BEGIN\n- fixed login\nFIXED_SUMMARY_END")
 
     expect(github).to have_received(:request_review!).with(workflow.github_pr_url, handoff.reviewers)
-    expect(workflow.reload).to have_attributes(status: "local_testing", local_test_feedback: nil,
-                                                processing: false, ai_pid: nil, ai_log_path: nil,
-                                                ai_started_at: nil, ai_log_offset: 0)
-    expect(actions).to eq(%w[requested_changes_fixed local_test_retest_scheduled])
+    expect(workflow.reload).to have_attributes(status: "local_testing", local_test_feedback: nil).and have_finished_ai_run
+    expect(stage_actions(stage)).to eq(%w[requested_changes_fixed local_test_retest_scheduled])
     expect(handoff).not_to have_received(:notify_reviewers!)
   end
 
@@ -39,7 +35,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
 
     expect(github).to have_received(:request_review!).with(workflow.github_pr_url, handoff.reviewers)
     expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil)
-    expect(actions).to eq(%w[requested_changes_fixed])
+    expect(stage_actions(stage)).to eq(%w[requested_changes_fixed])
     expect(handoff).to have_received(:notify_reviewers!).with(again: true, fixed: "- clarified the comment")
   end
 
@@ -85,7 +81,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
       allow(project).to receive(:update_column).and_raise(ActiveRecord::StatementInvalid, "boom")
 
       expect { finish(lessons_output("Prefer services")) }.not_to raise_error
-      expect(actions).to eq(%w[requested_changes_fixed])
+      expect(stage_actions(stage)).to eq(%w[requested_changes_fixed])
     end
   end
 end

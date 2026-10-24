@@ -36,6 +36,6 @@ RSpec.describe Stages::AiRunLauncher, type: :service do
     )
     expect(workflow.ai_started_at).to be_present
     expect(workflow.ai_provider).to be_nil
-    expect(stage.stage_runs.reorder(:id).pluck(:action)).to eq [ "conflict_resolution_started" ]
+    expect(stage_actions(stage)).to eq [ "conflict_resolution_started" ]
   end
 end

@@ -8,8 +8,6 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
   let(:stage) { workflow.stages.find_by!(stage_type: :ci_verify) }
   let(:check_stage) { workflow.stages.find_by!(stage_type: :ci_check) }
 
-  def actions(stage) = stage.stage_runs.reorder(:id).pluck(:action)
-
   let(:handoff) { double("Stages::ReviewHandoff", notify_reviewers!: nil) }
 
   def finish(output) = described_class.new(workflow: workflow, stage: stage, project: project, handoff: handoff).call(output)
@@ -23,8 +21,8 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
 
     finish("fixed some\nCI_VERDICT: FAILED")
 
-    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET.merge(status: "ci_checking"))
-    expect(actions(stage)).to eq %w[ci_verify_failed]
+    expect(workflow.reload).to have_attributes(status: "ci_checking").and have_finished_ai_run
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
   end
 
   it "goes back to the check when completed rounds are one below ci_max_rounds" do
@@ -33,8 +31,8 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
     finish("CI_VERDICT: FAILED")
 
     expect(workflow.reload.status).to eq "ci_checking"
-    expect(actions(stage)).to eq %w[ci_verify_failed]
-    expect(actions(stage)).not_to include("ci_rounds_exhausted")
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
+    expect(stage_actions(stage)).not_to include("ci_rounds_exhausted")
   end
 
   it "parks the workflow as errored once the rounds are used up" do
@@ -42,15 +40,15 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
 
     finish("CI_VERDICT: FAILED")
 
-    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET.merge(status: "errored"))
-    expect(actions(stage)).to eq %w[ci_verify_failed ci_rounds_exhausted]
+    expect(workflow.reload).to have_attributes(status: "errored").and have_finished_ai_run
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed ci_rounds_exhausted]
   end
 
   it "goes on to review and pings the reviewers on PASSED (the PR is already open)" do
     finish("CI_VERDICT: PASSED")
 
-    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET.merge(status: "reviewing"))
-    expect(actions(stage)).to eq %w[ci_verify_passed]
+    expect(workflow.reload).to have_attributes(status: "reviewing").and have_finished_ai_run
+    expect(stage_actions(stage)).to eq %w[ci_verify_passed]
     expect(handoff).to have_received(:notify_reviewers!)
   end
 
@@ -67,13 +65,13 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
     finish("CI_VERDICT: PASSED|FAILED example\nCI_VERDICT: FAILED\nmore\nCI_VERDICT: PASSED")
 
     expect(workflow.reload.status).to eq "reviewing"
-    expect(actions(stage)).to eq %w[ci_verify_passed]
+    expect(stage_actions(stage)).to eq %w[ci_verify_passed]
   end
 
   it "uses the last verdict line when a later one is FAILED" do
     finish("CI_VERDICT: PASSED\nCI_VERDICT: FAILED")
 
     expect(workflow.reload.status).to eq "ci_checking"
-    expect(actions(stage)).to eq %w[ci_verify_failed]
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
   end
 end

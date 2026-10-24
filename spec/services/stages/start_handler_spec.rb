@@ -21,8 +21,6 @@ RSpec.describe Stages::StartHandler, type: :service do
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, handoff: handoff, launcher: launcher)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   def expect_run_started(prompt_text = "the prompt", **options)
     expect(launcher).to have_received(:call).with(prompt_text, **options)
   end

@@ -22,9 +22,8 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
 
     expect(github).to have_received(:find_pr_url).with(branch_name: "implementation-finish", jira_ticket: "DONE-1", output: output)
     expect(workflow.reload).to have_attributes(
-      github_pr_url: "https://github.com/acme/widgets/pull/9", status: "reviewing",
-      processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0
-    )
+      github_pr_url: "https://github.com/acme/widgets/pull/9", status: "reviewing"
+    ).and have_finished_ai_run
     expect(stage.stage_runs.pluck(:action)).to eq([ "ran_implementation" ])
     expect(handoff).to have_received(:enable_auto_merge!).with("https://github.com/acme/widgets/pull/9")
     expect(handoff).to have_received(:notify_reviewers!).with(no_args)

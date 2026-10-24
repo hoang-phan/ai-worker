@@ -10,22 +10,20 @@ RSpec.describe Stages::MergeCheck, type: :service do
 
   def call = described_class.new(workflow: workflow, stage: stage, github: github).call
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   it "marks the workflow merged and logs pr_merged_detected when the PR is merged" do
     allow(github).to receive(:merged?).with(workflow.github_pr_url).and_return(true)
 
     call
 
     expect(workflow.reload).to be_merged
-    expect(actions).to eq([ "pr_merged_detected" ])
+    expect(stage_actions(stage)).to eq([ "pr_merged_detected" ])
   end
 
   it "does nothing when the PR is not merged" do
     call
 
     expect(workflow.reload).to be_done
-    expect(actions).to be_empty
+    expect(stage_actions(stage)).to be_empty
   end
 
   it "logs merge_check_failed with the message and does not raise on Github::CommandError" do
@@ -34,7 +32,7 @@ RSpec.describe Stages::MergeCheck, type: :service do
     expect { call }.not_to raise_error
 
     expect(workflow.reload).to be_done
-    expect(actions).to eq([ "merge_check_failed" ])
+    expect(stage_actions(stage)).to eq([ "merge_check_failed" ])
     expect(stage.stage_runs.last.error).to eq("gh exploded")
   end
 end

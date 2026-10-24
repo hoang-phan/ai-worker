@@ -7,8 +7,6 @@ RSpec.describe Stages::CiCheckFinish, type: :service do
   end
   let(:stage) { workflow.stages.find_by!(stage_type: :ci_check) }
 
-  def actions(stage) = stage.stage_runs.reorder(:id).pluck(:action)
-
   def finish(exit_status) = described_class.new(workflow: workflow, stage: stage).call(exit_status)
 
   it "keeps the log path and exit status, and hands over to the verify stage even when the check failed" do
@@ -19,7 +17,7 @@ RSpec.describe Stages::CiCheckFinish, type: :service do
 
     expect(workflow.reload).to have_attributes(status: "ci_verifying", ci_output_path: log.path, ci_exit_status: 1)
     expect(stage.stage_runs.last.output).to include("exit status 1", "boom")
-    expect(actions(stage)).to eq %w[ci_check_completed]
+    expect(stage_actions(stage)).to eq %w[ci_check_completed]
   end
 
   it "clears the AI run fields" do
@@ -27,7 +25,7 @@ RSpec.describe Stages::CiCheckFinish, type: :service do
 
     finish(0)
 
-    expect(workflow.reload).to have_attributes(Workflow::AI_RUN_RESET)
+    expect(workflow.reload).to have_finished_ai_run
   end
 
   it "still hands over with an empty tail when the log file is missing" do

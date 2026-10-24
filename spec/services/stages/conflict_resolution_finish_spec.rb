@@ -15,14 +15,12 @@ RSpec.describe Stages::ConflictResolutionFinish, type: :service do
                         prompt: prompt, start_ai_run: start_ai_run).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   it "aborts the merge and raises when the merge is still in progress" do
     allow(git).to receive(:merge_in_progress?).and_return(true)
 
     expect { finish }.to raise_error(AiCli::CommandError, /did not finish resolving merge conflicts with main/)
     expect(git).to have_received(:abort_merge!).with(project)
-    expect(actions).to be_empty
+    expect(stage_actions(stage)).to be_empty
     expect(start_ai_run).not_to have_received(:call)
   end
 
@@ -37,7 +35,7 @@ RSpec.describe Stages::ConflictResolutionFinish, type: :service do
     finish("all good")
 
     expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil)
-    expect(actions).to eq %w[conflicts_resolved]
+    expect(stage_actions(stage)).to eq %w[conflicts_resolved]
     expect(stage.stage_runs.last.output).to eq "all good"
     expect(git).not_to have_received(:abort_merge!)
     expect(start_ai_run).to have_received(:call).with("the prompt")

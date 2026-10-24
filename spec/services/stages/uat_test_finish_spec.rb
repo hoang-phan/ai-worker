@@ -12,11 +12,8 @@ RSpec.describe Stages::UatTestFinish, type: :service do
     described_class.new(workflow: workflow, stage: stage).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   def expect_ai_run_reset
-    expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil,
-                                                ai_started_at: nil, ai_log_offset: 0)
+    expect(workflow.reload).to have_finished_ai_run
   end
 
   %w[PASSED FAILED BLOCKED].each do |verdict|
@@ -25,7 +22,7 @@ RSpec.describe Stages::UatTestFinish, type: :service do
 
       expect(workflow.reload.status).to eq "uat_tested"
       expect_ai_run_reset
-      expect(actions).to eq(%w[uat_test_completed])
+      expect(stage_actions(stage)).to eq(%w[uat_test_completed])
     end
   end
 
@@ -34,6 +31,6 @@ RSpec.describe Stages::UatTestFinish, type: :service do
       .to raise_error(AiCli::CommandError, "agent finished without a UAT_RESULT line, treating the UAT test as failed")
 
     expect(workflow.reload).to have_attributes(status: "implementing", processing: true)
-    expect(actions).to be_empty
+    expect(stage_actions(stage)).to be_empty
   end
 end

@@ -36,7 +36,7 @@ RSpec.describe Workflow, type: :model do
 
       workflow.finish_ai_run!(auto_run: false)
 
-      expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil, ai_log_offset: 0, auto_run: false)
+      expect(workflow.reload).to have_finished_ai_run.and have_attributes(auto_run: false)
     end
   end
 

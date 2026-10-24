@@ -20,8 +20,7 @@ RSpec.describe Stages::FailureHandler, type: :service do
     handle
 
     workflow.reload
-    expect(workflow).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil, ai_started_at: nil,
-                                        ai_log_offset: 0, auto_run: false, status: "implementing")
+    expect(workflow).to have_attributes(auto_run: false, status: "implementing").and have_finished_ai_run
     expect(stage.stage_runs.where(action: "failed").sole).to have_attributes(error: "boom")
     expect(Git::BranchService).not_to have_received(:abort_merge!)
   end

@@ -13,11 +13,8 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
     described_class.new(workflow: workflow, stage: stage, project: project).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   def expect_ai_run_reset
-    expect(workflow.reload).to have_attributes(processing: false, ai_pid: nil, ai_log_path: nil,
-                                                ai_started_at: nil, ai_log_offset: 0)
+    expect(workflow.reload).to have_finished_ai_run
   end
 
   let(:uat_attributes) { { uat_test_enabled: true, uat_url: "https://uat.example.com", uat_test_delay_minutes: 30 } }
@@ -27,7 +24,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
       .to raise_error(AiCli::CommandError, "agent finished without a JIRA_RESULT line, treating the Jira update as failed")
 
     expect(workflow.reload).to have_attributes(status: "implementing", processing: true)
-    expect(actions).to be_empty
+    expect(stage_actions(stage)).to be_empty
   end
 
   context "when the project has UAT testing ready" do
@@ -39,7 +36,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
 
         expect(workflow.reload).to have_attributes(status: "uat_waiting", uat_test_at: 30.minutes.from_now)
         expect_ai_run_reset
-        expect(actions).to eq(%w[jira_updated uat_test_scheduled])
+        expect(stage_actions(stage)).to eq(%w[jira_updated uat_test_scheduled])
         expect(stage.stage_runs.find_by(action: "uat_test_scheduled").output)
           .to eq "UAT test scheduled for #{30.minutes.from_now.iso8601}"
       end
@@ -55,7 +52,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
       finish("JIRA_RESULT: RELEASEABLE")
 
       expect(workflow.reload).to have_attributes(status: "jira_updated", uat_test_at: nil)
-      expect(actions).to eq(%w[jira_updated])
+      expect(stage_actions(stage)).to eq(%w[jira_updated])
     end
   end
 
@@ -65,7 +62,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
 
       expect(workflow.reload).to have_attributes(status: "jira_updated", uat_test_at: nil)
       expect_ai_run_reset
-      expect(actions).to eq(%w[jira_updated])
+      expect(stage_actions(stage)).to eq(%w[jira_updated])
     end
   end
 end

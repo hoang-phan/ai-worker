@@ -18,8 +18,6 @@ RSpec.describe Stages::PrCheckRun, type: :service do
                         handoff: handoff, prompt: prompt, start_ai_run: start_ai_run).call
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   def stub_decision(name, actions = [])
     allow(Stages::PrCheckDecision).to receive(:new).and_return(double(call: decision.new(name, actions)))
   end
@@ -30,7 +28,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(workflow.reload.status).to eq "merged"
-    expect(actions).to eq %w[pr_merged_closed]
+    expect(stage_actions(stage)).to eq %w[pr_merged_closed]
     expect(github).not_to have_received(:review_decision)
     expect(start_ai_run).not_to have_received(:call)
   end
@@ -40,7 +38,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(workflow.reload.status).to eq "done"
-    expect(actions).to eq %w[check_passed approved_closed]
+    expect(stage_actions(stage)).to eq %w[check_passed approved_closed]
     expect(start_ai_run).not_to have_received(:call)
   end
 
@@ -50,7 +48,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
 
     expect(git).to have_received(:update_with_main!).with(project, "pr-check-run")
     expect(start_ai_run).to have_received(:call).with("the prompt")
-    expect(actions).to be_empty
+    expect(stage_actions(stage)).to be_empty
   end
 
   it "starts conflict resolution when main conflicts" do
@@ -66,7 +64,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     stub_decision(:changes_requested, %w[local_test_failing])
     run
 
-    expect(actions).to eq %w[local_test_failing]
+    expect(stage_actions(stage)).to eq %w[local_test_failing]
     expect(start_ai_run).to have_received(:call).with("the prompt")
   end
 
@@ -75,7 +73,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     allow(git).to receive(:update_with_main!).and_return(:conflict)
     run
 
-    expect(actions).to eq %w[local_test_failing]
+    expect(stage_actions(stage)).to eq %w[local_test_failing]
     expect(start_ai_run).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
   end
 
@@ -83,7 +81,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     stub_decision(:pending)
     run
 
-    expect(actions).to eq %w[no_action_pending]
+    expect(stage_actions(stage)).to eq %w[no_action_pending]
     expect(start_ai_run).not_to have_received(:call)
   end
 
@@ -91,7 +89,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     stub_decision(:pending, %w[checks_failing])
     run
 
-    expect(actions).to eq %w[checks_failing no_action_pending]
+    expect(stage_actions(stage)).to eq %w[checks_failing no_action_pending]
     expect(start_ai_run).not_to have_received(:call)
   end
 

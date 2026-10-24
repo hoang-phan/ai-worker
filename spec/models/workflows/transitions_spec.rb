@@ -13,10 +13,6 @@ RSpec.describe Workflows::Transitions do
     described_class.new(record)
   end
 
-  def stage_run_actions(stage)
-    stage.stage_runs.reorder(:id).pluck(:action)
-  end
-
   describe "#start!" do
     it "moves a pending development workflow to implementing" do
       expect(transitions.start!).to be true
@@ -99,7 +95,7 @@ RSpec.describe Workflows::Transitions do
 
       expect { expect(transitions.resume!).to be true }.to change(StageRun, :count).by(1)
       expect(workflow.reload).to be_reviewing
-      expect(stage_run_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[resumed])
+      expect(stage_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[resumed])
     end
 
     it "updates a runbook and logs one 'resumed' StageRun on its current stage" do
@@ -108,7 +104,7 @@ RSpec.describe Workflows::Transitions do
       runbook.update!(status: :errored, current_stage_id: step.id)
       expect { expect(Workflows::Transitions.new(runbook).resume!).to be true }.to change(StageRun, :count).by(1)
       expect(runbook.reload).to be_implementing
-      expect(stage_run_actions(step)).to eq(%w[resumed])
+      expect(stage_actions(step)).to eq(%w[resumed])
     end
   end
 
@@ -118,7 +114,7 @@ RSpec.describe Workflows::Transitions do
     it "sends a done development workflow with a PR back to reviewing and logs the StageRun" do
       expect(transitions.rollback_to_review!).to be true
       expect(workflow.reload).to be_reviewing
-      expect(stage_run_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[rolled_back_to_review])
+      expect(stage_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[rolled_back_to_review])
     end
 
     it "refuses without a PR" do

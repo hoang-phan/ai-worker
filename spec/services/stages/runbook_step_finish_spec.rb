@@ -19,15 +19,11 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
     described_class.new(workflow: workflow, stage: stage, enqueue: enqueue).call(output)
   end
 
-  def actions = stage.stage_runs.reorder(:id).pluck(:action)
-
   it "finishes a non-message step and waits for Next" do
     finish("agent output")
 
-    expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true,
-                                                processing: false, ai_pid: nil, ai_log_path: nil,
-                                                ai_started_at: nil, ai_log_offset: 0)
-    expect(actions).to eq(%w[stage_completed])
+    expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true).and have_finished_ai_run
+    expect(stage_actions(stage)).to eq(%w[stage_completed])
     expect(enqueue).not_to have_received(:call)
   end
 
@@ -39,7 +35,7 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
       finish("POSTED")
 
       expect(workflow.reload).to have_attributes(status: "waiting", awaiting_next: true)
-      expect(actions).to eq(%w[stage_completed message_sent])
+      expect(stage_actions(stage)).to eq(%w[stage_completed message_sent])
     end
 
     it "fails without a POSTED marker" do
@@ -47,7 +43,7 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
         .to raise_error(AiCli::CommandError, "agent finished without confirming the Slack message was posted (no POSTED line)")
 
       expect(workflow.reload).to have_attributes(status: "implementing", processing: true)
-      expect(actions).to be_empty
+      expect(stage_actions(stage)).to be_empty
     end
   end
 
@@ -70,7 +66,7 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
 
       expect(workflow.reload).to have_attributes(status: "implementing", current_stage_id: next_stage.id,
                                                   awaiting_next: false, auto_run: true)
-      expect(actions).to eq(%w[stage_completed advanced])
+      expect(stage_actions(stage)).to eq(%w[stage_completed advanced])
       expect(enqueue).to have_received(:call).with(workflow.id)
     end
   end
