@@ -16,10 +16,4 @@ RSpec.describe AiCli::Providers do
     expect { described_class.fetch("gemini") }
       .to raise_error(AiCli::CommandError, 'unknown AGENT "gemini" (expected one of claude, cursor, codex)')
   end
-
-  it "declares what each provider supports" do
-    expect(described_class.fetch("claude").capabilities).to eq(AiCli::Provider::Capabilities.new(tool_lists: true, model: true, effort: true, mcp: :flag))
-    expect(described_class.fetch("codex").capabilities).to eq(AiCli::Provider::Capabilities.new(tool_lists: false, model: true, effort: true, mcp: :overrides))
-    expect(described_class.fetch("cursor").capabilities).to eq(AiCli::Provider::Capabilities.new(tool_lists: false, model: false, effort: false, mcp: :file))
-  end
 end

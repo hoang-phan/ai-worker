@@ -226,10 +226,6 @@ RSpec.describe AgentRuns::SyncCycle do
       end
     end
 
-    it "defaults the source's rescue_errors to AiCli::CommandError only" do
-      expect(AgentRuns::CycleSource.new.rescue_errors).to eq([ AiCli::CommandError ])
-    end
-
     context "without a rescue_errors: keyword" do
       let(:overrides) { { failures: { poll: ArgumentError.new("boom") }, rescue_errors: [ AiCli::CommandError ] } }
 

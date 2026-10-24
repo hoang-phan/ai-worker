@@ -13,18 +13,8 @@ RSpec.describe "spec mirror" do
     "app/models/application_record.rb",
     # Rails base — empty subclass, no behaviour of its own
     "app/jobs/application_job.rb",
-    # Abstract SyncCycle source; behaviour covered via AgentRuns::SyncCycle and concrete sources
-    "app/services/agent_runs/cycle_source.rb",
     # Error-only class (subclass of StandardError)
     "app/services/ai_cli/command_error.rb",
-    # Abstract provider base; covered by spec/services/ai_cli/provider/provider_spec.rb
-    "app/services/ai_cli/provider.rb",
-    # Provider subclass exercised through AiCli::Providers in provider_spec.rb
-    "app/services/ai_cli/provider/claude.rb",
-    # Provider subclass exercised through AiCli::Providers in provider_spec.rb
-    "app/services/ai_cli/provider/codex.rb",
-    # Provider subclass exercised through AiCli::Providers in provider_spec.rb
-    "app/services/ai_cli/provider/cursor.rb",
     # Error-only class (subclass of StandardError)
     "app/services/brainstorm/fetch_error.rb",
     # Error-only class (subclass of StandardError)

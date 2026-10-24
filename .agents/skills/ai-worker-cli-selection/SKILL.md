@@ -19,6 +19,7 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 - `spec/services/stages/run_provider_spec.rb`: rotation override, workflow pinning, and nil override when rotation is off.
 - `spec/services/ai_cli/rotation_spec.rb`: disabled default, weighted cycling, and invalid weights/providers.
-- `spec/services/ai_cli/providers_spec.rb`: display order, `find`/`fetch` lookup, and each provider's capabilities.
-- `spec/services/ai_cli/provider/provider_spec.rb`: per-provider argv builder, run wrapper (cursor MCP file) and outcome parsing.
+- `spec/services/ai_cli/providers_spec.rb`: display order and `find`/`fetch` lookup.
+- `spec/services/ai_cli/provider_spec.rb`: Provider's abstract builder plus default wrapper/outcome and `Capabilities` value object.
+- `spec/services/ai_cli/provider/{claude,codex,cursor}_spec.rb`: each provider's argv, capabilities, and outcome/wrapper behaviour (including Cursor's MCP file).
 - `spec/services/ai_cli/agent_setting_spec.rb`: `current` fallback chain (cache > `AGENT` > `claude`), writer validation, and `available`.

@@ -23,7 +23,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 - **Slack** — PR-review mention import: see the `ai-worker-pr-review-workflows` skill; outbound review pings: see the `ai-worker-slack-review-pings` skill.
 - **Bugsnag** — file map, invariants and change checklist: see the `ai-worker-bugsnag-triage` skill.
 - `app/services/agent_runs/sync_cycle.rb` — `AgentRuns::SyncCycle` performs one poll/import/start pass (`spec/services/agent_runs/sync_cycle_spec.rb`).
-- `app/services/agent_runs/cycle_source.rb` — `AgentRuns::CycleSource` defines source defaults and hooks (`spec/services/agent_runs/sync_cycle_spec.rb`).
+- `app/services/agent_runs/cycle_source.rb` — `AgentRuns::CycleSource` defines source defaults and hooks (`spec/services/agent_runs/cycle_source_spec.rb`).
 - `app/services/agent_runs/fetcher_cycle_source.rb` — `AgentRuns::FetcherCycleSource` adapts a fetcher and sync wrapper (`spec/services/agent_runs/fetcher_cycle_source_spec.rb`).
 - `app/services/agent_runs/cadence.rb` — `AgentRuns::Cadence` supplies pure due-time rules (`spec/services/agent_runs/cadence_spec.rb`).
 - `app/services/agent_runs/manual_start.rb` — `AgentRuns::ManualStart` implements the manual-run result flow (`spec/services/agent_runs/manual_start_spec.rb`).
