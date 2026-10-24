@@ -15,7 +15,7 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 - `app/services/jira/worklog_error.rb` — `Jira::WorklogError`, the only error type of this subsystem.
 - `app/services/jira/worklog_target.rb` — `WorklogTarget.new(workflow)`: `base_url`, `key`, and `problem` (nil, or why the workflow can't log time: not a Jira-kind project + development workflow, no site URL, no ticket key). Pure value object. Ticket keys come from `Jira::TicketRef`.
 - `app/services/jira/time_logger.rb` — `TimeLogger#log(workflow, hours)`; `PRESET_HOURS` (0.5/1/1.5/2) feeds the controller and views.
-- `app/services/jira/time_slot_planner.rb` — `TimeSlotPlanner#next_start(seconds)`: first weekday of the current month under `DAILY_TARGET` (6 h) across all `time_logs`, at a free whole hour between 6 and 17.
+- `app/services/jira/time_slot_planner.rb` — `TimeSlotPlanner#next_start(seconds)`: first weekday of the current month under `DAILY_TARGET` (6 h) across all `time_logs`, at a free whole hour between 6 and 17. Its `logs:` collaborator defaults to the `TimeLog` query and can be injected for isolated slot-picking specs.
 - `app/services/jira/time_log_batch.rb` — `TimeLogBatch#call(workflows, hours)` returns a `Result` (`logged`, `failure`, `success?`, `message(hours)`).
 - `app/services/jira/time_log_mirror.rb` — `Jira::TimeLogMirror` upserts and removes mirrored worklogs for one ticket; `HoursSync` uses it (`spec/services/jira/time_log_mirror_spec.rb`).
 - `app/services/jira/hours_sync.rb` — `HoursSync#call` (every ticket of the development workflows of Jira projects, plus this month's logged tickets) and `#recent(base_url)` (this month's only); returns `Result(synced:, failed:)`.

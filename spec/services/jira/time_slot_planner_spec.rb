@@ -1,18 +1,19 @@
 require "rails_helper"
 
 RSpec.describe Jira::TimeSlotPlanner do
-  let(:project) { build_jira_project }
-  let(:workflow) { build_jira_workflow(project) }
+  SlotLog = Struct.new(:started_at, :seconds)
+
   let(:monday) { Date.new(2027, 2, 1) } # the 1st of the month, a Monday
-  let(:planner) { described_class.new(today: monday + 2) }
+  let(:logs) { [] }
+  let(:planner) { described_class.new(today: monday + 2, logs: ->(_from) { logs }) }
 
   def log(date, hours, hour: 6)
-    workflow.time_logs.create!(ticket_key: "PLAN-1", started_at: Time.zone.local(date.year, date.month, date.day, hour), seconds: (hours * 3600).to_i)
+    logs << SlotLog.new(Time.zone.local(date.year, date.month, date.day, hour), (hours * 3600).to_i)
   end
 
   def place(hours)
     start = planner.next_start((hours * 3600).to_i)
-    log(start.to_date, hours, hour: start.hour)
+    logs << SlotLog.new(start, (hours * 3600).to_i)
     start
   end
 
@@ -27,7 +28,7 @@ RSpec.describe Jira::TimeSlotPlanner do
   end
 
   it "starts from the first available day of the month, not the current week" do
-    planner = described_class.new(today: Date.new(2026, 10, 22))
+    planner = described_class.new(today: Date.new(2026, 10, 22), logs: ->(_from) { logs })
 
     expect(planner.next_start(3600).to_date).to eq(Date.new(2026, 10, 1))
   end
@@ -77,15 +78,25 @@ RSpec.describe Jira::TimeSlotPlanner do
   it "uses a seeded random HH:MM when every :00 and :30 is used" do
     (6...17).each do |hour|
       log(monday, 0.1, hour: hour)
-      workflow.time_logs.create!(ticket_key: "PLAN-1", started_at: Time.zone.local(2027, 2, 1, hour, 30), seconds: 360)
+      logs << SlotLog.new(Time.zone.local(2027, 2, 1, hour, 30), 360)
     end
     expected = Random.new(42).then { |r| format("%02d:%02d", r.rand(6...17), r.rand(1..59)) }
-    planner = described_class.new(today: monday + 2, random: Random.new(42))
+    planner = described_class.new(today: monday + 2, random: Random.new(42), logs: ->(_from) { logs })
 
     start = planner.next_start(3600)
 
     expect(start.to_date).to eq(monday)
     expect(start.strftime("%H:%M")).to eq(expected)
     expect(start.min).to be_between(1, 59)
+  end
+
+  it "uses the default source to read persisted time logs" do
+    project = build_jira_project
+    workflow = build_jira_workflow(project)
+    workflow.time_logs.create!(ticket_key: "PLAN-1", started_at: Time.zone.local(2027, 2, 1, 6), seconds: 7 * 3600)
+
+    start = described_class.new(today: monday + 2).next_start(3600)
+
+    expect(start.to_date).to eq(monday + 1)
   end
 end

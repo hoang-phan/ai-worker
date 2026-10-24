@@ -7,9 +7,10 @@ module Jira
     DAY_START_HOUR = 6
     DAY_END_HOUR = 17
 
-    def initialize(today: Time.zone.today, random: Random)
+    def initialize(today: Time.zone.today, random: Random, logs: ->(from) { TimeLog.where(started_at: from.in_time_zone..).to_a })
       @today = today
       @random = random
+      @logs = logs
     end
 
     # Returns the Time the worklog should start at.
@@ -32,7 +33,7 @@ module Jira
     end
 
     def logs_by_date(from)
-      TimeLog.where(started_at: from.in_time_zone..).to_a.group_by { |log| log.started_at.in_time_zone.to_date }
+      @logs.call(from).group_by { |log| log.started_at.in_time_zone.to_date }
     end
 
     def pick_time(date, seconds, logs)
