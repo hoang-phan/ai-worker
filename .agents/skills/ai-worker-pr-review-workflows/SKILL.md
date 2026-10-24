@@ -1,6 +1,6 @@
 ---
 name: ai-worker-pr-review-workflows
-description: Applies ai-worker's end-to-end review-of-someone-else's-PR discipline. Use for any task touching app/services/slack/{mention_fetcher,mention_prompt,mention_rows,review_sync,review_cycle_source,review_candidate,review_importer,fetch_error}.rb, app/jobs/slack_review_job.rb, config/schedule.yml's slack_review entries, app/controllers/project_slack_syncs_controller.rb, app/views/projects/{_slack_reviews.html.erb,form/_slack.html.erb}, app/models/{workflow,stage_run}.rb, app/models/workflows/{label,stage_resolver,stage_seeder}.rb, app/services/stages/{pr_review_start,pr_review_finish}.rb, app/services/prompts/defaults/pr_review.md, app/views/workflows/details/_pr_review.html.erb, or their specs.
+description: Applies ai-worker's end-to-end review-of-someone-else's-PR discipline. Use for any task touching app/services/slack/{mention_fetcher,mention_prompt,mention_rows,review_sync,review_cycle_source,review_candidate,review_importer,fetch_error}.rb, app/jobs/slack_review_job.rb, config/schedule.yml's slack_review entries, app/controllers/project_slack_syncs_controller.rb, app/views/projects/{_slack_reviews.html.erb,form/_slack.html.erb}, app/services/stages/{pr_review_start,pr_review_finish}.rb, app/services/prompts/defaults/pr_review.md, app/views/workflows/details/_pr_review.html.erb, or their specs.
 ---
 
 # ai-worker-pr-review-workflows
@@ -13,7 +13,11 @@ This is the Slack-driven, single-stage `pr_review` workflow for reviewing someon
 - `app/services/slack/fetch_error.rb` — `Slack::FetchError`, the detached mention fetcher's error type (`spec/services/slack/mention_fetcher_spec.rb`).
 - Slack import/cadence: `review_sync.rb` exposes blockers and import; `review_cycle_source.rb` supplies the 30-minute cadence, persists result text, and wakes `WorkflowSchedulerJob` after creations; `review_candidate.rb` is the pure own-repo/open/not-self decision; `review_importer.rb` creates the workflow. `slack_review_job.rb` drives the cycle for enabled Jira projects; `config/schedule.yml` runs it every five minutes during working hours and hourly off-hours.
 - UI: `project_slack_syncs_controller.rb` starts a fetch now (the job imports it later); `projects/_slack_reviews.html.erb` shows configuration/last result; `projects/form/_slack.html.erb` supplies automatic-review enablement and mention, separately from the outbound review-request channel and GitHub-to-Slack user map.
-- Workflow: `workflow.rb` validates a `pr_review` has a canonical GitHub PR URL and Jira/GitHub-backed project, and normalizes `slack_review_thread_ts` from either a timestamp or Slack permalink. `workflows/label.rb` labels it `org/repo#number` / `Review …`; `stage_resolver.rb` maps only `implementing` to `pr_review`; `stage_seeder.rb` creates only that stage. `stage_run.rb` contains its audit actions.
+- `app/models/workflow.rb` — the `pr_review` URL/project validation and Slack-thread normalization belong to `ai-worker-domain`.
+- `app/models/stage_run.rb` — `pr_review` audit actions belong to `ai-worker-domain`.
+- `app/models/workflows/label.rb` — `pr_review` labels are owned by `ai-worker-workflow-lifecycle`.
+- `app/models/workflows/stage_resolver.rb` — `pr_review` maps `implementing` to its sole stage; see `ai-worker-workflow-lifecycle`.
+- `app/models/workflows/stage_seeder.rb` — `pr_review` seeds only that stage; see `ai-worker-workflow-lifecycle`.
 - Stage/prompt/view: `stages/pr_review_start.rb` skips non-open PRs, otherwise checks out the head and launches the prompt; `pr_review_finish.rb` clears run state, marks done, and logs the output. `prompts/defaults/pr_review.md` directs the actual GitHub/Slack review; `workflows/details/_pr_review.html.erb` links the source Slack message.
 
 ## Flow and invariants
