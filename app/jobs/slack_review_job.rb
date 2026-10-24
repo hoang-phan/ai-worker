@@ -12,8 +12,7 @@ class SlackReviewJob < ApplicationJob
       log_prefix = "[SlackReviewJob] project=#{project.id}"
       AgentRuns::SyncCycle.call(
         source: Slack::ReviewCycleSource.new(project, log_prefix: log_prefix),
-        log_prefix: log_prefix,
-        rescue_errors: [ Slack::FetchError, AiCli::CommandError ]
+        log_prefix: log_prefix
       )
     end
   end

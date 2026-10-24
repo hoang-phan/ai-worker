@@ -5,12 +5,15 @@
 # after_start do nothing, and log_message(result, summary) returns nil so the
 # cycle logs "<log_prefix> <summary>". Override a hook to customise it;
 # log_message must return a String (or nil for the default line).
+# rescue_errors lists the errors SyncCycle records instead of raising; sources
+# with their own FetchError override it with a RESCUE_ERRORS constant.
 module AgentRuns
   class CycleSource
     def eligible? = true
     def idle? = true
     def due? = true
     def blockers = []
+    def rescue_errors = [ AiCli::CommandError ]
     def log_message(_result, _summary) = nil
     def after_import(_result); end
     def after_start; end

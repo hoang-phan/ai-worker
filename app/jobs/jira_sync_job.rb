@@ -14,8 +14,7 @@ class JiraSyncJob < ApplicationJob
       log_prefix = "[JiraSyncJob] jira_sync=#{jira_sync.id}"
       AgentRuns::SyncCycle.call(
         source: Jira::SyncCycleSource.new(jira_sync, log_prefix: log_prefix),
-        log_prefix: log_prefix,
-        rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
+        log_prefix: log_prefix
       )
     end
   end

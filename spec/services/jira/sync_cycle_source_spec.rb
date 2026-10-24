@@ -21,6 +21,11 @@ RSpec.describe Jira::SyncCycleSource do
     expect(record).to have_received(:update).with(last_result: "failed: x")
   end
 
+  it "rescues its FetchError and AiCli::CommandError" do
+    expect(source.rescue_errors).to equal(described_class::RESCUE_ERRORS)
+    expect(described_class::RESCUE_ERRORS).to eq([ Jira::FetchError, AiCli::CommandError ]).and be_frozen
+  end
+
   it "is eligible only for auto-sync records" do
     expect(source.eligible?).to be(true)
     allow(record).to receive(:auto_sync?).and_return(false)

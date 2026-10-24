@@ -7,8 +7,7 @@ class BrainstormJob < ApplicationJob
     Project.personal.where(brainstorm_enabled: true).find_each do |project|
       AgentRuns::SyncCycle.call(
         source: Brainstorm::CycleSource.new(project),
-        log_prefix: "[BrainstormJob] project=#{project.id}",
-        rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ]
+        log_prefix: "[BrainstormJob] project=#{project.id}"
       )
     end
   end

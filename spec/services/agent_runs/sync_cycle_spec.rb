@@ -13,13 +13,14 @@ RSpec.describe AgentRuns::SyncCycle do
 
   let(:source_class) do
     Class.new(AgentRuns::CycleSource) do
-      attr_accessor :calls, :payload, :eligible, :idle, :due, :blocker_list, :failures
+      attr_accessor :calls, :payload, :eligible, :idle, :due, :blocker_list, :failures, :rescue_errors
 
       def initialize(calls)
         @calls = calls
         @eligible = @idle = @due = true
         @blocker_list = []
         @failures = {}
+        @rescue_errors = [ ArgumentError, AiCli::CommandError ]
       end
 
       def poll = step(:poll) { payload }
@@ -57,7 +58,7 @@ RSpec.describe AgentRuns::SyncCycle do
     end
   end
 
-  let(:args) { { source: source, log_prefix: "[Spec] thing=1", rescue_errors: [ ArgumentError, AiCli::CommandError ], logger: logger } }
+  let(:args) { { source: source, log_prefix: "[Spec] thing=1", logger: logger } }
 
   subject(:outcome) { described_class.call(**args) }
 
@@ -222,6 +223,27 @@ RSpec.describe AgentRuns::SyncCycle do
 
       it "propagates" do
         expect { outcome }.to raise_error(RuntimeError, "surprise")
+      end
+    end
+
+    it "defaults the source's rescue_errors to AiCli::CommandError only" do
+      expect(AgentRuns::CycleSource.new.rescue_errors).to eq([ AiCli::CommandError ])
+    end
+
+    context "without a rescue_errors: keyword" do
+      let(:overrides) { { failures: { poll: ArgumentError.new("boom") }, rescue_errors: [ AiCli::CommandError ] } }
+
+      it "rescues only the source's errors" do
+        expect { outcome }.to raise_error(ArgumentError, "boom")
+      end
+    end
+
+    context "with an explicit rescue_errors: keyword" do
+      let(:overrides) { { failures: { poll: ArgumentError.new("boom") } } }
+
+      it "uses it instead of the source's list" do
+        expect { described_class.call(**args, rescue_errors: [ AiCli::CommandError ]) }.to raise_error(ArgumentError, "boom")
+        expect(described_class.call(**args, rescue_errors: [ ArgumentError ]).failed).to be(true)
       end
     end
 

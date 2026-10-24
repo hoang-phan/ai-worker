@@ -11,8 +11,7 @@ RSpec.describe SlackReviewJob, type: :job do
     expect(Slack::ReviewCycleSource).to receive(:new).with(eligible_project, log_prefix: prefix).and_return(source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: source,
-      log_prefix: prefix,
-      rescue_errors: [ Slack::FetchError, AiCli::CommandError ]
+      log_prefix: prefix
     )
 
     described_class.perform_now
@@ -25,8 +24,8 @@ RSpec.describe SlackReviewJob, type: :job do
   it "records an expected error and continues to the next project" do
     failing_project = build_jira_project(slack_review_enabled: true)
     next_project = build_jira_project(slack_review_enabled: true)
-    failing_source = instance_double(Slack::ReviewCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Slack::ReviewCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
+    failing_source = instance_double(Slack::ReviewCycleSource, poll: nil, persist_failure!: nil, rescue_errors: Slack::ReviewCycleSource::RESCUE_ERRORS)
+    next_source = instance_double(Slack::ReviewCycleSource, poll: nil, rescue_errors: Slack::ReviewCycleSource::RESCUE_ERRORS, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Slack::FetchError, "slack down")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_project.update!(slack_last_result: message) }

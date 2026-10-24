@@ -15,6 +15,9 @@
 #   log_message(result, summary) -> info line body, or nil for "<log_prefix> <summary>"
 #   after_import(result)        -> post-import hook (default no-op)
 #   after_start                 -> hook run after a successful start (default no-op)
+#   rescue_errors               -> errors recorded as failures instead of raised
+#                                  (default [ AiCli::CommandError ]; the rescue_errors:
+#                                  keyword overrides it)
 module AgentRuns
   class SyncCycle
     Outcome = Struct.new(:imported, :started, :blocked, :failed, keyword_init: true) do
@@ -23,7 +26,7 @@ module AgentRuns
 
     def self.call(...) = new(...).call
 
-    def initialize(source:, log_prefix:, rescue_errors:, logger: Rails.logger)
+    def initialize(source:, log_prefix:, rescue_errors: source.rescue_errors, logger: Rails.logger)
       @source = source
       @log_prefix = log_prefix
       @rescue_errors = rescue_errors

@@ -2,6 +2,7 @@
 module Jira
   class SyncCycleSource < AgentRuns::FetcherCycleSource
     FETCH_EVERY = 3.hours
+    RESCUE_ERRORS = [ Jira::FetchError, AiCli::CommandError ].freeze
 
     def initialize(jira_sync, log_prefix:, sync: nil)
       @jira_sync = jira_sync
@@ -11,7 +12,7 @@ module Jira
     end
 
     def log_message(result, summary)
-      "#{@log_prefix} #{summary} #{result.failed.join('; ')}".strip
+      log_with_failures(@log_prefix, result, summary)
     end
 
     def persist!(_result, summary)
@@ -19,6 +20,7 @@ module Jira
     end
 
     def persist_failure!(message) = @jira_sync.update(last_result: message)
+    def rescue_errors = RESCUE_ERRORS
     def eligible? = @jira_sync.auto_sync?
 
     def due?

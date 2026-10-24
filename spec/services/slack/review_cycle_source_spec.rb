@@ -33,6 +33,11 @@ RSpec.describe Slack::ReviewCycleSource do
     expect(WorkflowSchedulerJob).to have_received(:perform_later).once
   end
 
+  it "rescues its FetchError and AiCli::CommandError" do
+    expect(source.rescue_errors).to equal(described_class::RESCUE_ERRORS)
+    expect(described_class::RESCUE_ERRORS).to eq([ Slack::FetchError, AiCli::CommandError ]).and be_frozen
+  end
+
   it "is always eligible" do
     expect(source.eligible?).to be(true)
   end

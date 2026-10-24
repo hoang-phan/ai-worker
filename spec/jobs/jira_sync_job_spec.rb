@@ -12,8 +12,7 @@ RSpec.describe JiraSyncJob, type: :job do
     expect(Jira::SyncCycleSource).to receive(:new).with(eligible_sync, log_prefix: prefix).and_return(source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: source,
-      log_prefix: prefix,
-      rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
+      log_prefix: prefix
     )
 
     described_class.perform_now
@@ -27,8 +26,8 @@ RSpec.describe JiraSyncJob, type: :job do
     project = build_jira_project(jira_base_url: "https://acme.atlassian.net")
     failing_sync = project.jira_syncs.create!
     next_sync = project.jira_syncs.create!
-    failing_source = instance_double(Jira::SyncCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Jira::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
+    failing_source = instance_double(Jira::SyncCycleSource, poll: nil, persist_failure!: nil, rescue_errors: Jira::SyncCycleSource::RESCUE_ERRORS)
+    next_source = instance_double(Jira::SyncCycleSource, poll: nil, rescue_errors: Jira::SyncCycleSource::RESCUE_ERRORS, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Jira::FetchError, "bad json")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_sync.update!(last_result: message) }

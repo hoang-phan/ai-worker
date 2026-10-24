@@ -31,6 +31,11 @@ RSpec.describe Brainstorm::CycleSource do
     expect(record).to have_received(:update).with(brainstorm_last_result: "failed: x")
   end
 
+  it "rescues its FetchError and AiCli::CommandError" do
+    expect(source.rescue_errors).to equal(described_class::RESCUE_ERRORS)
+    expect(described_class::RESCUE_ERRORS).to eq([ Brainstorm::FetchError, AiCli::CommandError ]).and be_frozen
+  end
+
   it "is idle when not running and due when the planner has no wait reason" do
     expect(source.idle?).to be(true)
     expect(source.due?).to be(true)

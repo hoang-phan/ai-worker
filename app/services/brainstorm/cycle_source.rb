@@ -1,6 +1,8 @@
 # Adapts one Project's Brainstorm::Planner to AgentRuns::SyncCycle (driven by BrainstormJob).
 module Brainstorm
   class CycleSource < AgentRuns::CycleSource
+    RESCUE_ERRORS = [ Brainstorm::FetchError, AiCli::CommandError ].freeze
+
     def initialize(project, planner: nil)
       @project = project
       @planner = planner || Brainstorm::Planner.new(project)
@@ -16,5 +18,6 @@ module Brainstorm
     def blockers = @planner.blockers
     def start! = @planner.start
     def after_start = @planner.record_start!
+    def rescue_errors = RESCUE_ERRORS
   end
 end

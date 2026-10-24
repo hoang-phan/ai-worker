@@ -17,5 +17,10 @@ module AgentRuns
     protected
 
     def last_started_at = @fetcher.last_started_at
+
+    # "<log_prefix> <summary> <failed rows joined by '; '>" for results with a failed list.
+    def log_with_failures(log_prefix, result, summary)
+      "#{log_prefix} #{summary} #{result.failed.join('; ')}".strip
+    end
   end
 end

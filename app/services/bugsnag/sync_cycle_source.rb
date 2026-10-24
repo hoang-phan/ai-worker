@@ -2,6 +2,7 @@
 module Bugsnag
   class SyncCycleSource < AgentRuns::FetcherCycleSource
     RUN_HOUR = 9
+    RESCUE_ERRORS = [ Bugsnag::FetchError, AiCli::CommandError ].freeze
 
     def initialize(bugsnag_sync, sync: nil)
       @bugsnag_sync = bugsnag_sync
@@ -14,6 +15,7 @@ module Bugsnag
     end
 
     def persist_failure!(message) = @bugsnag_sync.update(last_result: message)
+    def rescue_errors = RESCUE_ERRORS
     def eligible? = @bugsnag_sync.auto_sync?
 
     def due?

@@ -11,8 +11,7 @@ RSpec.describe BrainstormJob, type: :job do
     expect(Brainstorm::CycleSource).to receive(:new).with(eligible_project).and_return(source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: source,
-      log_prefix: prefix,
-      rescue_errors: [ Brainstorm::FetchError, AiCli::CommandError ]
+      log_prefix: prefix
     )
 
     described_class.perform_now
@@ -21,8 +20,8 @@ RSpec.describe BrainstormJob, type: :job do
   it "records an expected error and continues to the next project" do
     failing_project = build_personal_project(brainstorm_enabled: true, brainstorm_goal: "Improve delivery")
     next_project = build_personal_project(brainstorm_enabled: true, brainstorm_goal: "Improve delivery")
-    failing_source = instance_double(Brainstorm::CycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Brainstorm::CycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
+    failing_source = instance_double(Brainstorm::CycleSource, poll: nil, persist_failure!: nil, rescue_errors: Brainstorm::CycleSource::RESCUE_ERRORS)
+    next_source = instance_double(Brainstorm::CycleSource, poll: nil, rescue_errors: Brainstorm::CycleSource::RESCUE_ERRORS, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Brainstorm::FetchError, "no result")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_project.update!(brainstorm_last_result: message) }

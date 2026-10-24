@@ -11,8 +11,7 @@ class BugsnagSyncJob < ApplicationJob
     BugsnagSync.includes(:project).find_each do |bugsnag_sync|
       AgentRuns::SyncCycle.call(
         source: Bugsnag::SyncCycleSource.new(bugsnag_sync),
-        log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id}",
-        rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
+        log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id}"
       )
     end
   end

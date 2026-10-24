@@ -8,7 +8,7 @@ class JiraSyncRunsController < ApplicationController
     start_manually(
       blockers: -> { sync.blockers },
       start: -> { sync.fetcher.start },
-      rescue_errors: [ Jira::FetchError, AiCli::CommandError ],
+      rescue_errors: Jira::SyncCycleSource::RESCUE_ERRORS,
       label: "Jira sync",
       started: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.",
       already_running: "A Jira fetch is already running for this sync."

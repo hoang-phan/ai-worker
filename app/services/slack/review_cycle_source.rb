@@ -2,6 +2,7 @@
 module Slack
   class ReviewCycleSource < AgentRuns::FetcherCycleSource
     FETCH_EVERY = 30.minutes
+    RESCUE_ERRORS = [ Slack::FetchError, AiCli::CommandError ].freeze
 
     def initialize(project, log_prefix:, sync: nil)
       @project = project
@@ -11,7 +12,7 @@ module Slack
     end
 
     def log_message(result, summary)
-      "#{@log_prefix} #{summary} #{result.failed.join('; ')}".strip
+      log_with_failures(@log_prefix, result, summary)
     end
 
     def persist!(_result, summary)
@@ -19,6 +20,7 @@ module Slack
     end
 
     def persist_failure!(message) = @project.update(slack_last_result: message)
+    def rescue_errors = RESCUE_ERRORS
 
     # Don't wait for the scheduler's next */5 cron tick: start the new reviews now.
     def after_import(result)

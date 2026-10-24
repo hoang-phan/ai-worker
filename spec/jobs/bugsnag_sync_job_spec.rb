@@ -11,13 +11,11 @@ RSpec.describe BugsnagSyncJob, type: :job do
     expect(Bugsnag::SyncCycleSource).to receive(:new).with(second_sync).and_return(second_source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: first_source,
-      log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{first_sync.id}",
-      rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
+      log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{first_sync.id}"
     )
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: second_source,
-      log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{second_sync.id}",
-      rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
+      log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{second_sync.id}"
     )
 
     described_class.perform_now
@@ -31,8 +29,8 @@ RSpec.describe BugsnagSyncJob, type: :job do
     project = build_jira_project
     failing_sync = project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB")
     next_sync = project.bugsnag_syncs.create!(bugsnag_project: "api", jira_project: "API")
-    failing_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, persist_failure!: nil)
-    next_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
+    failing_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, persist_failure!: nil, rescue_errors: Bugsnag::SyncCycleSource::RESCUE_ERRORS)
+    next_source = instance_double(Bugsnag::SyncCycleSource, poll: nil, rescue_errors: Bugsnag::SyncCycleSource::RESCUE_ERRORS, eligible?: true, idle?: true, due?: true, blockers: [], start!: nil, after_start: nil)
 
     allow(failing_source).to receive(:poll).and_raise(Bugsnag::FetchError, "no result")
     allow(failing_source).to receive(:persist_failure!) { |message| failing_sync.update!(last_result: message) }
