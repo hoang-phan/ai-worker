@@ -26,6 +26,17 @@ module AiCli
       pid_file.exist? && runner.poll(pid_file.read.to_i) == :running
     end
 
+    # True once a run has been started until its result is collected or
+    # discarded. Unlike #running?, this does not poll the process.
+    def started?
+      pid_file.exist?
+    end
+
+    # Discard the pending run state without reading its result.
+    def discard!
+      FileUtils.rm_f(pid_file)
+    end
+
     def last_started_at
       started_file.exist? ? Time.zone.at(started_file.read.to_f) : nil
     end
@@ -47,7 +58,7 @@ module AiCli
     # nil while still running (or nothing started). Once finished, the parsed
     # rows (passed through the block, if given). Raises error_class on failure.
     def poll
-      return unless pid_file.exist?
+      return unless started?
 
       if runner.poll(pid_file.read.to_i) == :running
         return unless stale?
@@ -84,7 +95,7 @@ module AiCli
     end
 
     def clear
-      FileUtils.rm_f(pid_file)
+      discard!
     end
 
     def pid_file = dir.join("pid")

@@ -2,7 +2,7 @@ require "json"
 
 module Brainstorm
   # What a finished brainstorm run left in its agent.log (stream-json output) when it wrote no result.json:
-  # the final `result` event, whether to retry the run, and why it failed. Read-only; the Planner owns the
+  # the final `result` event, whether to retry the run, and why it failed. Read-only; RunLifecycle owns the
   # `retried` marker file and the relaunch.
   class RunOutcome
     def initialize(log_path:, retried:)

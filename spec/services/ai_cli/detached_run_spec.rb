@@ -19,6 +19,32 @@ RSpec.describe AiCli::DetachedRun do
     end
   end
 
+  describe "#started?" do
+    it "reports whether a pid file exists without polling the runner" do
+      expect(run).not_to be_started
+
+      FileUtils.mkdir_p(dir)
+      dir.join("pid").write("4242")
+
+      expect(run).to be_started
+      expect(runner).not_to have_received(:poll)
+    end
+  end
+
+  describe "#discard!" do
+    it "removes the pid without reading the result" do
+      FileUtils.mkdir_p(dir)
+      dir.join("pid").write("4242")
+      dir.join("result.json").write("[]")
+
+      run.discard!
+
+      expect(dir.join("pid")).not_to exist
+      expect(dir.join("result.json")).to exist
+      expect(runner).not_to have_received(:poll)
+    end
+  end
+
   describe "#start" do
     it "writes pid and started_at and deletes an old result" do
       FileUtils.mkdir_p(dir)

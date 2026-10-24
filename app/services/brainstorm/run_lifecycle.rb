@@ -39,10 +39,10 @@ module Brainstorm
     # nil while running (or nothing started); once finished, yields the rows
     # from result.json. Raises the supplied error class on terminal failure.
     def poll(prepare: nil, **launch_inputs, &block)
-      return unless pid_file.exist?
+      return unless run.started?
 
       unless running? || result_path.exist?
-        FileUtils.rm_f(pid_file)
+        run.discard!
         return retry_missing_result(prepare: prepare, **launch_inputs)
       end
 
@@ -76,7 +76,6 @@ module Brainstorm
       nil
     end
 
-    def pid_file = dir.join("pid")
     def retried_file = dir.join("retried")
     def log_file = run.log_path
   end
