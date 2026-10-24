@@ -15,6 +15,16 @@ RSpec.describe "Projects", type: :request do
     end
   end
 
+  describe "GET show header" do
+    it "escapes an HTML-ish repo name" do
+      project.update_columns(repo_full_name: "acme/<b>x")
+      get project_path(project)
+
+      expect(response.body).to include("acme/&lt;b&gt;x")
+      expect(response.body).not_to include("acme/<b>x")
+    end
+  end
+
   describe "GET new and edit" do
     it "renders every optional settings fieldset and preserves saved password placeholders" do
       get new_project_path

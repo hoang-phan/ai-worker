@@ -1,7 +1,7 @@
 <div class="page-header">
   <div>
     <h1><%= @project.name %></h1>
-    <p class="page-header__meta"><%= @project.local_directory %><%= " · #{@project.repo_full_name}".html_safe if @project.repo_full_name.present? %></p>
+    <p class="page-header__meta"><%= project_header_meta(@project) %></p>
   </div>
   <div class="page-header__actions">
     <%= link_to "Edit project", edit_project_path(@project), class: "btn btn-secondary" %>
@@ -21,16 +21,13 @@
 
 <% if @project.jira? %>
   <%= render "projects/jira_syncs", project: @project %>
-<% end %>
-
-<% if @project.jira? %>
   <%= render "projects/bugsnag_syncs", project: @project %>
 <% end %>
 
-<% if @project.personal? && (@project.brainstorm_enabled? || @project.brainstorm_goal.present?) %>
+<% if show_brainstorm_section?(@project) %>
   <%= render "projects/brainstorm", project: @project %>
 <% end %>
 
-<% if @project.jira? && (@project.slack_review_enabled? || @project.slack_mention.present?) %>
+<% if show_slack_reviews_section?(@project) %>
   <%= render "projects/slack_reviews", project: @project %>
 <% end %>

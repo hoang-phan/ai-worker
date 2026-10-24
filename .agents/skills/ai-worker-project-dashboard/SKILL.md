@@ -1,6 +1,6 @@
 ---
 name: ai-worker-project-dashboard
-description: Applies ai-worker's project-dashboard discipline. Use for app/controllers/projects_controller.rb (index/show), app/controllers/workflow_positions_controller.rb, app/models/projects/{workflow_list,workflow_reorder}.rb, app/views/projects/{index,show,_workflows,_workflow_row}.html.erb, app/helpers/workflows_helper.rb, and their listed specs.
+description: Applies ai-worker's project-dashboard discipline. Use for app/controllers/projects_controller.rb (index/show), app/controllers/workflow_positions_controller.rb, app/models/projects/{workflow_list,workflow_reorder}.rb, app/views/projects/{index,show,_workflows,_workflow_row}.html.erb, app/helpers/{workflows,projects}_helper.rb, and their listed specs.
 ---
 
 # ai-worker project dashboard
@@ -14,9 +14,10 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 - `app/models/projects/workflow_list.rb` — validates the optional status, orders workflows by position/id, supplies the unfiltered first/last ids for arrows, and batches logged Jira seconds.
 - `app/models/projects/workflow_reorder.rb` — swaps an in-project workflow with its neighbour and renumbers the complete priority list 1..n.
 - `app/views/projects/index.html.erb` — name-ordered project table, new/edit/delete links, and the empty state.
-- `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, agent, sync, brainstorm, and Slack-review sections.
+- `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, sync (Jira then Bugsnag in one `jira?` block), brainstorm, and Slack-review sections.
 - `app/views/projects/_workflows.html.erb` — GET status filter, Jira time-log batch form, select-all workflow table, rows, and empty state.
 - `app/views/projects/_workflow_row.html.erb` — position arrows, checkbox, labels/kind/status/time badges, PR/edit actions, and pending Start action.
+- `app/helpers/projects_helper.rb` — `project_header_meta` (escaped directory + repo name) and the `show_brainstorm_section?` / `show_slack_reviews_section?` visibility rules used by `show`.
 - `app/helpers/workflows_helper.rb` — `WORKFLOW_STATUS_BADGE_CLASSES`, `workflow_status_badge`, and `workflow_kind_badges` used by dashboard rows; its other helpers belong to their screens.
 
 ## Boundaries
@@ -48,7 +49,8 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 - `spec/requests/workflow_positions_spec.rb` — valid moves, duplicate positions, end no-ops, invalid direction, and status-preserving redirects.
 - `spec/models/projects/workflow_list_spec.rb` — valid/invalid filtering, unfiltered ends, empty lists, and grouped logged seconds.
 - `spec/models/projects/workflow_reorder_spec.rb` — up/down movement, renumbering, ends, and foreign workflows.
+- `spec/helpers/projects_helper_spec.rb` — header meta escaping and both section-visibility predicates.
 - `spec/helpers/workflows_helper_spec.rb` — every status badge mapping/fallback and workflow kind badges.
 ## Verification
 
-Run `RAILS_ENV=test bundle exec rspec spec/requests/{projects,workflow_positions}_spec.rb spec/models/projects/{workflow_list,workflow_reorder}_spec.rb spec/helpers/workflows_helper_spec.rb` for dashboard changes.
+Run `RAILS_ENV=test bundle exec rspec spec/requests/{projects,workflow_positions}_spec.rb spec/models/projects/{workflow_list,workflow_reorder}_spec.rb spec/helpers/{workflows,projects}_helper_spec.rb` for dashboard changes.
