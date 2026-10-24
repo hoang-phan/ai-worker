@@ -87,6 +87,16 @@ RSpec.describe "Projects", type: :request do
     end
   end
 
+  describe "PATCH update passwords" do
+    it "keeps saved UAT and local passwords when both submitted values are blank" do
+      project.update!(uat_password: "uat secret", local_password: "local secret")
+
+      patch project_path(project), params: { project: { uat_password: "", local_password: "" } }
+
+      expect(project.reload).to have_attributes(uat_password: "uat secret", local_password: "local secret")
+    end
+  end
+
   describe "POST create" do
     it "re-renders the error summary when invalid" do
       expect {
