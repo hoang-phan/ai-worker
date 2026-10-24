@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::AiRunLauncher, type: :service do
-  let_tmpdir(:local_directory, "ai-run-launcher-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("ai-run-launcher-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "LAUNCH-1", branch_name: "launcher", status: :implementing)
   end

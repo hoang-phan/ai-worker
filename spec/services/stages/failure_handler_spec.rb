@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::FailureHandler, type: :service do
-  let_tmpdir(:local_directory, "failure-handler-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("failure-handler-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "FAIL-1", branch_name: "failure-handler", status: :implementing, auto_run: true, **running_ai_run)
   end

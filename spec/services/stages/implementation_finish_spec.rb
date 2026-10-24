@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::ImplementationFinish, type: :service do
-  let_tmpdir(:local_directory, "implementation-finish-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("implementation-finish-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "implementation-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing, **running_ai_run)
   end

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "WorkflowImages", type: :request do
-  let_tmpdir(:local_directory, "workflow-images-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("workflow-images-request-spec")
   let(:workflow) { build_jira_workflow(project, jira_ticket: "SPEC-1", status: :pending) }
 
   describe "DELETE image" do

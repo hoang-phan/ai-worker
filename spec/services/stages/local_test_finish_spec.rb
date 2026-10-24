@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::LocalTestFinish, type: :service do
-  let_tmpdir(:local_directory, "local-test-finish-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("local-test-finish-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "local-test-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing, **running_ai_run)
   end

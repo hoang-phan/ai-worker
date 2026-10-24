@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Workflows::StageSeeder do
-  let_tmpdir(:local_directory, "stage-seeder-spec")
-  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let_jira_project("stage-seeder-spec", repo_full_name: "org/repo")
 
   # Workflow's after_create runs the seeder, so creating the workflow is what seeds it.
   def stage_types(workflow) = workflow.stages.map(&:stage_type)

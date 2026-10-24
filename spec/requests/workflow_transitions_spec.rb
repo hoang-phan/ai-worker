@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe "WorkflowTransitions", type: :request, active_job_test_adapter: true do
   include ActiveJob::TestHelper
 
-  let_tmpdir(:local_directory, "workflow-transitions-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("workflow-transitions-request-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "SPEC-1", status: :errored, github_pr_url: "https://github.com/org/repo/pull/7")
   end

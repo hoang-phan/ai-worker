@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe StageExecutor, type: :service do
-  let_tmpdir(:local_directory, "stage-executor-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("stage-executor-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "EXEC-1", branch_name: "executor", status: :implementing, **running_ai_run)
   end

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Stages", type: :request do
-  let_tmpdir(:local_directory, "stages-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("stages-request-spec")
   let(:development_workflow) do
     build_jira_workflow(project, jira_ticket: "STG-1")
   end

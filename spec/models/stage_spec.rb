@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stage, type: :model do
-  let_tmpdir(:local_directory, "stage-spec")
-  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let_jira_project("stage-spec", repo_full_name: "org/repo")
   let(:workflow) { build_jira_workflow(project, jira_ticket: "STG-1", branch_name: "stg-1", status: :pending) }
   let(:stage) { workflow.stages.create!(stage_type: :pr_check) }
 

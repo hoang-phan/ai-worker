@@ -36,8 +36,7 @@ RSpec.describe StagesHelper, type: :helper do
   end
 
   describe "stage row helpers" do
-    let_tmpdir(:local_directory, "stages-helper-spec")
-    let(:project) { build_jira_project(local_directory: local_directory) }
+    let_jira_project("stages-helper-spec")
 
     context "with a runbook workflow" do
       let(:workflow) { build_runbook_workflow(project) }

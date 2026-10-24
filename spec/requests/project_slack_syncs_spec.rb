@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Project Slack syncs", type: :request do
-  let_tmpdir(:local_directory, "projects-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("projects-request-spec")
 
   describe "POST sync_slack" do
     let(:fetcher) { instance_double(Slack::MentionFetcher, start: true) }

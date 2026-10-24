@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::UatTestFinish, type: :service do
-  let_tmpdir(:local_directory, "uat-test-finish-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("uat-test-finish-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, **running_ai_run)
   end

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Projects::WorkflowReorder do
-  let_tmpdir(:local_directory, "workflow-reorder-spec")
-  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let_jira_project("workflow-reorder-spec", repo_full_name: "org/repo")
   let(:other_project) { build_jira_project(repo_full_name: "org/other", local_directory: make_tmpdir("workflow-reorder-other")) }
   let!(:first) { build_jira_workflow(project, jira_ticket: "REORDER-1", branch_name: "reorder-1", position: 1) }
   let!(:second) { build_jira_workflow(project, jira_ticket: "REORDER-2", branch_name: "reorder-2", position: 2) }

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Projects", type: :request do
-  let_tmpdir(:local_directory, "projects-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("projects-request-spec")
 
   describe "GET show status filter" do
     it "lists only workflows with the chosen status" do

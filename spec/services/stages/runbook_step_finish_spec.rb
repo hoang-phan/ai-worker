@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::RunbookStepFinish, type: :service do
-  let_tmpdir(:local_directory, "runbook-step-finish-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("runbook-step-finish-spec")
   let(:workflow) do
     build_runbook_workflow(project, status: :implementing, **running_ai_run)
   end

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "BugsnagSyncRuns", type: :request do
-  let_tmpdir(:local_directory, "bugsnag-sync-runs-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("bugsnag-sync-runs-request-spec")
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "spec-app", jira_project: "SPEC") }
   let(:triager) { instance_double(Bugsnag::Triager, start: true) }
   let(:triage_sync) { instance_double(Bugsnag::TriageSync, blockers: [], triager: triager) }

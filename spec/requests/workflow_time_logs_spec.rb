@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "WorkflowTimeLogs", type: :request do
-  let_tmpdir(:local_directory, "workflow-time-logs-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("workflow-time-logs-request-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "SPEC-1", status: :errored, github_pr_url: "https://github.com/org/repo/pull/7")
   end

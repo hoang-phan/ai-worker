@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "PromptTemplates", type: :request do
-  let_tmpdir(:local_directory, "prompt-templates-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("prompt-templates-request-spec")
   let(:workflow) { build_jira_workflow(project, jira_ticket: "PT-1", status: :pending) }
   let!(:template) { PromptTemplate.create!(name: "Spec template", stage_type: :task, body: "Do the thing") }
 

@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::FollowUpImporter, type: :service do
-  let_tmpdir(:local_directory, "follow-up-importer-spec")
-  let(:project) { build_personal_project(local_directory: local_directory, default_skills: "ruby") }
+  let_personal_project("follow-up-importer-spec", default_skills: "ruby")
   let!(:current) { build_task_workflow(project, status: :implementing) }
 
   def proposals(*summaries) = summaries.map { |summary| { "summary" => summary, "task" => "Task for #{summary}" } }

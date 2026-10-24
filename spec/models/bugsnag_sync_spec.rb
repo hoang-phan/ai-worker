@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe BugsnagSync, type: :model do
   subject(:sync) { described_class.new(project: project, bugsnag_project: "web-app", jira_project: "WEB") }
 
-  let_tmpdir(:local_directory, "bugsnag-sync-spec")
-  let(:project) { build_personal_project(local_directory: local_directory) }
+  let_personal_project("bugsnag-sync-spec")
 
   it { is_expected.to be_valid }
 

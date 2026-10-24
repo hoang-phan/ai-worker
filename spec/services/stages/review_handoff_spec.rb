@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::ReviewHandoff, type: :service do
-  let_tmpdir(:local_directory, "review-handoff-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("review-handoff-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "review-handoff",
                                  github_reviewer: reviewers, github_pr_url: pr_url, status: :reviewing)

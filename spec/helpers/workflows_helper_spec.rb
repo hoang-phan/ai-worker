@@ -109,8 +109,7 @@ RSpec.describe WorkflowsHelper, type: :helper do
   end
 
   describe "#workflow_advance_label" do
-    let_tmpdir(:local_directory, "workflows-helper-spec")
-    let(:project) { build_jira_project(local_directory: local_directory) }
+    let_jira_project("workflows-helper-spec")
     let(:workflow) { build_runbook_workflow(project) }
     let!(:first) { build_runbook_stage(workflow, name: "Build", position: 1) }
 

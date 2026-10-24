@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Workflow, type: :model do
-  let_tmpdir(:local_directory, "workflow-spec")
-  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let_jira_project("workflow-spec", repo_full_name: "org/repo")
   let(:pr_url) { "https://github.com/org/repo/pull/7" }
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "SPEC-1", branch_name: "spec-1", status: :pending)

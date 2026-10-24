@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Project brainstorms", type: :request do
-  let_tmpdir(:local_directory, "projects-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("projects-request-spec")
 
   describe "POST brainstorm" do
     let_tmpdir(:state_root, "projects-request-state")

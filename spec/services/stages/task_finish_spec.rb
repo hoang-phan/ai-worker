@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::TaskFinish, type: :service do
-  let_tmpdir(:local_directory, "task-finish-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("task-finish-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing, **running_ai_run)
   end

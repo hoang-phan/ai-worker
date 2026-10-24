@@ -1,5 +1,21 @@
 # Shared builders for the Project / Workflow records most specs need. Attributes passed in override the defaults.
 module RecordHelper
+  module ClassMethods
+    def let_jira_project(prefix, **attrs)
+      let_tmpdir(:local_directory, prefix)
+      let(:project) { build_jira_project(local_directory: local_directory, **attrs) }
+    end
+
+    def let_personal_project(prefix, **attrs)
+      let_tmpdir(:local_directory, prefix)
+      let(:project) { build_personal_project(local_directory: local_directory, **attrs) }
+    end
+  end
+
+  def self.included(base)
+    base.extend(ClassMethods)
+  end
+
   # All-digit suffix so keys always match Jira::TicketRef::KEY_PATTERN (hex letters would truncate or reject them).
   JIRA_TICKET_SEQUENCE = Enumerator.produce(100_000) { |n| n + 1 }
   PR_NUMBER_SEQUENCE = Enumerator.produce(1) { |n| n + 1 }

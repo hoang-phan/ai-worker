@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "BugsnagSyncs", type: :request do
-  let_tmpdir(:local_directory, "bugsnag-syncs-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("bugsnag-syncs-request-spec")
   let(:bugsnag_sync) { project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "APP") }
 
   describe "GET new and edit" do

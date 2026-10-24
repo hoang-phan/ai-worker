@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Workflows::RunbookClone do
-  let_tmpdir(:local_directory, "runbook-clone-spec")
-  let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
+  let_jira_project("runbook-clone-spec", repo_full_name: "org/repo")
   let!(:source) do
     build_runbook_workflow(project, position: 4, variables: { "CHANNEL" => "#ops", "VERSION" => "1.0" }).tap do |runbook|
       build_runbook_stage(runbook, name: "Build", position: 1, prompt: "Build it")

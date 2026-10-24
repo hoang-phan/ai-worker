@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Stages::StartHandler, type: :service do
-  let_tmpdir(:local_directory, "start-handler-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("start-handler-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
   end

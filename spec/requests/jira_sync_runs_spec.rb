@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "JiraSyncRuns", type: :request do
-  let_tmpdir(:local_directory, "jira-sync-runs-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("jira-sync-runs-request-spec")
   let(:jira_sync) { project.jira_syncs.create!(jira_project: "SPEC") }
   let(:fetcher) { instance_double(Jira::AgentFetcher, start: true) }
   let(:sync) { instance_double(Jira::TicketSync, blockers: [], fetcher: fetcher) }
