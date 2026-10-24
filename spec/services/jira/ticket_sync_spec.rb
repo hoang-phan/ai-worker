@@ -9,9 +9,6 @@ RSpec.describe Jira::TicketSync do
   let(:jira_sync) { project.jira_syncs.create! }
   let(:sync) { described_class.new(jira_sync) }
 
-  after do
-    project.destroy
-  end
 
   describe "#blockers" do
     it "is empty for a fully configured project" do

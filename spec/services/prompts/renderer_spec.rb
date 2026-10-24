@@ -20,10 +20,6 @@ RSpec.describe Prompts::Renderer do
     )
   end
 
-  after do
-    workflow.destroy
-    project.destroy
-  end
 
   describe "BUILT_IN_TOKENS" do
     it "lists exactly the built-in tokens placeholders_for substitutes" do
@@ -103,7 +99,6 @@ RSpec.describe Prompts::Renderer do
       let!(:first) { build_runbook_stage(runbook, name: "First") }
       let!(:second) { build_runbook_stage(runbook, name: "Second") }
 
-      after { runbook.destroy }
 
       it "is the last PREV_OUTPUT_LIMIT chars of the previous stage's stage_completed output" do
         output = "x" * 10 + "y" * Prompts::WorkflowPlaceholders::PREV_OUTPUT_LIMIT

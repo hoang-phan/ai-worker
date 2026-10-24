@@ -18,18 +18,12 @@ RSpec.describe Prompts::StagePrompt do
   let(:stage_attrs) { {} }
   let(:stage) { workflow.stages.create!(stage_type: stage_type, **stage_attrs) }
 
-  after do
-    stage.destroy
-    workflow.destroy
-    project.destroy
-  end
 
   describe "#body" do
     context "when the stage has its own prompt" do
       let(:stage_attrs) { { prompt: "Own prompt: {TASK}", prompt_template: template } }
       let(:template) { PromptTemplate.create!(name: "tmpl #{SecureRandom.hex(4)}", stage_type: :task, body: "Template body") }
 
-      after { template.destroy }
 
       it "wins over the template and renders placeholders" do
         expect(stage_prompt.body).to start_with("Own prompt: Do the thing")
@@ -40,7 +34,6 @@ RSpec.describe Prompts::StagePrompt do
       let(:stage_attrs) { { prompt_template: template } }
       let(:template) { PromptTemplate.create!(name: "tmpl #{SecureRandom.hex(4)}", stage_type: :task, body: "Template: {TASK}") }
 
-      after { template.destroy }
 
       it "uses and renders the template body" do
         expect(stage_prompt.body).to start_with("Template: Do the thing")

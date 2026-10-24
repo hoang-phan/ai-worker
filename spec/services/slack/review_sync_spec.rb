@@ -11,9 +11,6 @@ RSpec.describe Slack::ReviewSync do
   let(:slack_url) { "https://acme.slack.com/archives/C0123456789/p1760000000123456" }
   let(:mention) { { "slack_url" => slack_url, "pr_urls" => [ pr_url ] } }
 
-  after do
-    project.destroy
-  end
 
   def stub_pr(url, state: "OPEN", author: "someone")
     allow(github).to receive(:pr_info).with(url).and_return("state" => state, "author" => author)

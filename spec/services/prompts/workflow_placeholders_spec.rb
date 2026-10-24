@@ -14,10 +14,6 @@ RSpec.describe Prompts::WorkflowPlaceholders do
     )
   end
 
-  after do
-    workflow.destroy
-    project.destroy
-  end
 
   it "lists every token it substitutes in TOKENS" do
     expect(described_class::TOKENS).to be_frozen
@@ -62,7 +58,6 @@ RSpec.describe Prompts::WorkflowPlaceholders do
     let!(:first) { build_runbook_stage(runbook, name: "First") }
     let!(:second) { build_runbook_stage(runbook, name: "Second") }
 
-    after { runbook.destroy }
 
     it "is the last PREV_OUTPUT_LIMIT chars of the previous stage's stage_completed output" do
       first.log_run!("stage_completed", output: "x" * 10 + "y" * described_class::PREV_OUTPUT_LIMIT)

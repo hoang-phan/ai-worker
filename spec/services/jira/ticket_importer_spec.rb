@@ -8,9 +8,6 @@ RSpec.describe Jira::TicketImporter do
   end
   let(:result) { Jira::TicketSync::Result.new(blockers: [], created: [], skipped: [], failed: []) }
 
-  after do
-    project.destroy
-  end
 
   def import(issues)
     described_class.new(project).import(issues, result)

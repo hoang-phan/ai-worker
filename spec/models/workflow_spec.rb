@@ -44,7 +44,6 @@ RSpec.describe Workflow, type: :model do
     let!(:step) { build_runbook_stage(runbook, name: "Step") }
     let!(:other) { build_runbook_stage(runbook, name: "Other") }
 
-    after { runbook.destroy }
 
     it "collects names from every completed run, across stages and runs" do
       step.log_run!("stage_completed", output: "VAR: PR_URL=http://x")

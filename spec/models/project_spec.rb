@@ -71,7 +71,6 @@ RSpec.describe Project, type: :model do
   describe "#next_workflow_position" do
     before { project.save! }
 
-    after { project.destroy }
 
     it "is 1 when the project has no workflows" do
       expect(project.next_workflow_position).to eq(1)
