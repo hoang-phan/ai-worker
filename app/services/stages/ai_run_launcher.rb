@@ -3,7 +3,7 @@ module Stages
   # find it on subsequent ticks.
   class AiRunLauncher
     def initialize(workflow:, stage:, project:, runner: AiCli::Runner, logs: AiCli::RunLogs,
-                   run_provider: Stages::RunProvider.new(workflow: workflow, stage: stage))
+                   run_provider: Stages::RunProvider.new(workflow: workflow))
       @workflow = workflow
       @stage = stage
       @project = project

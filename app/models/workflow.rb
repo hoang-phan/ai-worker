@@ -37,8 +37,8 @@ class Workflow < ApplicationRecord
     super(text[%r{/p(\d{10})(\d{6})}] ? "#{$1}.#{$2}" : text.presence)
   end
 
-  # The agent CLI this workflow runs with: the provider picked by AiCli::Rotation the first time it needs one
-  # (pinned for the workflow's life), else nil, meaning the app-wide AiCli::AgentSetting applies.
+  # The agent CLI this workflow runs with. Precedence: the rotation provider picked by AiCli::Rotation the first time
+  # one is needed (pinned per workflow for its life); else nil, meaning the app-wide AiCli::AgentSetting applies.
   def rotation_provider!
     return rotation_provider if rotation_provider.present?
 

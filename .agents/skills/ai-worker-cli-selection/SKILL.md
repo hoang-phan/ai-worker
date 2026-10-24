@@ -11,13 +11,13 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 ## CLI selection and provider registry
 
-- `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: `workflow.rotation_provider!`, then `AiCli::AgentSetting.current`. `override` is the first (nil means app-wide); `name` includes the fallback; `provider` resolves the descriptor. Do not re-create this chain elsewhere.
+- `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: `workflow.rotation_provider!`, then `AiCli::AgentSetting.current`. `Stages::RunProvider.new(workflow:)` exposes only `override`: the rotation provider, or nil meaning `AiCli::Runner` falls back to the app-wide setting. Do not re-create this chain elsewhere.
 - `AiCli::Rotation` holds per-provider nonnegative weights and a counter in `Rails.cache`; setting weights resets the counter. Default/all-zero is off; `next_provider` returns nil when off or advances through weighted slots. `Workflow#rotation_provider!` pins its one chosen provider; brainstorm and sync runs do not rotate.
 - `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AgentSetting.current` reads a valid cached setting, otherwise `AGENT`, otherwise `claude`; its writer rejects unknown providers.
 
 ## Specs
 
-- `spec/services/stages/run_provider_spec.rb`: rotation > app setting precedence and workflow pinning.
+- `spec/services/stages/run_provider_spec.rb`: rotation override, workflow pinning, and nil override when rotation is off.
 - `spec/services/ai_cli/rotation_spec.rb`: disabled default, weighted cycling, and invalid weights/providers.
 - `spec/services/ai_cli/providers_spec.rb`: display order, `find`/`fetch` lookup, and each provider's capabilities.
 - `spec/services/ai_cli/provider/provider_spec.rb`: per-provider argv builder, run wrapper (cursor MCP file) and outcome parsing.
