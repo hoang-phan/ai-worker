@@ -5,7 +5,7 @@ description: Checklist for adding or changing an agent-backed fetch/sync/triage 
 
 # ai-worker-detached-agent-runs
 
-Scope: the services that start the agent CLI detached, read a JSON array back from a result file, and import it into records. General job/service rules are in `ai-worker-orchestration`, the `AiCli` runner/poller layer under `DetachedRun` in `ai-worker-agent-cli`, spec rules in `ai-worker-testing`, model/migration rules in `ai-worker-domain` — not repeated here.
+Scope: the services that start the agent CLI detached, read a JSON array back from a result file, and import it into records. Shared subprocess/error conventions are in `ai-worker-orchestration`, the `AiCli` runner/poller layer under `DetachedRun` in `ai-worker-agent-cli`, spec rules in `ai-worker-testing`, model/migration rules in `ai-worker-domain` — not repeated here.
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
 
@@ -38,7 +38,7 @@ End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workf
 5. Sync wrapper: `blockers` listing every missing precondition, `fetcher`, idempotent `import` (skip what already exists, one failed row must not stop the rest).
 6. Source + job: a fetcher-backed source subclasses `AgentRuns::FetcherCycleSource`, passes its injected/default sync wrapper and fetcher to `super`, and keeps only record-specific persistence, eligibility, cadence, and hooks; use plain doubles to cover the shared plumbing in `spec/services/agent_runs/fetcher_cycle_source_spec.rb`. A planner-shaped source such as Brainstorm may subclass `CycleSource` directly. The source declares `RESCUE_ERRORS = [ X::FetchError, AiCli::CommandError ].freeze` and overrides `rescue_errors` to return it (the `CycleSource` default is `[ AiCli::CommandError ]`); a manual-run controller reuses `X::SyncCycleSource::RESCUE_ERRORS` for `start_manually`. The job is just `find_each` + `AgentRuns::SyncCycle.call(source: X.new(record), log_prefix:)` — `SyncCycle` defaults `rescue_errors:` to `source.rescue_errors` (pass it only to override). `SyncCycle` runs, in this order: poll → `import` + record if rows came back; then skip if `fetcher.running?` or your trigger rule says not yet; then `blockers` (log a warning, don't start) else `fetcher.start`. The source's `rescue_errors` are rescued per record and the failure is written to last-result. Never wait on the agent.
 7. `config/schedule.yml`: working-hours entry + off-hours entry on `queue: default`; keep `config/sidekiq.yml` concurrency untouched.
-8. Add the service to "Moving parts" above (not to `ai-worker-orchestration`, which only points here) and, if the UI shows last-result, handle it via `ai-worker-ui`.
+8. Add the service to "Moving parts" above and to `ai-worker-orchestration`'s File map under this skill; if the UI shows last-result, handle it via `ai-worker-ui`.
 
 ## Spec recipe
 

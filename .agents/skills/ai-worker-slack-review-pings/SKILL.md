@@ -5,7 +5,7 @@ description: Applies ai-worker's Slack "please review" ping discipline. Use for 
 
 # ai-worker-slack-review-pings
 
-Scope: the outbound "please review" message posted to the project's Slack channel once a PR is up for review (and again after changes are pushed), and the read-back of that message's permalink into `Workflow#slack_review_thread_ts` so later pings reply in the same thread. It is built on a short detached agent run (`AiCli::Runner`) but is *not* a fetch/sync service: there is no result file, importer or sync wrapper. The inbound side (mention fetch, `ReviewSync`, `ReviewImporter`) is in `ai-worker-pr-review-workflows` (fetch/run mechanics in `ai-worker-detached-agent-runs`); the `AiCli` runner/poller in `ai-worker-agent-cli`; job/service rules in `ai-worker-orchestration`; spec rules in `ai-worker-testing` — not repeated here.
+Scope: the outbound "please review" message posted to the project's Slack channel once a PR is up for review (and again after changes are pushed), and the read-back of that message's permalink into `Workflow#slack_review_thread_ts` so later pings reply in the same thread. It is built on a short detached agent run (`AiCli::Runner`) but is *not* a fetch/sync service: there is no result file, importer or sync wrapper. The inbound side (mention fetch, `ReviewSync`, `ReviewImporter`) is in `ai-worker-pr-review-workflows` (fetch/run mechanics in `ai-worker-detached-agent-runs`); the `AiCli` runner/poller in `ai-worker-agent-cli`; shared subprocess/error conventions in `ai-worker-orchestration`; spec rules in `ai-worker-testing` — not repeated here.
 
 ## File map
 

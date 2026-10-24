@@ -5,7 +5,7 @@ description: Applies ai-worker's Brainstorm subsystem discipline. Use for any ta
 
 # ai-worker-brainstorm
 
-Scope: the goal-driven, read-only agent that proposes new workflows for a personal project. It is built on `AiCli::DetachedRun` like the Jira/Slack/Bugsnag fetchers but has a different shape: `Planner` → `RunLifecycle` (one retry) → `RunOutcome`, not fetcher + sync wrapper. The shared `DetachedRun` contract, `AgentRuns::*` and the checklist for the fetch/sync services are in `ai-worker-detached-agent-runs`; the `AiCli` runner/poller in `ai-worker-agent-cli`; job/service rules in `ai-worker-orchestration`; spec rules in `ai-worker-testing`; the `Project` brainstorm columns in `ai-worker-domain`; the "Brainstorm" project-page UI in `ai-worker-ui`; prompt templates are unrelated (`Brainstorm::Prompt` is plain code, not a `PromptTemplate`) — not repeated here.
+Scope: the goal-driven, read-only agent that proposes new workflows for a personal project. It is built on `AiCli::DetachedRun` like the Jira/Slack/Bugsnag fetchers but has a different shape: `Planner` → `RunLifecycle` (one retry) → `RunOutcome`, not fetcher + sync wrapper. The shared `DetachedRun` contract, `AgentRuns::*` and the checklist for the fetch/sync services are in `ai-worker-detached-agent-runs`; the `AiCli` runner/poller in `ai-worker-agent-cli`; shared subprocess/error conventions in `ai-worker-orchestration`; spec rules in `ai-worker-testing`; the `Project` brainstorm columns in `ai-worker-domain`; the "Brainstorm" project-page UI in `ai-worker-ui`; prompt templates are unrelated (`Brainstorm::Prompt` is plain code, not a `PromptTemplate`) — not repeated here.
 
 ## Moving parts
 

@@ -26,7 +26,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `app/services/scheduling/**`, `workflow_scheduler_job.rb` | `ai-worker-scheduling` |
    | `stage_executor.rb`, `app/services/stages/**` | `ai-worker-stage-pipeline` |
    | `app/models/**`, `db/**` | `ai-worker-domain` |
-   | other `app/jobs/**`, `app/services/**` | `ai-worker-orchestration` |
+   | `app/jobs/application_job.rb`, or a new unowned service namespace/job | `ai-worker-orchestration` |
    | workflow/stage screen controllers, views, helpers, and their listed specs | `ai-worker-workflow-screens` |
    | `spec/**` | `ai-worker-testing` |
 

@@ -1,32 +1,38 @@
 ---
 name: ai-worker-orchestration
-description: Applies ai-worker's job/service discipline. Use for any task touching app/jobs/**, app/services/**, config/sidekiq.yml, or config/schedule.yml — the scheduler and sync jobs, and the Git/Github/AiCli/Ci/Prompts/Jira/Slack/Bugsnag/Brainstorm service objects.
+description: Applies ai-worker's cross-cutting service/job conventions. Use when adding a new service namespace or job no existing skill owns, touching app/jobs/application_job.rb or config/initializers/sidekiq.rb, or changing shared subprocess/error conventions. Existing subsystem paths belong to their specialised skills.
 ---
 
 # ai-worker-orchestration
 
-Scope: `app/jobs/**`, `app/services/**`, `config/sidekiq.yml`, `config/schedule.yml`, `config/initializers/sidekiq.rb` (scheduler specifics: `ai-worker-scheduling`). Read `app/models/workflow.rb`, `stage.rb` and `project.rb` only for the public methods and enums this layer calls (`current_stage`, `effective_template`, `skill_list`, `advance!`, status/kind enums, project settings) — don't otherwise touch the model layer (`ai-worker-domain`) or the UI (`ai-worker-ui`). The overall design is in `docs/ARCHITECTURE.md` and `docs/RUNBOOK.md`; where they and the code disagree, the code wins.
+Use this skill only for work without a specialised owner, the Rails job base / Sidekiq initializer, or conventions shared across service layers. The overall design is in `docs/ARCHITECTURE.md` and `docs/RUNBOOK.md`; where they and the code disagree, the code wins.
 
-End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
+## File map
 
-## File map (the whole scope)
+Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Other narrowly scoped skills can still apply where their descriptions say so.
 
-**Scheduling**
-- `config/schedule.yml`, `config/sidekiq.yml`, `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` — the scheduler tick, its eligibility/capacity rules and the concurrency-1 contract: see the `ai-worker-scheduling` skill. The Jira, Slack-review and Bugsnag sync jobs and the hourly brainstorm job (also in `schedule.yml`) run on `default`.
-- `app/services/stage_executor.rb` and `app/services/stages/**` (except `run_tooling.rb`) — stage execution, start/finish handlers, and `StageRun` conventions: see `ai-worker-stage-pipeline`.
-- `app/services/ci/**`, `app/services/ai_cli/**` (`RunPoller`, `RunLogs`, `LogTail`, `RunVerdict`, ...) and `app/services/stages/run_tooling.rb` — launching and polling the detached agent / CI command: see the `ai-worker-agent-cli` skill. `StageExecutor` takes `Stages::RunTooling.for(stage)` as `tooling:` (with `github:` / `git:`, all defaulted, so specs inject doubles); flow overview: `ai-worker-stage-types`.
+| Path glob | Owning skill |
+| --- | --- |
+| `app/jobs/application_job.rb` | `ai-worker-orchestration` |
+| `app/jobs/brainstorm_job.rb`, `app/services/brainstorm/**` | `ai-worker-brainstorm` |
+| `app/jobs/bugsnag_sync_job.rb`, `app/services/bugsnag/**` | `ai-worker-bugsnag-triage` |
+| `app/jobs/jira_sync_job.rb`, `app/services/jira/{agent_fetcher,fetch_error,fetch_prompt,sync_cycle_source,ticket_importer,ticket_ref,ticket_rows,ticket_sync}.rb` | `ai-worker-jira-ticket-sync` |
+| `app/jobs/jira_hours_sync_job.rb`, `app/services/jira/{hours_sync,http_transport,rest_client,time_log_batch,time_log_mirror,time_logger,time_slot_planner,worklog_client,worklog_error,worklog_target}.rb` | `ai-worker-jira-worklogs` |
+| `app/jobs/slack_review_job.rb`, `app/services/slack/{fetch_error,mention_fetcher,mention_prompt,mention_rows,review_candidate,review_cycle_source,review_importer,review_sync}.rb` | `ai-worker-pr-review-workflows` |
+| `app/jobs/slack_ping_job.rb`, `app/services/slack/{notify_error,ping_collector,ping_run,review_message,review_notifier}.rb` | `ai-worker-slack-review-pings` |
+| `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` | `ai-worker-scheduling` |
+| `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
+| `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` | `ai-worker-agent-cli` |
+| `app/services/{git,github}/**` | `ai-worker-git-github` |
+| `app/services/prompts/**` | `ai-worker-prompts` |
+| `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb` | `ai-worker-stage-pipeline` |
 
-**Agent CLI** — `app/services/ai_cli/**` (`Runner`, `Command`, `Output`, `BrowserTestRun`, `CursorMcpFile`, `DetachedRun`, the `CommandError` classes): see the `ai-worker-agent-cli` skill.
+## Adding a new service/job
 
-**Prompts**
-- `app/services/prompts/**` — prompt building and `{TOKEN}` substitution (`StagePrompt`, `Renderer`, `Defaults`): see the `ai-worker-prompts` skill.
-
-**Git / GitHub** — see the `ai-worker-git-github` skill (Git::Shell, Git::BranchService, Github::Client → Reader/Writer/PrLocator/Runner).
-
-**Detached-agent sync services** (Jira/Slack/Bugsnag fetchers, sync wrappers, `AgentRuns::*`, the Slack review ping) — the file map, shape and checklist live in the `ai-worker-detached-agent-runs` skill; the Bugsnag triage subsystem is in `ai-worker-bugsnag-triage`; the Brainstorm subsystem (`app/services/brainstorm/**`, `BrainstormJob`) is in `ai-worker-brainstorm`; the outbound Slack "please review" ping (`Slack::ReviewNotifier`, `PingCollector`, `PingRun`, `ReviewMessage`, `SlackPingJob`) is in `ai-worker-slack-review-pings`.
-
-**Jira worklogs** (REST with `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN`: `Jira::WorklogClient`, `TimeLogger`, `TimeLogBatch`, `HoursSync`, `JiraHoursSyncJob`, `TimeLog`) — the file map, data flow and conventions live in the `ai-worker-jira-worklogs` skill.
-- `app/jobs/application_job.rb` — Rails default base class.
+1. Pick the existing owning skill before creating files. If none fits, create the focused owning skill first; this skill then covers only the shared conventions and `ApplicationJob` / Sidekiq wiring.
+2. Inject external collaborators as keyword arguments with production defaults, so specs can provide doubles.
+3. Put its RSpec coverage under the matching `spec/services/<namespace>/` or `spec/jobs/` path and follow `ai-worker-testing`.
+4. Update this file map with the new namespace/job and its owning skill. For behaviour-preserving extraction or moves, follow `ai-worker-refactoring`; for detached agent fetch/sync work, follow `ai-worker-detached-agent-runs`.
 
 ## Conventions
 
