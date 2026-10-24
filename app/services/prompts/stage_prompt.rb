@@ -3,19 +3,17 @@ module Prompts
   class StagePrompt
     CONFLICT = Prompts::ConflictResolution::TEXT
 
-    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) })
+    def initialize(workflow, stage, notifier: nil, latest_log: Prompts::StageSectionList::DEFAULT_LATEST_LOG)
       @workflow = workflow
       @stage = stage
-      @project = workflow.project
-      @notifier = notifier
-      @latest_log = latest_log
+      @section_list = Prompts::StageSectionList.new(workflow: workflow, stage: stage, notifier: notifier, latest_log: latest_log)
     end
 
     def body
       text = stage.prompt.presence || stage.effective_template&.body || Prompts::Defaults.for(stage.stage_type)
       raise ArgumentError, "no prompt available for stage #{stage.id}" unless text
 
-      Prompts::Renderer.render(text, workflow) + sections.join
+      Prompts::Renderer.render(text, workflow) + section_list.to_s
     end
 
     # Wraps `message` in the instructions for posting it to the stage's Slack channel.
@@ -25,37 +23,6 @@ module Prompts
 
     private
 
-    attr_reader :workflow, :stage, :project, :latest_log
-
-    def notifier
-      @notifier ||= Slack::ReviewNotifier.new(project)
-    end
-
-    def sections
-      stage_type = stage.stage_type
-      last_action = stage.last_action
-      retrying = (stage.implementation? || stage.simple_implementation?) && last_action == "failed"
-
-      [
-        Prompts::StageSections::Retry.new(
-          stage_type: stage_type,
-          last_action: last_action,
-          previous_log: (latest_log.call(workflow.id) if retrying)
-        ),
-        Prompts::StageSections::LocalFeedback.new(
-          stage_type: stage_type,
-          local_test_ready: stage.pr_check? && project.local_test_ready?,
-          feedback: workflow.local_test_feedback
-        ),
-        Prompts::StageSections::FixedSummary.new(
-          stage_type: stage_type,
-          notify_enabled: stage.pr_check? && notifier.enabled?
-        ),
-        Prompts::StageSections::LessonsRequest.new(stage_type: stage_type),
-        Prompts::StageSections::FollowUps.new(stage_type: stage_type),
-        Prompts::StageSections::Lessons.new(stage_type: stage_type, lessons: project.agent_lessons),
-        Prompts::StageSections::CheckOutput.new(stage_type: stage_type)
-      ]
-    end
+    attr_reader :workflow, :stage, :section_list
   end
 end
