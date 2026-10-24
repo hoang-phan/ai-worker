@@ -5,7 +5,7 @@ description: Applies ai-worker's end-to-end review-of-someone-else's-PR discipli
 
 # ai-worker-pr-review-workflows
 
-This is the Slack-driven, single-stage `pr_review` workflow for reviewing someone else's GitHub PR. It is distinct from `pr_check`, the review/fix loop for this app's own development PRs, and from outbound Slack “please review” pings (`ai-worker-slack-review-pings`). Detached fetch/run mechanics: `ai-worker-detached-agent-runs`; model rules: `ai-worker-domain`; stage execution: `ai-worker-stage-pipeline`; screens: `ai-worker-ui`.
+This is the Slack-driven, single-stage `pr_review` workflow for reviewing someone else's GitHub PR. It is distinct from `pr_check`, the review/fix loop for this app's own development PRs, and from outbound Slack “please review” pings (`ai-worker-slack-review-pings`). Detached fetch/run mechanics: `ai-worker-detached-agent-runs`; model rules: `ai-worker-domain`; stage execution: `ai-worker-stage-pipeline`; workflow screens: `ai-worker-workflow-screens`.
 
 ## File map
 

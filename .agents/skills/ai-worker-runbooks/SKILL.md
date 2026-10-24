@@ -5,7 +5,7 @@ description: Applies ai-worker's runbook workflow discipline (Workflow#kind = ru
 
 # ai-worker-runbooks
 
-A runbook is a workflow with an ordered, user-editable list of `runbook_step` stages (a deployment checklist). Each stage is an agent run, and a person (or `auto_advance`) moves it on. The code wins over `docs/RUNBOOK.md`. Model rules: `ai-worker-domain`; screens: `ai-worker-ui`; stage execution: `ai-worker-stage-pipeline`; scheduler: `ai-worker-scheduling`; placeholders: `ai-worker-prompts`.
+A runbook is a workflow with an ordered, user-editable list of `runbook_step` stages (a deployment checklist). Each stage is an agent run, and a person (or `auto_advance`) moves it on. The code wins over `docs/RUNBOOK.md`. Model rules: `ai-worker-domain`; screens: `ai-worker-workflow-screens`; stage execution: `ai-worker-stage-pipeline`; scheduler: `ai-worker-scheduling`; placeholders: `ai-worker-prompts`.
 
 ## File map
 

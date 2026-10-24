@@ -1,44 +1,67 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's CRUD-screen discipline. Use for any task touching app/controllers/**, app/helpers/stages_helper.rb, app/views/**, or config/routes.rb — the Projects, Workflows (including runbooks and their Stages), PromptTemplates, Jira/Bugsnag syncs and Settings screens.
+description: Applies ai-worker's CRUD-screen discipline for project CRUD/forms, prompt templates, settings, Jira/Bugsnag sync CRUD and runs, shared UI, remaining Stimulus controllers, and routes.
 ---
 
 # ai-worker-ui
 
-Scope: `app/controllers/**`, `app/views/**`, `config/routes.rb`. Read `app/models/*.rb` only for attribute/validation/enum names when building forms — do not modify models here (that's `ai-worker-domain`'s scope) and do not touch `app/jobs`/`app/services` (that's `ai-worker-orchestration`'s scope).
+Scope: project CRUD/forms, prompt templates, settings, sync CRUD/run screens, shared UI, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
 
-End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
-Per-project settings across model, form, controller, prompts, tests, and onboarding docs: `ai-worker-project-settings`.
+## File map
 
-## File map (the whole scope)
+- `config/routes.rb` — project, sync, workflow, stage, prompt-template, settings, root, Sidekiq, and health routes. Keep existing helper names when routing a controller action.
+- `app/controllers/projects_controller.rb` — project CRUD; dashboard `index`/`show` details belong to `ai-worker-project-dashboard`.
+- `app/views/projects/_form.html.erb` — shared project form shell.
+- `app/views/projects/new.html.erb` — new-project wrapper.
+- `app/views/projects/edit.html.erb` — edit-project wrapper.
+- `app/views/projects/form/_jira.html.erb` — Jira project fields.
+- `app/views/projects/form/_uat_test.html.erb` — UAT fields.
+- `app/views/projects/form/_ci_loop.html.erb` — CI-loop fields.
+- `app/views/projects/form/_local_test.html.erb` — local-test fields.
+- `app/views/projects/form/_brainstorm.html.erb` — brainstorming fields.
+- `app/views/projects/form/_slack.html.erb` — Slack fields.
+- `app/views/projects/form/_errors.html.erb` — project-form errors.
+- `app/controllers/prompt_templates_controller.rb` — prompt-template CRUD.
+- `app/views/prompt_templates/_form.html.erb` — prompt-template form and built-in tokens.
+- `app/views/prompt_templates/index.html.erb` — prompt-template list.
+- `app/views/prompt_templates/show.html.erb` — prompt-template detail.
+- `app/views/prompt_templates/new.html.erb` — new prompt-template wrapper.
+- `app/views/prompt_templates/edit.html.erb` — edit prompt-template wrapper.
+- `app/controllers/settings_controller.rb` — agent-setting update.
+- `app/controllers/settings/rotations_controller.rb` — rotation-weight update.
+- `app/views/settings/show.html.erb` — both settings forms.
+- `app/controllers/jira_syncs_controller.rb` — project Jira-sync CRUD.
+- `app/controllers/jira_sync_runs_controller.rb` — Jira-sync run action and blocked-start feedback.
+- `app/views/jira_syncs/_form.html.erb` — Jira-sync form.
+- `app/views/jira_syncs/new.html.erb` — new Jira-sync wrapper.
+- `app/views/jira_syncs/edit.html.erb` — edit Jira-sync wrapper.
+- `app/controllers/bugsnag_syncs_controller.rb` — project Bugsnag-sync CRUD.
+- `app/controllers/bugsnag_sync_runs_controller.rb` — Bugsnag-sync run action and blocked-start feedback.
+- `app/views/bugsnag_syncs/_form.html.erb` — Bugsnag-sync form.
+- `app/views/bugsnag_syncs/new.html.erb` — new Bugsnag-sync wrapper.
+- `app/views/bugsnag_syncs/edit.html.erb` — edit Bugsnag-sync wrapper.
+- `app/controllers/project_slack_syncs_controller.rb` — project Slack-sync “run now” action.
+- `app/controllers/project_brainstorms_controller.rb` — project brainstorm “run now” action.
+- `app/controllers/concerns/project_scoped.rb` — project loading for nested controllers.
+- `app/controllers/concerns/project_child_crud.rb` — reusable project-nested CRUD actions.
+- `app/controllers/concerns/project_member_scoped.rb` — project loading for `/projects/:id` member actions.
+- `app/controllers/concerns/manual_start_flash.rb` — `AgentRuns::ManualStart` redirect and flash mapping.
+- `app/controllers/concerns/settings_screen.rb` — settings loading and 422 rendering.
+- `app/views/layouts/application.html.erb` — navigation and flashes.
+- `app/views/layouts/mailer.html.erb` — mailer HTML layout.
+- `app/views/layouts/mailer.text.erb` — mailer text layout.
+- `app/views/shared/_skill_hints.html.erb` — clickable project skill hints.
+- `app/views/shared/_error_summary.html.erb` — form validation errors.
+- `app/views/shared/_skills_field.html.erb` — reusable skill textarea and chips.
+- `app/views/pwa/manifest.json.erb` — PWA manifest.
+- `app/views/pwa/service-worker.js` — PWA service worker.
+- `app/javascript/controllers/skill_insert_controller.js` — inserts a selected skill into its textarea.
+- `app/javascript/controllers/select_all_controller.js` — project-table checkbox selection.
 
-- `config/routes.rb` — `resources :projects` (plus member routes `sync_slack` / `brainstorm` mapped to `project_slack_syncs#create` / `project_brainstorms#create`) nests `jira_syncs` and `bugsnag_syncs` (no index/show; member `run`) and `workflows` (no index; member actions for start, run a runbook stage, clone, advance, resume, roll back to review, delete an image). `stages` nest under a workflow (new/create/edit/update/destroy). Top level: `prompt_templates`, singular `resource :settings` (show/update, with nested singular `resource :rotation, only: :update, module: :settings` → `settings_rotation_path`), `root "projects#index"`, Sidekiq Web at `/sidekiq`, health check.
-- Projects: `projects_controller.rb` (CRUD only), `project_slack_syncs_controller.rb` and `project_brainstorms_controller.rb` (single `create` each, the "run now" buttons; routed as member `sync_slack` / `brainstorm` so the helper names stay); `app/views/projects/{index,show,new,edit,_form}.html.erb`, form sections in `projects/form/*` (`_jira`, `_uat_test`, `_ci_loop`, `_local_test`, `_brainstorm`, `_slack`, `_errors`). For the project dashboard, see `ai-worker-project-dashboard`.
-- Time logs: `app/helpers/time_logs_helper.rb` (`TimeLogsHelper` formats logged Jira hours, sync phrases, badges, and checkbox data for project and workflow detail views).
-- Workflows: `workflows_controller.rb` (CRUD only), plus one small controller per member-action group, each `include ProjectScoped` + `WorkflowScoped` (shared `set_workflow`): `workflow_transitions_controller.rb` (start, resume, rollback_to_review), `workflow_runbooks_controller.rb` (run_stage, advance, clone), `workflow_positions_controller.rb` (move) and `workflow_images_controller.rb` (destroy_image) — routed with `to: "workflow_transitions#start"` etc. inside the workflows `member` block so the helper names (`start_project_workflow_path`, `image_project_workflow_path`, ...) stay; and `workflow_time_logs_controller.rb` (the project-level batch `log_time` POST routed from the workflows collection); `app/views/workflows/{show,new,edit,_form,_details,_stages,_stage_runs}.html.erb`, form sections in `workflows/form/*` (`_jira_fields`, `_task_fields`, `_runbook_fields`, `_images`), detail cards in `workflows/details/*` (`_jira`, `_task`, `_runbook`, `_pr_review`, `_log_time`) chosen by `WorkflowsHelper#workflow_details_partial`. Always nested under a project; only `development` and `runbook` are created here (`pr_review` comes from the Slack sync). Member actions are small guarded state transitions; Run stage (and Next in auto-run) enqueue `WorkflowSchedulerJob`. `show` also holds the full `StageRun` history — the only observability screen (no `StageRuns` controller). Helper: `WorkflowsHelper` (`stage_runnable?`, `current_stage_badge`, `workflow_advance_label` for the runbook Next/Finish button, `runbook_copy_source_options`). Runbook lifecycle and invariants: `ai-worker-runbooks`.
-- `app/helpers/stages_helper.rb` — `StagesHelper` supplies run-mode and candidate-template options for stage forms, plus the runbook-vs-development branching of the workflow page's stage table (`stage_table_headers`, `stage_row_name`, `stage_row_badges`, `stage_row_detail`) so `workflows/_stages` stays free of `runbook?` checks (`spec/helpers/stages_helper_spec.rb`).
-- Stages: `stages_controller.rb`; `app/views/stages/{new,edit,_form}.html.erb`, form sections in `stages/form/*` (`_runbook_fields`, `_command_field`, `_prompt_fields`). Add/remove is runbook-only; editing is allowed on any stage. The form carries `data-controller="skill-insert template-fill"`: `template_fill_controller.js` previews the chosen prompt template into the prompt field. Helper: `StagesHelper` (`stage_run_mode_options`, `stage_template_options`; stage-table row helpers above).
-- `app/controllers/concerns/project_child_crud.rb` — `ProjectChildCrud` provides project-scoped CRUD actions (`spec/requests/{jira_syncs,bugsnag_syncs}_spec.rb`).
-- `app/controllers/concerns/workflow_scoped.rb` — `WorkflowScoped` loads the workflow after `ProjectScoped` (`spec/requests/{workflows,workflow_transitions,workflow_runbooks,workflow_positions,workflow_images,stages}_spec.rb`).
-- `app/controllers/concerns/manual_start_flash.rb` — `ManualStartFlash#start_manually` runs `AgentRuns::ManualStart` and maps its outcome to the redirect + flash (`spec/requests/{project_brainstorms,project_slack_syncs,jira_sync_runs,bugsnag_sync_runs}_spec.rb`).
-- `app/controllers/concerns/project_member_scoped.rb` — `ProjectMemberScoped` loads `@project` from `params[:id]` for `/projects/:id/...` member actions (`spec/requests/{project_brainstorms,project_slack_syncs}_spec.rb`).
-- `app/controllers/concerns/settings_screen.rb` — `SettingsScreen` provides `load_settings` and `render_settings_error` for `SettingsController` and `Settings::RotationsController` (`spec/requests/settings_spec.rb`).
-- Syncs: `jira_syncs_controller.rb` / `bugsnag_syncs_controller.rb` with `app/views/{jira_syncs,bugsnag_syncs}/{new,edit,_form}.html.erb` provide CRUD for a project's syncs (listed on the project page). `jira_sync_runs_controller.rb` / `bugsnag_sync_runs_controller.rb` own the `run` member routes and report why a start was blocked.
-- Prompt templates: `prompt_templates_controller.rb`; `app/views/prompt_templates/{index,show,new,edit,_form}.html.erb`. The form lists `Prompts::Renderer::BUILT_IN_TOKENS` beside the body.
-- Settings: `settings_controller.rb` (`update` saves only the agent via `AiCli::AgentSetting`) and `settings/rotations_controller.rb` (`update` saves the round-robin weights via `AiCli::Rotation`, re-rendering `settings/show` with 422 on error); both `include SettingsScreen` (`load_settings`, plus `render_settings_error(e)` for the shared `rescue ArgumentError` → `settings/show` 422 re-render); `app/views/settings/show.html.erb` holds both forms. Settings are not models.
-- Shared: `application_controller.rb`, `application_helper.rb`, `layouts/application.html.erb` (nav + flash), `shared/_skill_hints.html.erb` (clickable skill chips from `project.skill_catalog`), `shared/_error_summary.html.erb` (validation error list, `record:` local, used by forms such as `stages/_form`), `shared/_skills_field.html.erb` (label + skill chips + skill-insert textarea in its own `skill-insert` scope; `f:`, `attribute:`, `label:`, `rows:`, `project:`, optional `show_hints:`/`hint:`; used for the project default skills and workflow skills fields). Concerns: `ProjectScoped`; `ProjectChildCrud` (include after `ProjectScoped`; configurable association/flash label, defines project-nested new/edit/create/update/destroy and scoped child loading); `WorkflowScoped` (`set_workflow`; the including controller registers `before_action :set_workflow` after `ProjectScoped`; finds by `params[:id]` via the private `workflow_id_param`, which nested `StagesController` overrides to `params[:workflow_id]`); `SettingsScreen` (`load_settings` and `render_settings_error`, included by `SettingsController` and `Settings::RotationsController`); `ProjectMemberScoped` (`set_project` from `params[:id]` for `ProjectSlackSyncsController` and `ProjectBrainstormsController`); `ManualStartFlash` (`start_manually` runs `AgentRuns::ManualStart` and maps its result to the redirect + flash for every "run now" action, included by `ProjectSlackSyncsController`, `ProjectBrainstormsController` and the sync-run controllers).
-- Stimulus (auto-registered via `controllers/index.js`): `skill_insert_controller.js` (inserts `/skill-name` into the `data-skill-insert-target="input"` textarea), `template_fill_controller.js` (stage form template preview), `select_all_controller.js` (header checkbox toggles `data-select-all-target="row"` boxes on the project page).
-- `app/views/pwa/`, `app/assets/` — Rails PWA defaults, images, stylesheets.
+## CRUD conventions
 
-## Conventions
-
-- These are plain Rails server-rendered CRUD controllers — no admin gem, no API-only mode, no JS framework beyond Turbo/Stimulus via importmap. Keep that: `create`/`update` re-render `:new`/`:edit` with `status: :unprocessable_entity` on failure, `destroy` redirects with a flash `notice`, forms are `form_with model:` partials shared between `new`/`edit`.
-- Controllers nested under `/projects/:project_id` (workflows and the `Workflow*` action controllers, stages, jira/bugsnag syncs) `include ProjectScoped` (`app/controllers/concerns/project_scoped.rb`), which registers `before_action :set_project` first and 404s on an unknown project; don't redefine `set_project`. `ProjectSlackSyncsController` and `ProjectBrainstormsController` use `params[:id]` and `include ProjectMemberScoped` instead; `ProjectsController` stays outside both.
-- New project-nested CRUD controllers include `ProjectScoped` followed by `ProjectChildCrud` and configure their association and flash label; keep only their strong-params method locally.
-- Controllers stay thin. State changes beyond CRUD (start, resume, advance, rollback, run) check preconditions and redirect with a flash `alert` when they don't hold, and do the work through model methods (`advance!`, `start_runbook!`, `resume_status`) or by calling a service's `blockers` / `start`. Don't put scheduler or agent logic in a controller, and don't run an agent or git command from a request.
-- Enum-backed selects use the model's own keys (`PromptTemplate.stage_types.keys`, `Project.kinds.keys`, `Stage.run_modes.keys`) — never hardcode the value list in a view. Enum-dependent UI branches (`workflow.runbook?`, `project.personal?`) use the predicate methods.
-- System-set fields are not editable from forms and not in strong params: `github_pr_url` (set by the implementation run, or by the Slack sync for review workflows), `status`, `kind` (the workflow controller derives it from a param limited to development/runbook), the agent run-tracking columns, `current_stage_id`. Don't add a field for them.
-- Secrets (`uat_password`, `local_password`) are never rendered back into a form; a blank value means "keep".
-- New "run now" actions `include ManualStartFlash` and make a single `start_manually(...)` call (ManualStart keywords plus `label:`/`started:`/`already_running:`) rather than hand-rolling flashes. New per-kind form or detail sections go in the existing `form/` or `details/` partial directories (and `workflow_details_partial` for details), not inline in `_form`/`_details`.
-- Each user-facing action that triggers an agent run gives a flash explaining what happens next and where the result will show. Keep that wording tied to the real behaviour (e.g. results are imported by the next job tick).
-- Test with RSpec, not scratch runners: add request/controller or model specs under `spec/` and run `RAILS_ENV=test bundle exec rspec`. Never run scratch scripts, `bin/rails runner` or console code against the development DB, and never click through a running dev server's destructive buttons (Delete, Start, Run) on real projects to "verify" a change.
+- These are plain Rails server-rendered CRUD controllers. `create`/`update` re-render `:new`/`:edit` with `status: :unprocessable_entity` on failure; `destroy` redirects with a flash `notice`; forms are `form_with model:` partials shared between `new`/`edit`.
+- Project-nested CRUD controllers include `ProjectScoped` followed by `ProjectChildCrud`; configure their association and flash label and keep only strong params locally. `ProjectSlackSyncsController` and `ProjectBrainstormsController` use `ProjectMemberScoped`; `ProjectsController` uses neither.
+- Controllers stay thin. Do not put scheduler, agent, or git logic in a request; new “run now” actions include `ManualStartFlash` and make one `start_manually(...)` call.
+- Enum-backed selects use the model’s own keys; system-set fields do not go in forms or strong params. Secrets are never rendered back into a form; blank means “keep”.
+- Test with RSpec under `spec/`; never use development data, scratch runners, or destructive dev-server actions for verification.
