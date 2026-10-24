@@ -1,6 +1,6 @@
 <%= form_with url: project_path(project), method: :get, class: "batch-bar" do %>
   <label for="status" class="text-muted">Status:</label>
-  <%= select_tag :status, options_for_select([["All", ""]] + Workflow.statuses.keys.map { |s| [s.humanize, s] }, workflow_list.status_filter), onchange: "this.form.requestSubmit()" %>
+  <%= select_tag :status, options_for_select(workflow_status_filter_options, workflow_list.status_filter), onchange: "this.form.requestSubmit()" %>
   <noscript><button type="submit" class="btn btn-secondary">Filter</button></noscript>
 <% end %>
 
@@ -39,6 +39,6 @@
     </tbody>
   </table>
   <% if workflow_list.workflows.empty? %>
-    <div class="empty-state"><%= workflow_list.status_filter ? "No #{workflow_list.status_filter.humanize.downcase} workflows." : "No workflows yet." %> <%= link_to "Create one", new_project_workflow_path(project) %>.</div>
+    <div class="empty-state"><%= workflow_list_empty_message(workflow_list) %> <%= link_to "Create one", new_project_workflow_path(project) %>.</div>
   <% end %>
 </div>
