@@ -29,6 +29,17 @@ RSpec.describe Workflow, type: :model do
     end
   end
 
+  describe "#slack_review_thread_ts=" do
+    it "delegates normalization to Slack::ThreadRef" do
+      value = "https://acme.slack.com/archives/C123ABC/p1760000000123456"
+      expect(Slack::ThreadRef).to receive(:ts_for).with(value).and_return("1760000000.123456")
+
+      workflow.slack_review_thread_ts = value
+
+      expect(workflow.slack_review_thread_ts).to eq("1760000000.123456")
+    end
+  end
+
   describe "#finish_ai_run!" do
     it "clears the ai run columns and applies the extra attributes in one update" do
       workflow.update!(running_ai_run)

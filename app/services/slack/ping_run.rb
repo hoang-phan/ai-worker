@@ -4,7 +4,6 @@ module Slack
   class PingRun
     ROOT = Rails.root.join("tmp", "slack_pings")
     STALE_AFTER = 5.minutes
-    PERMALINK = %r{https://[^\s/]+\.slack\.com/archives/[A-Z0-9]+/p\d{16}(?:\?\S*)?}
 
     # The dir for a ping of `workflow_id` started at `started_at` (not created).
     def self.for(root, workflow_id, started_at)
@@ -35,7 +34,7 @@ module Slack
 
     # The first Slack permalink in the agent log, or nil.
     def permalink
-      log_file.exist? ? log_file.read[PERMALINK] : nil
+      log_file.exist? ? log_file.read[ThreadRef::PERMALINK] : nil
     end
 
     def to_s

@@ -31,11 +31,7 @@ class Workflow < ApplicationRecord
     TimeLog.seconds_for(jira_key)
   end
 
-  # Accepts a Slack thread id (`1760000000.123456`) or a message link (`.../archives/C123/p1760000000123456`).
-  def slack_review_thread_ts=(value)
-    text = value.to_s.strip
-    super(text[%r{/p(\d{10})(\d{6})}] ? "#{$1}.#{$2}" : text.presence)
-  end
+  def slack_review_thread_ts=(value); super(Slack::ThreadRef.ts_for(value)); end
 
   # The agent CLI this workflow runs with. Precedence: the rotation provider picked by AiCli::Rotation the first time
   # one is needed (pinned per workflow for its life); else nil, meaning the app-wide AiCli::AgentSetting applies.
