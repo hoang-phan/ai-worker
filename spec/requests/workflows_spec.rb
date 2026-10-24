@@ -26,6 +26,27 @@ RSpec.describe "Workflows", type: :request, active_job_test_adapter: true do
       expect(response.body).not_to include("workflow[task_description]")
     end
 
+    it "renders the skills and PR skills textareas as insert targets with skill chips" do
+      FileUtils.mkdir_p(File.join(local_directory, ".agents", "skills", "spec-skill"))
+      ci_project = build_ci_project(local_directory: local_directory)
+
+      [ new_project_workflow_path(ci_project), edit_project_workflow_path(ci_project, build_ci_workflow(ci_project)) ].each do |path|
+        get path
+
+        document = Nokogiri::HTML(response.body)
+        %w[workflow_skills workflow_pr_skills].each do |id|
+          field = document.at_css(%([data-controller~="skill-insert"].field:has(> ##{id}[data-skill-insert-target="input"])))
+          expect(field.at_css('.skill-chip[data-skill="spec-skill"]')).to be_present
+        end
+      end
+    end
+
+    it "omits the PR skills field outside the check / verify loop flow" do
+      get new_project_workflow_path(project)
+      expect(response.body).to include("workflow[skills]")
+      expect(response.body).not_to include("workflow[pr_skills]")
+    end
+
     it "renders the task field for a personal project" do
       personal = build_personal_project
       get new_project_workflow_path(personal)

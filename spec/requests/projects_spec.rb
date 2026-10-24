@@ -40,6 +40,27 @@ RSpec.describe "Projects", type: :request do
     end
   end
 
+  describe "GET new and edit skills fields" do
+    it "renders both skills textareas as insert targets, with skill chips only for a persisted project" do
+      get new_project_path
+
+      document = Nokogiri::HTML(response.body)
+      %w[project_default_skills project_default_pr_skills].each do |id|
+        expect(document.at_css(%([data-controller~="skill-insert"].field > ##{id}[data-skill-insert-target="input"]))).to be_present
+      end
+      expect(document.css(".skill-chip")).to be_empty
+
+      FileUtils.mkdir_p(File.join(local_directory, ".agents", "skills", "spec-skill"))
+      get edit_project_path(project)
+
+      document = Nokogiri::HTML(response.body)
+      %w[project_default_skills project_default_pr_skills].each do |id|
+        field = document.at_css(%([data-controller~="skill-insert"].field:has(> ##{id}[data-skill-insert-target="input"])))
+        expect(field.at_css('.skill-chip[data-skill="spec-skill"]')).to be_present
+      end
+    end
+  end
+
   describe "agent lessons" do
     it "shows an editable textarea and saves it" do
       project.update!(agent_lessons: "Use partial A")

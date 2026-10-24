@@ -1,0 +1,15 @@
+<%# Skills textarea with clickable skill chips. Each field carries its own skill-insert scope so a chip
+    inserts into this field's textarea, even when an outer form-level skill-insert controller exists.
+    Locals: f, attribute, label, rows, project, show_hints (default true), hint (optional html-safe text). %>
+<% show_hints = local_assigns.fetch(:show_hints, true) %>
+<% hint = local_assigns[:hint] %>
+<div class="field" data-controller="skill-insert">
+  <%= f.label attribute, label %>
+  <% if show_hints %>
+    <%= render "shared/skill_hints", project: project %>
+  <% end %>
+  <%= f.text_area attribute, rows: rows, data: { skill_insert_target: "input" } %>
+  <% if hint %>
+    <p class="field-hint"><%= hint %></p>
+  <% end %>
+</div>

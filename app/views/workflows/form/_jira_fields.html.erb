@@ -13,19 +13,11 @@
   <%= f.text_field :github_reviewer %>
 </div>
 
-<div class="field">
-  <%= f.label :skills, "Skills to use (comma-separated)" %>
-  <%= render "shared/skill_hints", project: project %>
-  <%= f.text_area :skills, rows: 3, data: { skill_insert_target: "input" } %>
-</div>
+<%= render "shared/skills_field", f: f, attribute: :skills, label: "Skills to use (comma-separated)", rows: 3, project: project %>
 
 <% if project.ci_loop_ready? %>
-  <div class="field" data-controller="skill-insert">
-    <%= f.label :pr_skills, "PR skills (comma-separated)" %>
-    <%= render "shared/skill_hints", project: project %>
-    <%= f.text_area :pr_skills, rows: 2, data: { skill_insert_target: "input" } %>
-    <p class="field-hint">Only the PR stage uses these (<code>{PR_SKILLS}</code>).</p>
-  </div>
+  <%= render "shared/skills_field", f: f, attribute: :pr_skills, label: "PR skills (comma-separated)", rows: 2, project: project,
+                                    hint: "Only the PR stage uses these (<code>{PR_SKILLS}</code>).".html_safe %>
 <% end %>
 
 <div class="field">
