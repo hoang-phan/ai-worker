@@ -38,7 +38,7 @@ RSpec.describe Workflows::RunbookClone do
   end
 
   it "returns the errors of an invalid copy" do
-    allow_any_instance_of(Workflow).to receive(:input_variables).and_return({ "bad name" => "x" })
+    allow(source).to receive(:input_variables).and_return({ "bad name" => "x" })
 
     result = clone_result
 

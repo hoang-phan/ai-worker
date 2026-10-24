@@ -53,14 +53,11 @@ RSpec.describe Jira::TicketImporter do
     end
 
     it "reports validation failures in failed" do
-      allow_any_instance_of(Workflow).to receive(:save).and_wrap_original do |m|
-        m.receiver.errors.add(:base, "boom")
-        false
-      end
+      project.update!(default_reviewers: "")
 
       result = import([ { "key" => "UNS-9" } ])
 
-      expect(result.failed).to eq([ "UNS-9: boom" ])
+      expect(result.failed).to eq([ "UNS-9: Github reviewer can't be blank" ])
       expect(result.created).to be_empty
     end
   end

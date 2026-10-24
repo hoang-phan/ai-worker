@@ -9,7 +9,6 @@ RSpec.describe AiCli::RunPoller do
 
   before do
     File.write(log_path, log_text)
-    allow_any_instance_of(AiCli::LogTail).to receive(:read_from).and_return([ "", 42 ])
   end
 
   let(:runner) { double("runner", agent: "claude") }
@@ -30,7 +29,7 @@ RSpec.describe AiCli::RunPoller do
     p = poller
 
     expect(p.call).to eq(:running)
-    expect(p.log_offset).to eq(42)
+    expect(p.log_offset).to eq(log_text.bytesize)
     expect(kill).not_to have_received(:call)
   end
 
@@ -43,7 +42,7 @@ RSpec.describe AiCli::RunPoller do
 
   it "judges a lost exit status by the run's own provider" do
     allow(runner).to receive(:poll).and_return([ :completed, nil ])
-    allow_any_instance_of(AiCli::LogTail).to receive(:full).and_return(%({"type":"result","is_error":false,"result":"ok"}\n))
+    File.write(log_path, %({"type":"result","is_error":false,"result":"ok"}\n), mode: "a")
 
     expect { poller(provider: "codex").call }.to raise_error(AiCli::CommandError, /codex exit status unknown/)
     expect(poller(provider: "").call.first).to eq :finished
