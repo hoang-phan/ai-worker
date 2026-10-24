@@ -1,6 +1,6 @@
 ---
 name: ai-worker-workflow-screens
-description: "Owns workflow and stage screens: app/controllers/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_controller.rb, app/controllers/concerns/workflow_scoped.rb, app/helpers/stages_helper.rb, workflow-page helpers in app/helpers/workflows_helper.rb, app/views/workflows/**, app/views/stages/**, app/javascript/controllers/template_fill_controller.js, and their request/helper specs."
+description: "Owns workflow and stage screens: app/controllers/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_controller.rb, app/controllers/concerns/workflow_scoped.rb, app/helpers/{stages_helper,workflow_pages_helper}.rb, app/views/workflows/**, app/views/stages/**, app/javascript/controllers/template_fill_controller.js, and their request/helper specs."
 ---
 
 # ai-worker-workflow-screens
@@ -15,8 +15,8 @@ Scope: workflow CRUD/detail pages and stage forms. `WorkflowTransitionsControlle
 - `app/controllers/workflow_time_logs_controller.rb` — project workflow batch time-log action; follow `ai-worker-jira-worklogs` for time-log behavior.
 - `app/controllers/stages_controller.rb` — stage CRUD; runbook guards and params follow `ai-worker-runbooks`.
 - `app/controllers/concerns/workflow_scoped.rb` — loads a workflow after `ProjectScoped`; `StagesController` supplies `params[:workflow_id]` through `workflow_id_param`.
-- `app/helpers/stages_helper.rb` — stage form options and runbook/development stage-table helpers.
-- `app/helpers/workflows_helper.rb` — owns only `workflow_details_partial`, `stage_runnable?`, `current_stage_badge`, `workflow_advance_label`, and `runbook_copy_source_options` here; dashboard badge helpers remain in `ai-worker-project-dashboard`.
+- `app/helpers/stages_helper.rb` — stage form options and runbook/development stage-table helpers, including `stage_runnable?` and `current_stage_badge`.
+- `app/helpers/workflow_pages_helper.rb` — `workflow_details_partial`, `workflow_advance_label`, and `runbook_copy_source_options` for workflow pages.
 - `app/views/workflows/show.html.erb` — workflow detail page and stage-run history.
 - `app/views/workflows/new.html.erb` — new-workflow wrapper.
 - `app/views/workflows/edit.html.erb` — edit-workflow wrapper.
@@ -46,7 +46,7 @@ Scope: workflow CRUD/detail pages and stage forms. `WorkflowTransitionsControlle
 - `spec/requests/workflow_time_logs_spec.rb` — batch time-log requests.
 - `spec/requests/stages_spec.rb` — stage form and CRUD requests; runbook behavior belongs to `ai-worker-runbooks`.
 - `spec/helpers/stages_helper_spec.rb` — stage form and table helper coverage.
-- `spec/helpers/workflows_helper_spec.rb` — workflow-page helper coverage; dashboard badge coverage belongs to `ai-worker-project-dashboard`.
+- `spec/helpers/workflow_pages_helper_spec.rb` — workflow-page helper coverage.
 
 ## Conventions
 
@@ -57,4 +57,4 @@ Scope: workflow CRUD/detail pages and stage forms. `WorkflowTransitionsControlle
 
 ## Verification
 
-Run `RAILS_ENV=test bundle exec rspec spec/requests/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_spec.rb spec/helpers/{stages_helper,workflows_helper}_spec.rb`.
+Run `RAILS_ENV=test bundle exec rspec spec/requests/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_spec.rb spec/helpers/{stages_helper,workflow_pages_helper}_spec.rb`.

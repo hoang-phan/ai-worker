@@ -18,7 +18,7 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 - `app/views/projects/_workflows.html.erb` — GET status filter, Jira time-log batch form, select-all workflow table, rows, and empty state.
 - `app/views/projects/_workflow_row.html.erb` — position arrows, checkbox, labels/kind/status/time badges, PR/edit actions, and pending Start action.
 - `app/helpers/projects_helper.rb` — `project_header_meta` (escaped directory + repo name) and the `show_brainstorm_section?` / `show_slack_reviews_section?` visibility rules used by `show`.
-- `app/helpers/workflows_helper.rb` — `WORKFLOW_STATUS_BADGE_CLASSES`, `workflow_status_badge`, and `workflow_kind_badges` used by dashboard rows; its other helpers belong to their screens.
+- `app/helpers/workflows_helper.rb` — `WORKFLOW_STATUS_BADGE_CLASSES`, `workflow_status_badge_class`, `workflow_status_badge`, and `workflow_kind_badges` used by dashboard rows.
 
 ## Boundaries
 

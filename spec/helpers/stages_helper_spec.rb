@@ -35,6 +35,41 @@ RSpec.describe StagesHelper, type: :helper do
     end
   end
 
+  describe "#stage_runnable?" do
+    let(:project) { build_jira_project }
+    let(:workflow) { build_runbook_workflow(project, status: :implementing) }
+    let(:stage) { build_runbook_stage(workflow, name: "Build", position: 1) }
+    let(:other_stage) { build_runbook_stage(workflow, name: "Ship", position: 2) }
+
+    it "allows the current stage of an idle implementing runbook" do
+      expect(helper.stage_runnable?(workflow, stage, stage)).to be(true)
+    end
+
+    it "rejects another stage or a workflow that is processing" do
+      expect(helper.stage_runnable?(workflow, other_stage, stage)).to be(false)
+
+      workflow.update!(processing: true)
+      expect(helper.stage_runnable?(workflow, stage, stage)).to be(false)
+    end
+  end
+
+  describe "#current_stage_badge" do
+    let(:stage) { Object.new }
+
+    it "labels a waiting current stage" do
+      workflow = instance_double(Workflow, waiting?: true)
+
+      expect(helper.current_stage_badge(workflow, stage, stage)).to eq("waiting for Next")
+    end
+
+    it "labels a non-waiting current stage and leaves other stages blank" do
+      workflow = instance_double(Workflow, waiting?: false)
+
+      expect(helper.current_stage_badge(workflow, stage, stage)).to eq("current")
+      expect(helper.current_stage_badge(workflow, Object.new, stage)).to be_nil
+    end
+  end
+
   describe "stage row helpers" do
     let_jira_project("stages-helper-spec")
 
