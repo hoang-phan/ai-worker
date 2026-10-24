@@ -9,6 +9,16 @@ RSpec.describe StageExecutor, type: :service do
   let(:stage) { workflow.stages.create!(stage_type: :task) }
   let(:handler) { instance_double(Stages::CompletionHandler, call: nil) }
 
+  it "fails without polling or starting when the project uses the live checkout" do
+    allow(project).to receive(:runs_from_live_checkout?).and_return(true)
+    expect(AiCli::RunPoller).not_to receive(:new)
+    expect(Stages::StartHandler).not_to receive(:new)
+
+    described_class.new(workflow, stage).call
+
+    expect(stage.stage_runs.find_by(action: "failed").error).to include("live ai-worker checkout")
+  end
+
   it "hands a finished run's output to the completion handler" do
     poller = instance_double(AiCli::RunPoller, call: [ :finished, "all done" ], log_offset: 0)
     allow(AiCli::RunPoller).to receive(:new).and_return(poller)

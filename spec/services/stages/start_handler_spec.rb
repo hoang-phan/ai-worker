@@ -13,9 +13,6 @@ RSpec.describe Stages::StartHandler, type: :service do
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
-  let(:browser_run) do
-    instance_double(AiCli::BrowserTestRun, mcp_config_path: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
-  end
 
   def handler
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, handoff: handoff, launcher: launcher)
@@ -41,23 +38,59 @@ RSpec.describe Stages::StartHandler, type: :service do
     end
   end
 
-  describe "task" do
-    let(:stage_type) { :task }
+  describe "prompt-only stages" do
+    Stages::StartHandler::PROMPT_ONLY_TYPES.each do |type|
+      context type do
+        let(:stage_type) { type }
 
-    it "starts the agent directly" do
+        it "starts the agent with the rendered prompt and does not create a branch" do
+          handler.call
+
+          expect(git).not_to have_received(:create_branch!)
+          expect_run_started
+        end
+      end
+    end
+  end
+
+  describe "simple_implementation" do
+    let(:stage_type) { :simple_implementation }
+
+    it "creates the branch and starts the agent" do
       handler.call
 
-      expect(git).not_to have_received(:create_branch!)
+      expect(git).to have_received(:create_branch!).with(project, "start-handler")
       expect_run_started
     end
   end
 
-  describe "jira_update" do
-    let(:stage_type) { :jira_update }
+  describe "ci_check" do
+    let(:stage_type) { :ci_check }
 
-    it "starts the agent" do
+    it "starts the stage command when one is present" do
+      stage.update!(command: "bin/stage-ci")
+      project.update!(ci_command: "bin/project-ci")
+
       handler.call
-      expect_run_started
+
+      expect_run_started("bin/stage-ci")
+    end
+
+    it "starts the project CI command when the stage command is blank" do
+      stage.update!(command: "")
+      project.update!(ci_command: "bin/project-ci")
+
+      handler.call
+
+      expect_run_started("bin/project-ci")
+    end
+
+    it "raises without launching when neither CI command is present" do
+      stage.update!(command: "")
+      project.update!(ci_command: "")
+
+      expect { handler.call }.to raise_error(ArgumentError, /no CI command/)
+      expect(launcher).not_to have_received(:call)
     end
   end
 
@@ -75,59 +108,21 @@ RSpec.describe Stages::StartHandler, type: :service do
     end
   end
 
-  describe "uat_test" do
-    let(:stage_type) { :uat_test }
+  describe "browser-test stages" do
+    Stages::StartHandler::BROWSER_TEST_KINDS.each do |type, kind|
+      context type do
+        let(:stage_type) { type }
 
-    it "validates the browser run and starts the agent with its MCP config, env and disallowed tools" do
-      allow(AiCli::BrowserTestRun).to receive(:new).with(project, workflow, kind: :uat).and_return(double(validate!: browser_run))
-      handler.call
+        it "delegates to BrowserTestStart for the #{kind} kind" do
+          starter = instance_double(Stages::BrowserTestStart, call: nil)
+          allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
+          handler.call
 
-      expect_run_started(mcp_config: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
-    end
-
-    it "delegates to BrowserTestStart for the uat kind" do
-      starter = instance_double(Stages::BrowserTestStart, call: nil)
-      allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
-      handler.call
-
-      expect(Stages::BrowserTestStart).to have_received(:new)
-        .with(workflow: workflow, project: project, kind: :uat, prompt: prompt, git: git, launcher: launcher)
-      expect(starter).to have_received(:call)
-    end
-
-    it "propagates a validation error" do
-      invalid = double("AiCli::BrowserTestRun")
-      allow(invalid).to receive(:validate!).and_raise(ArgumentError, "no uat")
-      allow(AiCli::BrowserTestRun).to receive(:new).and_return(invalid)
-
-      expect { handler.call }.to raise_error(ArgumentError, "no uat")
-      expect(launcher).not_to have_received(:call)
-    end
-  end
-
-  describe "local_test" do
-    let(:stage_type) { :local_test }
-
-    it "checks out the PR branch and starts the browser run" do
-      allow(AiCli::BrowserTestRun).to receive(:new).with(project, workflow, kind: :local).and_return(double(validate!: browser_run))
-      handler.call
-
-      expect(git).to have_received(:checkout_remote_branch!).with(project, "start-handler")
-      expect_run_started(mcp_config: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
-    end
-  end
-
-  describe "local_test delegation" do
-    let(:stage_type) { :local_test }
-
-    it "delegates to BrowserTestStart for the local kind" do
-      starter = instance_double(Stages::BrowserTestStart, call: nil)
-      allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
-      handler.call
-
-      expect(Stages::BrowserTestStart).to have_received(:new)
-        .with(workflow: workflow, project: project, kind: :local, prompt: prompt, git: git, launcher: launcher)
-      expect(starter).to have_received(:call)
+          expect(Stages::BrowserTestStart).to have_received(:new)
+            .with(workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher)
+          expect(starter).to have_received(:call)
+        end
+      end
     end
   end
 
