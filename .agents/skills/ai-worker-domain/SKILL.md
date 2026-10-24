@@ -1,11 +1,11 @@
 ---
 name: ai-worker-domain
-description: Applies ai-worker's data model discipline. Use for any task touching app/models/**, db/migrate/**, or db/schema.rb — adding/changing fields on Project, Workflow, Stage, StageRun, PromptTemplate, JiraSync or BugsnagSync, their enums, validations, or associations.
+description: Applies ai-worker's data model discipline. Use for any task touching app/models/{project,workflow,stage,stage_run,prompt_template}.rb, app/models/stages/run_history.rb, app/models/workflows/{image_store,validator,label,summary_key}.rb, app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb, db/migrate/**, or db/schema.rb — including cross-cutting enum and migration rules.
 ---
 
 # ai-worker-domain
 
-Scope: `app/models/**`, `db/migrate/**`, `db/schema.rb`. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
+Scope: `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, `app/models/workflows/{image_store,validator,label,summary_key}.rb`, `app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb`, `db/migrate/**`, and `db/schema.rb`, plus cross-cutting enum and migration rules. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
 Per-project settings across model, form, controller, prompts, tests, and onboarding docs: `ai-worker-project-settings`.

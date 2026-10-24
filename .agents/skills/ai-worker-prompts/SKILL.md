@@ -1,6 +1,6 @@
 ---
 name: ai-worker-prompts
-description: Applies ai-worker's prompt discipline. Use for any task touching app/services/prompts/**, app/services/prompts/defaults/*.md, app/models/prompt_template.rb, docs/PROMPT_TEMPLATES.md, or adding/changing a placeholder or {TOKEN} — Prompts::StagePrompt, Renderer, WorkflowPlaceholders, ProjectPlaceholders, Defaults, StageSections.
+description: Applies ai-worker's prompt discipline. Use for app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb, app/services/prompts/defaults/jira_update.md, app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb, app/models/prompt_template.rb, or docs/PROMPT_TEMPLATES.md. This skill remains the authority for placeholder and section rules everywhere.
 ---
 
 # ai-worker-prompts
