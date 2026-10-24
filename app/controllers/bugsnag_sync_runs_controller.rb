@@ -5,14 +5,10 @@ class BugsnagSyncRunsController < ApplicationController
   def create
     @bugsnag_sync = @project.bugsnag_syncs.find(params[:id])
     sync = Bugsnag::TriageSync.new(@bugsnag_sync)
-    result = AgentRuns::ManualStart.call(
+    start_manually(
       blockers: -> { sync.blockers },
       start: -> { sync.triager.start },
-      rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ]
-    )
-    redirect_after_manual_start(
-      result,
-      to: @project,
+      rescue_errors: [ Bugsnag::FetchError, AiCli::CommandError ],
       label: "Bugsnag sync",
       started: "Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes.",
       already_running: "A Bugsnag triage is already running for this sync."

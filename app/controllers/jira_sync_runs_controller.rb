@@ -5,14 +5,10 @@ class JiraSyncRunsController < ApplicationController
   def create
     @jira_sync = @project.jira_syncs.find(params[:id])
     sync = Jira::TicketSync.new(@jira_sync)
-    result = AgentRuns::ManualStart.call(
+    start_manually(
       blockers: -> { sync.blockers },
       start: -> { sync.fetcher.start },
-      rescue_errors: [ Jira::FetchError, AiCli::CommandError ]
-    )
-    redirect_after_manual_start(
-      result,
-      to: @project,
+      rescue_errors: [ Jira::FetchError, AiCli::CommandError ],
       label: "Jira sync",
       started: "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.",
       already_running: "A Jira fetch is already running for this sync."
