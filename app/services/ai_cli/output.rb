@@ -70,18 +70,26 @@ module AiCli
       text.match?(/^\s*POSTED\s*$/)
     end
 
-    # :success / :error from the last `{"type":"result"}` event claude writes,
-    # nil if there is none (run killed mid-way, or another agent).
-    def final_outcome
+    # The last valid `{"type":"result"}` event claude writes, or nil. Invalid JSON lines are skipped.
+    def result_event
       text.each_line.reverse_each do |line|
         next unless line.start_with?("{")
 
         event = JSON.parse(line)
-        return event["is_error"] ? :error : :success if event.is_a?(Hash) && event["type"] == "result"
+        return event if event.is_a?(Hash) && event["type"] == "result"
       rescue JSON::ParserError
         next
       end
       nil
+    end
+
+    # :success / :error from the last `{"type":"result"}` event claude writes,
+    # nil if there is none (run killed mid-way, or another agent).
+    def final_outcome
+      event = result_event
+      return unless event
+
+      event["is_error"] ? :error : :success
     end
 
     private

@@ -35,6 +35,14 @@ RSpec.describe Brainstorm::RunOutcome do
     end
   end
 
+  context "with a truncated result line after a valid result event" do
+    before { log_path.write(%({"type":"result","subtype":"valid"}\n{"type":"result","subtype":\n)) }
+
+    it "uses the earlier valid event" do
+      expect(outcome.event).to eq({ "type" => "result", "subtype" => "valid" })
+    end
+  end
+
   context "with several result events" do
     before do
       log_path.write(%({"type":"result","subtype":"first"}\n{"type":"assistant"}\n{"type":"result","subtype":"last"}\n{"type":"assistant"}\n))

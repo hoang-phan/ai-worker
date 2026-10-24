@@ -124,6 +124,26 @@ RSpec.describe AiCli::Output do
       expect(output(text).final_outcome).to eq(:success)
     end
   end
+
+  describe "#result_event" do
+    it("is nil without a result event") { expect(output(%(plain\n{"type":"assistant"})).result_event).to be_nil }
+    it("returns a single result event") { expect(output(%({"type":"result","is_error":false})).result_event).to eq({ "type" => "result", "is_error" => false }) }
+
+    it "returns the last of several result events" do
+      text = %({"type":"result","subtype":"first"}\n{"type":"result","subtype":"last"}\n)
+      expect(output(text).result_event).to eq({ "type" => "result", "subtype" => "last" })
+    end
+
+    it "skips an invalid JSON line" do
+      text = %({"type":"result","subtype":"valid"}\n{not json\n)
+      expect(output(text).result_event).to eq({ "type" => "result", "subtype" => "valid" })
+    end
+
+    it "ignores non-result JSON" do
+      text = %({"type":"result","subtype":"valid"}\n{"type":"assistant"}\n)
+      expect(output(text).result_event).to eq({ "type" => "result", "subtype" => "valid" })
+    end
+  end
 end
 
 RSpec.describe AiCli::Output, "#ci_verdict" do
