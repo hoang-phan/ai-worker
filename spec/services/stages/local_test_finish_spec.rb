@@ -4,9 +4,7 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
   let_tmpdir(:local_directory, "local-test-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "local-test-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing,
-                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                                 ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "local-test-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :local_test, name: "local_test") }
   let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }

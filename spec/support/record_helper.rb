@@ -12,6 +12,11 @@ module RecordHelper
     Project.create!({ name: "Personal #{SecureRandom.hex(4)}", kind: :personal, local_directory: Dir.tmpdir }.merge(attrs))
   end
 
+  # Fills the columns in Workflow::AI_RUN_RESET for an in-progress AI run.
+  def running_ai_run(**overrides)
+    { processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0 }.merge(overrides)
+  end
+
   def build_jira_workflow(project, **attrs)
     project.workflows.create!({ jira_ticket: "TEST-#{JIRA_TICKET_SEQUENCE.next}", branch_name: "branch-#{SecureRandom.hex(3)}",
                                 github_reviewer: "octocat" }.merge(attrs))

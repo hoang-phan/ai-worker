@@ -4,9 +4,7 @@ RSpec.describe Stages::TaskFinish, type: :service do
   let_tmpdir(:local_directory, "task-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing,
-                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                                 ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :task, name: "task") }
   let(:git) { class_double(Git::BranchService, push_current!: :pushed) }

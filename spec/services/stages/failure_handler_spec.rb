@@ -4,9 +4,7 @@ RSpec.describe Stages::FailureHandler, type: :service do
   let_tmpdir(:local_directory, "failure-handler-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "FAIL-1", branch_name: "failure-handler", status: :implementing,
-                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                                 ai_started_at: Time.current, ai_log_offset: 42, auto_run: true)
+    build_jira_workflow(project, jira_ticket: "FAIL-1", branch_name: "failure-handler", status: :implementing, auto_run: true, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :implementation) }
   let(:error) { AiCli::CommandError.new("boom") }

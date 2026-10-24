@@ -4,9 +4,7 @@ RSpec.describe Stages::PrReviewFinish, type: :service do
   let_tmpdir(:local_directory, "pr-review-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "pr-review-finish", status: :implementing,
-                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                                 ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "pr-review-finish", status: :implementing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_review, name: "pr_review") }
 

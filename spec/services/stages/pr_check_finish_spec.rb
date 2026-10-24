@@ -3,9 +3,7 @@ require "rails_helper"
 RSpec.describe Stages::PrCheckFinish, type: :service do
   let(:project) { build_jira_project }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "PCF-1", branch_name: "pr-check-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :reviewing,
-                                 processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log",
-                                 ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "PCF-1", branch_name: "pr-check-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :reviewing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
   let(:github) { double("Github::Client", request_review!: nil) }

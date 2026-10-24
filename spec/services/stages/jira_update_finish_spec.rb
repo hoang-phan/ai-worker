@@ -5,8 +5,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
   let(:project_attributes) { {} }
   let(:project) { build_jira_project(**{ local_directory: local_directory }.merge(project_attributes)) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, processing: true, ai_pid: 123,
-                                 ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :jira_update, name: "jira_update") }
 

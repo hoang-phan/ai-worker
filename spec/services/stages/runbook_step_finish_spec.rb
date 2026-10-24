@@ -4,8 +4,7 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
   let_tmpdir(:local_directory, "runbook-step-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, kind: :runbook, status: :implementing, processing: true, ai_pid: 123,
-                                 ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+    build_jira_workflow(project, kind: :runbook, status: :implementing, **running_ai_run)
   end
   let(:stage) do
     workflow.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1, run_mode: run_mode,

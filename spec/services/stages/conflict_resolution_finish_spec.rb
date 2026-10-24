@@ -3,8 +3,7 @@ require "rails_helper"
 RSpec.describe Stages::ConflictResolutionFinish, type: :service do
   let(:project) { build_jira_project }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "CRF-1", branch_name: "conflict-finish", status: :implementing,
-                                 processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_log_offset: 5)
+    build_jira_workflow(project, jira_ticket: "CRF-1", branch_name: "conflict-finish", status: :implementing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
   let(:git) { double("Git::BranchService", merge_in_progress?: false, abort_merge!: nil) }

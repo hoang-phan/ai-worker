@@ -32,7 +32,7 @@ RSpec.describe Workflow, type: :model do
 
   describe "#finish_ai_run!" do
     it "clears the ai run columns and applies the extra attributes in one update" do
-      workflow.update!(processing: true, ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 42)
+      workflow.update!(running_ai_run)
 
       workflow.finish_ai_run!(auto_run: false)
 

@@ -4,8 +4,7 @@ RSpec.describe StageExecutor, type: :service do
   let_tmpdir(:local_directory, "stage-executor-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "EXEC-1", branch_name: "executor", status: :implementing, processing: true,
-                                 ai_pid: 123, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
+    build_jira_workflow(project, jira_ticket: "EXEC-1", branch_name: "executor", status: :implementing, **running_ai_run)
   end
   let(:stage) { workflow.stages.create!(stage_type: :task) }
   let(:handler) { instance_double(Stages::CompletionHandler, call: nil) }
@@ -104,7 +103,7 @@ RSpec.describe StageExecutor, type: :service do
 
     it "passes its launcher to conflict resolution finishing" do
       stage = workflow.stages.create!(stage_type: :pr_check, name: "pr_check")
-      workflow.update!(processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
+      workflow.update!(running_ai_run)
       launcher = instance_double(Stages::AiRunLauncher)
       finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
       allow(stage).to receive(:resolving_conflicts?).and_return(true)
@@ -140,7 +139,7 @@ RSpec.describe StageExecutor, type: :service do
 
     it "starts the review-fix run after conflict resolution via the start handler" do
       stage = workflow.stages.create!(stage_type: :pr_check, name: "pr_check")
-      workflow.update!(processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 0)
+      workflow.update!(running_ai_run)
       allow(stage).to receive(:resolving_conflicts?).and_return(true)
       allow(Git::BranchService).to receive(:merge_in_progress?).and_return(false)
       allow(AiCli::RunPoller).to receive(:new).and_return(instance_double(AiCli::RunPoller, call: [ :finished, "merged" ], log_offset: 0))

@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Stages::PrOpenedFinish, type: :service do
   let(:project) { build_ci_project(ci_max_rounds: 2) }
   let(:workflow) do
-    build_ci_workflow(project, status: :ci_verifying, processing: true, ai_pid: 1, ai_log_path: "/tmp/x.log", ai_started_at: Time.current, ai_log_offset: 7)
+    build_ci_workflow(project, status: :ci_verifying, **running_ai_run)
   end
   let(:pr_url) { "https://github.com/acme/widgets/pull/9" }
   let(:github) { double("Github::Client", find_pr_url: pr_url) }
