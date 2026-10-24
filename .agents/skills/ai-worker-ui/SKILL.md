@@ -1,28 +1,16 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's CRUD-screen discipline for project CRUD/forms, prompt templates, settings, Jira/Bugsnag sync CRUD and runs, shared UI, remaining Stimulus controllers, and routes.
+description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, prompt templates, settings and rotations, shared UI, remaining Stimulus controllers, and routes.
 ---
 
 # ai-worker-ui
 
-Scope: project CRUD/forms, prompt templates, settings, sync CRUD/run screens, shared UI, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
+Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared UI, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
 
 ## File map
 
 - `config/routes.rb` — project, sync, workflow, stage, prompt-template, settings, root, Sidekiq, and health routes. Keep existing helper names when routing a controller action.
 - `app/controllers/projects_controller.rb` — project CRUD; dashboard `index`/`show` details belong to `ai-worker-project-dashboard`.
-- `app/views/projects/_form.html.erb` — shared project form shell.
-- `app/views/projects/new.html.erb` — new-project wrapper.
-- `app/views/projects/edit.html.erb` — edit-project wrapper.
-- `app/views/projects/form/_general.html.erb` — project identity, repository, reviewer, and default-skills fields.
-- `app/views/projects/form/_instructions.html.erb` — CI, test, and agent-lesson instructions.
-- `app/views/projects/form/_jira.html.erb` — Jira project fields.
-- `app/views/projects/form/_uat_test.html.erb` — UAT fields.
-- `app/views/projects/form/_ci_loop.html.erb` — CI-loop fields.
-- `app/views/projects/form/_local_test.html.erb` — local-test fields.
-- `app/views/projects/form/_brainstorm.html.erb` — brainstorming fields.
-- `app/views/projects/form/_slack.html.erb` — Slack fields.
-- `app/views/projects/form/_errors.html.erb` — project-form errors.
 - `app/controllers/prompt_templates_controller.rb` — prompt-template CRUD.
 - `app/views/prompt_templates/_form.html.erb` — prompt-template form and built-in tokens.
 - `app/views/prompt_templates/index.html.erb` — prompt-template list.
@@ -32,18 +20,6 @@ Scope: project CRUD/forms, prompt templates, settings, sync CRUD/run screens, sh
 - `app/controllers/settings_controller.rb` — agent-setting update.
 - `app/controllers/settings/rotations_controller.rb` — rotation-weight update.
 - `app/views/settings/show.html.erb` — both settings forms.
-- `app/controllers/jira_syncs_controller.rb` — project Jira-sync CRUD.
-- `app/controllers/jira_sync_runs_controller.rb` — Jira-sync run action and blocked-start feedback.
-- `app/views/jira_syncs/_form.html.erb` — Jira-sync form.
-- `app/views/jira_syncs/new.html.erb` — new Jira-sync wrapper.
-- `app/views/jira_syncs/edit.html.erb` — edit Jira-sync wrapper.
-- `app/controllers/bugsnag_syncs_controller.rb` — project Bugsnag-sync CRUD.
-- `app/controllers/bugsnag_sync_runs_controller.rb` — Bugsnag-sync run action and blocked-start feedback.
-- `app/views/bugsnag_syncs/_form.html.erb` — Bugsnag-sync form.
-- `app/views/bugsnag_syncs/new.html.erb` — new Bugsnag-sync wrapper.
-- `app/views/bugsnag_syncs/edit.html.erb` — edit Bugsnag-sync wrapper.
-- `app/controllers/project_slack_syncs_controller.rb` — project Slack-sync “run now” action.
-- `app/controllers/project_brainstorms_controller.rb` — project brainstorm “run now” action.
 - `app/controllers/concerns/project_scoped.rb` — project loading for nested controllers.
 - `app/controllers/concerns/project_child_crud.rb` — reusable project-nested CRUD actions.
 - `app/controllers/concerns/project_member_scoped.rb` — project loading for `/projects/:id` member actions.
@@ -59,6 +35,14 @@ Scope: project CRUD/forms, prompt templates, settings, sync CRUD/run screens, sh
 - `app/views/pwa/service-worker.js` — PWA service worker.
 - `app/javascript/controllers/skill_insert_controller.js` — inserts a selected skill into its textarea.
 - `app/javascript/controllers/select_all_controller.js` — project-table checkbox selection.
+
+## Owned elsewhere
+
+- Project form partials (`app/views/projects/{_form,new,edit}.html.erb`, `app/views/projects/form/*`) — `ai-worker-project-settings`.
+- Jira sync CRUD, run actions, and views (`app/controllers/jira_syncs_controller.rb`, `app/controllers/jira_sync_runs_controller.rb`, `app/views/jira_syncs/**`) — `ai-worker-jira-ticket-sync`.
+- Bugsnag sync CRUD, run actions, and views (`app/controllers/bugsnag_syncs_controller.rb`, `app/controllers/bugsnag_sync_runs_controller.rb`, `app/views/bugsnag_syncs/**`) — `ai-worker-bugsnag-triage`.
+- Project brainstorm action (`app/controllers/project_brainstorms_controller.rb`) — `ai-worker-brainstorm`.
+- Project Slack-sync action (`app/controllers/project_slack_syncs_controller.rb`) — `ai-worker-pr-review-workflows`.
 
 ## CRUD conventions
 
