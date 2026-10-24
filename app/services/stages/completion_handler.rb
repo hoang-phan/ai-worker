@@ -41,15 +41,10 @@ module Stages
       when "ci_verify"
         Stages::CiVerifyFinish.new(workflow: workflow, stage: stage, project: project, handoff: handoff)
       when "pr_create"
-        pr_created_finisher
+        Stages::PrCreateFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff)
       when "runbook_step"
         Stages::RunbookStepFinish.new(workflow: workflow, stage: stage)
       end
-    end
-
-    def pr_created_finisher
-      opened = Stages::PrOpenedFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff)
-      ->(output) { opened.call(output, action: "pr_created", checks_follow: project.ci_loop_ready?) }
     end
 
     attr_reader :workflow, :stage, :project, :github, :git, :handoff

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-runbooks
-description: Applies ai-worker's runbook workflow discipline (Workflow#kind = runbook). Use for any task touching the runbook parts of app/models/workflows/{runbook_navigator,runbook_clone,stage_seeder,stage_outputs,variables,current_stage,transitions}.rb or app/models/stage.rb, app/services/stages/{runbook_step_finish,workflow_run_gate}.rb, the runbook branch of app/services/stages/start_handler.rb, Prompts::StagePrompt#slack_message, app/controllers/{stages,workflow_runbooks}_controller.rb, app/views/workflows/_stages.html.erb, app/views/workflows/form/_runbook_fields.html.erb, app/views/stages/form/_runbook_fields.html.erb, or spec/models/workflows/runbook_*_spec.rb, spec/services/stages/{runbook_step_finish,workflow_run_gate}_spec.rb, spec/requests/{stages,workflow_runbooks}_spec.rb.
+description: Applies ai-worker's runbook workflow discipline (Workflow#kind = runbook). Use for any task touching the runbook parts of app/models/workflows/{runbook_navigator,runbook_clone,stage_seeder,stage_outputs,variables,current_stage,transitions}.rb or app/models/stage.rb, app/services/stages/{runbook_step_start,runbook_step_finish,workflow_run_gate}.rb, Prompts::StagePrompt#slack_message, app/controllers/{stages,workflow_runbooks}_controller.rb, app/views/workflows/_stages.html.erb, app/views/workflows/form/_runbook_fields.html.erb, app/views/stages/form/_runbook_fields.html.erb, or spec/models/workflows/runbook_*_spec.rb, spec/services/stages/{runbook_step_start,runbook_step_finish,workflow_run_gate}_spec.rb, spec/requests/{stages,workflow_runbooks}_spec.rb.
 ---
 
 # ai-worker-runbooks
@@ -18,7 +18,7 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 - `app/models/workflows/variables.rb` — `NAME=value` text form; `output_names` / `input_only` split user-typed from stage-emitted.
 - `app/models/workflows/stage_outputs.rb` — successful (`stage_completed`) outputs, `all` / `latest_for(stage)`.
 - `app/models/stage.rb` — `run_mode` (`agent`/`message`, prefix `run`), `name` and `channel` validations, `auto_advance`, `wait_for_workflow`, `removable?`.
-- `app/services/stages/start_handler.rb` — `start_runbook_step`: gate, then launch the prompt (wrapped for message stages).
+- `app/services/stages/runbook_step_start.rb` — gate, then launch the prompt (wrapped for message stages).
 - `app/services/prompts/stage_prompt.rb` — `slack_message` forwards to `Prompts::SlackPost` (`app/services/prompts/slack_post.rb`), which wraps the text in the post-to-Slack instructions.
 - `app/services/stages/workflow_run_gate.rb` — `wait_for_workflow` gate on GitHub Actions.
 - `app/services/stages/runbook_step_finish.rb` — success path (POSTED check, variables, waiting, auto-advance).
@@ -29,7 +29,7 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 ## Lifecycle
 
 1. **Start** (`Transitions#start!` → `RunbookNavigator#start!`): `current_stage_id` = first stage, `implementing`, `auto_run: false`. No stages → `done`.
-2. **Run stage**: the button sets `auto_run: true` and enqueues `WorkflowSchedulerJob` (a runbook is eligible only if `auto_run?` or named; see `ai-worker-scheduling`). `StartHandler#start_runbook_step` first passes `WorkflowRunGate` (no `wait_for_workflow` → passes; otherwise re-checked every tick, logs `waiting_for_check` once, `check_passed` on success, raises `Github::CommandError` if the run failed; only runs started after the previous stage's `started` run count). Then the agent runs `prompt.body`, or `slack_message(prompt.body)` for `message` stages.
+2. **Run stage**: the button sets `auto_run: true` and enqueues `WorkflowSchedulerJob` (a runbook is eligible only if `auto_run?` or named; see `ai-worker-scheduling`). `RunbookStepStart` first passes `WorkflowRunGate` (no `wait_for_workflow` → passes; otherwise re-checked every tick, logs `waiting_for_check` once, `check_passed` on success, raises `Github::CommandError` if the run failed; only runs started after the previous stage's `started` run count). Then the agent runs `prompt.body`, or `slack_message(prompt.body)` for `message` stages.
 3. **Finish** (`RunbookStepFinish`): a message stage whose output has no `POSTED` line (`AiCli::Output#posted?`) raises `AiCli::CommandError`. Otherwise `waiting` + `awaiting_next: true`, `variables` merged with the output's variables, `stage_completed` logged (plus `message_sent` for message stages).
 4. **Wait for Next**: `can_advance?` is true only while `awaiting_next?`. `advance!` logs `advanced`, moves `current_stage_id` on with `auto_run: true` and `implementing`, or ends `done` after the last stage.
 5. **auto_advance**: `RunbookStepFinish` calls `advance!` itself and re-enqueues the scheduler, so the next stage starts unattended; a stage without it stops until Next, and a failure stops the chain.
@@ -49,5 +49,5 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 1. Migration (`ai-worker-domain`: new column, append-only enums), then validate it in `app/models/stage.rb`.
 2. Add it to `stage_params` in `StagesController` and to `COPIED_RUNBOOK_ATTRIBUTES` (clone/seed would silently drop it otherwise).
 3. Add the field to `stages/form/_runbook_fields.html.erb` and, if it matters at a glance, a badge in `workflows/_stages.html.erb`.
-4. Act on it in `StartHandler#start_runbook_step` or `RunbookStepFinish` (and `StagePrompt` / placeholders if it changes the prompt, see `ai-worker-prompts`).
+4. Act on it in `RunbookStepStart` or `RunbookStepFinish` (and `StagePrompt` / placeholders if it changes the prompt, see `ai-worker-prompts`).
 5. Specs: the relevant runbook/finish/gate spec, `stages_spec.rb` (params), `runbook_clone_spec.rb` (copied), plus the `ai-worker-testing` rules.

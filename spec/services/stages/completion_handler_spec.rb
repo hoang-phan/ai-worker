@@ -28,7 +28,7 @@ RSpec.describe Stages::CompletionHandler, type: :service do
       "ci_check" => [ Stages::CiCheckFinish, %i[workflow stage] ],
       "simple_implementation" => [ Stages::SimpleImplementationFinish, %i[workflow stage] ],
       "ci_verify" => [ Stages::CiVerifyFinish, %i[workflow stage project handoff] ],
-      "pr_create" => [ Stages::PrOpenedFinish, %i[workflow stage project github handoff] ],
+      "pr_create" => [ Stages::PrCreateFinish, %i[workflow stage project github handoff] ],
       "runbook_step" => [ Stages::RunbookStepFinish, %i[workflow stage] ]
     }
 
@@ -44,17 +44,11 @@ RSpec.describe Stages::CompletionHandler, type: :service do
           klass, collaborators = finishers.fetch(type.to_s)
           finisher = instance_double(klass, call: nil)
           allow(klass).to receive(:new).and_return(finisher)
-          allow(project).to receive(:ci_loop_ready?).and_return(true)
-
           handle
 
           expected = collaborators.to_h { |name| [ name, public_send(name) ] }
           expect(klass).to have_received(:new).with(**expected)
-          if type.to_s == "pr_create"
-            expect(finisher).to have_received(:call).with(output, action: "pr_created", checks_follow: true)
-          else
-            expect(finisher).to have_received(:call).with(output)
-          end
+          expect(finisher).to have_received(:call).with(output)
         end
       end
     end

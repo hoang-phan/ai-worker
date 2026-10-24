@@ -1,6 +1,6 @@
 ---
 name: ai-worker-ci-loop
-description: Applies ai-worker's ci_loop flow discipline. Use for any task touching app/services/stages/{simple_implementation_finish,pr_opened_finish,ci_check_finish,ci_verify_finish}.rb, app/models/workflows/ci_loop_resume.rb, ci rounds in app/models/stages/run_history.rb, app/services/prompts/defaults/{ci_verify,pr_create,simple_implementation}.md, app/views/projects/form/_ci_loop.html.erb, spec/support/ci_loop_helper.rb, or any change to the ci_loop flow (simple_implementation, pr_create, ci_check, ci_verify, opening_pr/ci_checking/ci_verifying).
+description: Applies ai-worker's ci_loop flow discipline. Use for any task touching app/services/stages/{ci_check_start,simple_implementation_finish,pr_create_finish,pr_opened_finish,ci_check_finish,ci_verify_finish}.rb, app/models/workflows/ci_loop_resume.rb, ci rounds in app/models/stages/run_history.rb, app/services/prompts/defaults/{ci_verify,pr_create,simple_implementation}.md, app/views/projects/form/_ci_loop.html.erb, spec/support/ci_loop_helper.rb, or any change to the ci_loop flow (simple_implementation, pr_create, ci_check, ci_verify, opening_pr/ci_checking/ci_verifying).
 ---
 
 # ai-worker-ci-loop
@@ -14,7 +14,7 @@ Why this order: `bin/ci` posts its result as a required GitHub status for the pu
 | Status | Stage type | Runs | Finish | StageRun action |
 | --- | --- | --- | --- | --- |
 | `implementing` | `simple_implementation` | agent: implements and commits, no full gate, no push/PR | `Stages::SimpleImplementationFinish` -> `opening_pr` | `ran_implementation` |
-| `opening_pr` | `pr_create` | agent: push, `gh pr create`, review request, Jira | `Stages::PrOpenedFinish#call(output, action: "pr_created", checks_follow: true)` -> `ci_checking` | `pr_created` |
+| `opening_pr` | `pr_create` | agent: push, `gh pr create`, review request, Jira | `Stages::PrCreateFinish` -> `ci_checking` | `pr_created` |
 | `ci_checking` | `ci_check` | plain command (`bash -lc`), not an agent | `Stages::CiCheckFinish` -> `ci_verifying` | `ci_check_completed` |
 | `ci_verifying` | `ci_verify` | agent: reads the log, fixes, commits, pushes, prints `CI_VERDICT` | `Stages::CiVerifyFinish` -> `ci_checking` / `local_testing` / `reviewing` / `errored` | `ci_verify_passed` / `ci_verify_failed` (+ `ci_rounds_exhausted`) |
 
@@ -31,8 +31,9 @@ Why this order: `bin/ci` posts its result as a required GitHub status for the pu
 - `app/models/workflows/ci_loop_resume.rb` (`Workflows::CiLoopResume#status`) — where an errored workflow goes back to, from the newest non-`resumed` StageRun: `simple_implementation` `ran_implementation` -> `opening_pr`, else `implementing`; `ci_check` `ci_check_completed` -> `ci_verifying`, else `ci_checking`; `ci_verify` `ci_verify_passed` -> nil, `ci_verify_failed`/`ci_rounds_exhausted` -> `ci_checking`, anything else `ci_verifying`; `pr_create` `pr_created` -> `ci_checking`, else `opening_pr`. nil (not development / not ci_loop / no runs) lets `Workflows::Transitions#resume_status` fall through to its other rules.
 - `app/models/stages/run_history.rb` — `RunHistory#completed_ci_rounds` counts `ci_check_completed` since the newest `resumed`, so a person resuming an exhausted loop gets a fresh budget.
 - `app/models/stage_run.rb` — ci_loop audit actions are append-only; see `ai-worker-domain` and `ai-worker-stage-types`.
-- `app/services/stages/start_handler.rb` — ci_loop start dispatch belongs to `ai-worker-stage-pipeline`.
-- `app/services/stages/completion_handler.rb` — ci_loop finish dispatch belongs to `ai-worker-stage-pipeline`.
+- `app/services/stages/ci_check_start.rb` — selects `stage.command` or `project.ci_command`, raises when both are blank, then launches the plain CI command.
+- `app/services/stages/pr_create_finish.rb` — delegates the completed PR creation to `PrOpenedFinish` with `pr_created` and `project.ci_loop_ready?` as `checks_follow`.
+- `app/services/stages/start_handler.rb`, `app/services/stages/completion_handler.rb` — ci_loop dispatch belongs to `ai-worker-stage-pipeline`.
 - `app/services/stages/pr_opened_finish.rb` (`PrOpenedFinish.new(workflow:, stage:, project:, github:, handoff:)#call(output, action:, checks_follow: false)`) — shared with `Stages::ImplementationFinish` (standard flow). Records `github_pr_url` (`github.find_pr_url`); next status is `:ci_checking` when `checks_follow`, else `workflow.post_pr_status`; enables auto-merge unless testing locally; notifies reviewers only when neither testing locally nor `checks_follow`.
 - `app/services/stages/simple_implementation_finish.rb` — `finish_ai_run!(status: :opening_pr)`, logs `ran_implementation`.
 - `app/services/stages/ci_check_finish.rb` (`#call(exit_status)`) — `finish_ai_run!(status: :ci_verifying, ci_output_path: ai_log_path, ci_exit_status:)`, logs `ci_check_completed` with the exit status and the last `TAIL_BYTES` (3000) of the log. A failing exit is a result, not an error.
@@ -63,6 +64,6 @@ Why this order: `bin/ci` posts its result as a required GitHub status for the pu
 
 - Helper: `spec/support/ci_loop_helper.rb` (`build_ci_project(**attrs)` -> Jira project with `flow: :ci_loop, ci_command: "bin/ci"`; `build_ci_workflow(project, **attrs)` -> `implementing`, branch `ci-branch`), built on `RecordHelper` (`build_jira_project`, `build_jira_workflow`). Use it instead of hand-built records.
 - Models: `spec/models/workflows/{stage_seeder,stage_resolver,current_stage,ci_loop_resume}_spec.rb`, `spec/models/stages/run_history_spec.rb`, `spec/models/workflow_spec.rb`.
-- Services: `spec/services/stages/{simple_implementation_finish,pr_opened_finish,ci_check_finish,ci_verify_finish,run_tooling,completion_handler}_spec.rb`, `spec/services/ci/{command_runner,check_poller}_spec.rb`, `spec/services/scheduling/workflow_queries_spec.rb`, `spec/services/stage_executor_spec.rb`, `spec/services/ai_cli/output_spec.rb` (`ci_verdict`).
+- Services: `spec/services/stages/{ci_check_start,simple_implementation_finish,pr_create_finish,pr_opened_finish,ci_check_finish,ci_verify_finish,run_tooling,completion_handler}_spec.rb`, `spec/services/ci/{command_runner,check_poller}_spec.rb`, `spec/services/scheduling/workflow_queries_spec.rb`, `spec/services/stage_executor_spec.rb`, `spec/services/ai_cli/output_spec.rb` (`ci_verdict`).
 - Prompts: `spec/services/prompts/stage_prompt/ci_loop_spec.rb`, `spec/services/prompts/defaults_spec.rb`, `spec/services/prompts/project_placeholders_spec.rb`.
 - Run with `RAILS_ENV=test bundle exec rspec spec/models/workflows spec/models/stages spec/services/stages spec/services/ci spec/services/prompts/stage_prompt/ci_loop_spec.rb spec/services/scheduling/workflow_queries_spec.rb`.

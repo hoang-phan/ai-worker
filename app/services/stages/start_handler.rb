@@ -56,22 +56,14 @@ module Stages
       ).call
     end
 
-    # Plain code, no agent: the stage's own command, else the project's. The launcher the executor hands over runs the project's CI command detached, in the clone
-    # (still on the branch the implementation committed to), with the output in a log the verify stage reads.
     def start_ci_check
-      command = stage.command.presence || project.ci_command
-      raise ArgumentError, "project #{project.name} has no CI command for the check stage" if command.blank?
-
-      launcher.call(command)
+      Stages::CiCheckStart.new(stage: stage, project: project, launcher: launcher).call
     end
 
-    # Runbook stages are plain agent runs: `agent` runs the prompt as written,
-    # `message` has the agent post the rendered text to Slack via its MCP connector.
-    # Either way the workflow then waits for a person to click Next (finish_runbook_step).
     def start_runbook_step
-      return unless Stages::WorkflowRunGate.new(workflow: workflow, stage: stage, github: github).call.passed?
-
-      launcher.call(stage.run_message? ? prompt.slack_message(prompt.body) : prompt.body)
+      Stages::RunbookStepStart.new(
+        workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher
+      ).call
     end
 
     def run_pr_check

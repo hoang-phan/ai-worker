@@ -13,8 +13,8 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 - `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.
 - `app/services/stages/ai_run_poll.rb` — builds the configured poller from persisted workflow run state, durably advances its log offset even on errors, and returns completed output.
-- `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
-- `app/services/stages/completion_handler.rb` — dispatches successful completed output by stage type to the corresponding finish service.
+- `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, and specialised start services, using injected collaborators.
+- `app/services/stages/completion_handler.rb` — dispatches successful completed output by stage type to the corresponding finish service, including specialised finish services.
 - `app/services/stages/failure_handler.rb` — aborts a resolving merge, clears run state without auto-run, logs `failed`, and parks workflows at the supplied consecutive-failure threshold.
 - `app/services/stages/ai_run_launcher.rb` — resolves the provider via `RunProvider`, starts the injected runner, persists the workflow's detached-run pid/log/start/offset/`ai_provider` state, and logs the supplied start action.
 - `app/services/stages/conflict_resolution_finish.rb` — verifies a conflict-resolution run committed its merge, aborts and raises if not, otherwise clears its run and immediately launches the review-fix prompt.
@@ -30,9 +30,9 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 ### Owned elsewhere
 
-- `ci_check_finish` / `ci_verify_finish` / `pr_opened_finish` / `simple_implementation_finish` → `ai-worker-ci-loop`
+- `ci_check_start` / `ci_check_finish` / `ci_verify_finish` / `pr_create_finish` / `pr_opened_finish` / `simple_implementation_finish` → `ai-worker-ci-loop`
 - `browser_test_start` / `local_test_finish` / `local_test_policy` / `uat_test_finish` → `ai-worker-browser-tests`
-- `runbook_step_finish` / `workflow_run_gate` → `ai-worker-runbooks`
+- `runbook_step_start` / `runbook_step_finish` / `workflow_run_gate` → `ai-worker-runbooks`
 - `pr_review_start` / `pr_review_finish` → `ai-worker-pr-review-workflows`
 - `run_tooling` / `run_provider` → `ai-worker-agent-cli` / `ai-worker-cli-selection`
 
