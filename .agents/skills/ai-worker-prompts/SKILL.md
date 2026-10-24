@@ -24,7 +24,6 @@ Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TE
   - `Lessons` (`lessons.rb`): implementation/simple_implementation/task; lists `project.agent_lessons` as data.
   - `FollowUps` (`follow_ups.rb`): task; asks for out-of-scope work between `FOLLOW_UPS_BEGIN/END`, queued as workflows by `Stages::TaskFinish`.
   - `LocalFeedback` (`local_feedback.rb`): pr_check on a locally-testable project (failure feedback plus the `LOCAL_RETEST: YES|NO` question).
-  - Project-agent `AgentBrief` and `Subagents`: see `ai-worker-project-agents`.
 - `app/models/prompt_template.rb` — `PromptTemplate`: `name`, `body` (both required), `stage_type` enum reusing `Stage::STAGE_TYPES`, `has_many :stages, dependent: :nullify`. It holds no placeholder list; the UI reads `Prompts::Renderer::BUILT_IN_TOKENS`.
 - `docs/PROMPT_TEMPLATES.md` — the user-facing placeholder table and template examples.
 

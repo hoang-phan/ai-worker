@@ -2,14 +2,11 @@ require "rails_helper"
 
 RSpec.describe Prompts::StagePrompt do
   subject(:stage_prompt) do
-    described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, subagent_roster: subagent_roster,
-                        run_provider: run_provider)
+    described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log)
   end
 
   let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: false) }
   let(:latest_log) { ->(_workflow_id) { nil } }
-  let(:subagent_roster) { ->(_directory) { [] } }
-  let(:run_provider) { instance_double(Stages::RunProvider, provider: nil) }
 
   let_tmpdir(:local_directory, "stage-prompt-spec")
   let(:project_attrs) { { kind: :personal } }
@@ -87,8 +84,7 @@ RSpec.describe Prompts::StagePrompt do
         stage_type: "implementation", last_action: "failed", previous_log: previous_log
       ).and_return(retry_section)
 
-      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
-                          subagent_roster: subagent_roster, run_provider: run_provider).body
+      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log).body
     end
 
     it "does not look up a retry log unless a simple implementation's last action failed" do
@@ -178,25 +174,13 @@ RSpec.describe Prompts::StagePrompt do
       stage_prompt.body
     end
 
-    it "gets the subagent roster from the project's local directory" do
-      stage.update!(prompt: "Do it")
-      entries = [ { name: "reviewer", description: "Reviews diffs" } ]
-      subagents = instance_double(Prompts::StageSections::Subagents, to_s: "")
-
-      expect(Prompts::StageSections::Subagents).to receive(:new).with(stage_type: "task", entries: entries).and_return(subagents)
-
-      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
-                          subagent_roster: ->(directory) { directory == local_directory ? entries : [] },
-                          run_provider: run_provider).body
-    end
-
     it "appends sections in order after the rendered body" do
       stage.update!(prompt: "Do {TASK}")
       section_classes = [
         Prompts::StageSections::Retry, Prompts::StageSections::LocalFeedback,
         Prompts::StageSections::FixedSummary, Prompts::StageSections::LessonsRequest,
         Prompts::StageSections::FollowUps, Prompts::StageSections::Lessons,
-        Prompts::StageSections::CheckOutput, Prompts::StageSections::Subagents
+        Prompts::StageSections::CheckOutput
       ]
       outputs = section_classes.each_with_index.map do |klass, index|
         output = " section-#{index}"
@@ -222,44 +206,6 @@ RSpec.describe Prompts::StagePrompt do
   describe "CONFLICT" do
     it "aliases Prompts::ConflictResolution::TEXT" do
       expect(described_class::CONFLICT).to equal(Prompts::ConflictResolution::TEXT)
-    end
-  end
-
-  describe "agent brief" do
-    let(:stage_attrs) { { prompt: "Do {TASK}" } }
-
-    it "does not build an agent brief without a stage agent" do
-      project.agents.create!(name: "billing", description: "Billing", instructions: "Project-wide notes")
-      expect(Prompts::StageSections::AgentBrief).not_to receive(:new)
-
-      stage_prompt.body
-    end
-
-    it "prepends the stage agent's brief" do
-      agent = project.agents.create!(name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing.")
-      stage.update!(agent: agent)
-      brief = instance_double(Prompts::StageSections::AgentBrief, to_s: "BRIEF")
-
-      expect(Prompts::StageSections::AgentBrief).to receive(:new).with(
-        name: "billing", description: "Knows billing", instructions: "Invoices live in app/billing.",
-        allowed_tools: [], tools_enforced: nil
-      ).and_return(brief)
-      expect(stage_prompt.body).to start_with("BRIEFDo Do the thing")
-    end
-
-    it "uses the run provider's tool-list capability for the agent brief" do
-      agent = project.agents.create!(name: "billing", description: "Billing", provider: "codex", allowed_tools: [ "Read" ])
-      stage.update!(agent: agent)
-      provider = instance_double(AiCli::Provider, capabilities: AiCli::Provider::Capabilities.new(tool_lists: false, model: true, effort: true, mcp: :overrides))
-      run_provider = instance_double(Stages::RunProvider, provider: provider)
-      brief = instance_double(Prompts::StageSections::AgentBrief, to_s: "")
-
-      expect(Prompts::StageSections::AgentBrief).to receive(:new).with(
-        name: "billing", description: "Billing", instructions: "", allowed_tools: [ "Read" ], tools_enforced: false
-      ).and_return(brief)
-
-      described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log,
-                          subagent_roster: subagent_roster, run_provider: run_provider).body
     end
   end
 end

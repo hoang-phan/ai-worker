@@ -72,22 +72,4 @@ RSpec.describe Stage, type: :model do
       expect(stage.stage_runs.count).to eq(0)
     end
   end
-
-  describe "agent" do
-    it "accepts an agent of the workflow's project" do
-      agent = project.agents.create!(name: "billing", description: "Billing")
-
-      expect(workflow.stages.new(stage_type: :task, agent: agent)).to be_valid
-    end
-
-    it "rejects an agent of another project" do
-      other_directory = make_tmpdir("stage-spec-other")
-      other = build_personal_project(local_directory: other_directory)
-      agent = other.agents.create!(name: "billing", description: "Billing")
-      stage = workflow.stages.new(stage_type: :task, agent: agent)
-
-      expect(stage).not_to be_valid
-      expect(stage.errors[:agent]).to be_present
-    end
-  end
 end

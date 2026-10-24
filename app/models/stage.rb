@@ -1,7 +1,6 @@
 class Stage < ApplicationRecord
   belongs_to :workflow
   belongs_to :prompt_template, optional: true
-  belongs_to :agent, optional: true
   has_many :stage_runs, -> { order(created_at: :desc) }, dependent: :destroy
 
   # Persisted integers: append, never renumber or reorder. PromptTemplate reuses this mapping.
@@ -16,7 +15,6 @@ class Stage < ApplicationRecord
   validates :name, presence: true, if: :runbook_step?
   validates :wait_for_workflow, format: { with: /\A[\w.\- ]+\z/, message: "must be a workflow file name or name, e.g. manual_environment_deploy.yml" }, allow_blank: true
   validates :channel, presence: true, if: -> { runbook_step? && run_message? }
-  validate :agent_belongs_to_workflow_project
 
   delegate :last_action, :consecutive_failures, :resolving_conflicts?, :completed_local_test_rounds, :completed_ci_rounds,
            :local_test_unfinished?, to: :run_history
@@ -46,10 +44,6 @@ class Stage < ApplicationRecord
   end
 
   private
-
-  def agent_belongs_to_workflow_project
-    errors.add(:agent, "must belong to the workflow's project") if agent && workflow && agent.project_id != workflow.project_id
-  end
 
   # Built per call, never memoized: log_run! followed by a read must see the new row. Ordered by id explicitly: the
   # association's default order is created_at desc.

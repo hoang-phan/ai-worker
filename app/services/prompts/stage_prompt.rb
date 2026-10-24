@@ -3,23 +3,19 @@ module Prompts
   class StagePrompt
     CONFLICT = Prompts::ConflictResolution::TEXT
 
-    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) },
-                   subagent_roster: ->(dir) { Prompts::SubagentRoster.new(dir).entries },
-                   run_provider: Stages::RunProvider.new(workflow: workflow, stage: stage))
+    def initialize(workflow, stage, notifier: nil, latest_log: ->(workflow_id) { AiCli::RunLogs.latest(workflow_id) })
       @workflow = workflow
       @stage = stage
       @project = workflow.project
       @notifier = notifier
       @latest_log = latest_log
-      @subagent_roster = subagent_roster
-      @run_provider = run_provider
     end
 
     def body
       text = stage.prompt.presence || stage.effective_template&.body || Prompts::Defaults.for(stage.stage_type)
       raise ArgumentError, "no prompt available for stage #{stage.id}" unless text
 
-      agent_brief + Prompts::Renderer.render(text, workflow) + sections.join
+      Prompts::Renderer.render(text, workflow) + sections.join
     end
 
     # Wraps `message` in the instructions for posting it to the stage's Slack channel.
@@ -29,21 +25,10 @@ module Prompts
 
     private
 
-    attr_reader :workflow, :stage, :project, :latest_log, :subagent_roster, :run_provider
+    attr_reader :workflow, :stage, :project, :latest_log
 
     def notifier
       @notifier ||= Slack::ReviewNotifier.new(project)
-    end
-
-    # Nothing unless the stage runs as a project agent, so prompts without one are exactly as before.
-    def agent_brief
-      agent = stage.agent
-      return "" unless agent
-
-      Prompts::StageSections::AgentBrief.new(
-        name: agent.name, description: agent.description, instructions: agent.instructions,
-        allowed_tools: agent.allowed_tools, tools_enforced: run_provider.provider&.capabilities&.tool_lists
-      ).to_s
     end
 
     def sections
@@ -69,8 +54,7 @@ module Prompts
         Prompts::StageSections::LessonsRequest.new(stage_type: stage_type),
         Prompts::StageSections::FollowUps.new(stage_type: stage_type),
         Prompts::StageSections::Lessons.new(stage_type: stage_type, lessons: project.agent_lessons),
-        Prompts::StageSections::CheckOutput.new(stage_type: stage_type),
-        Prompts::StageSections::Subagents.new(stage_type: stage_type, entries: subagent_roster.call(project.local_directory))
+        Prompts::StageSections::CheckOutput.new(stage_type: stage_type)
       ]
     end
   end

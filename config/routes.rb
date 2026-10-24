@@ -15,7 +15,6 @@ Rails.application.routes.draw do
     resources :bugsnag_syncs, except: %i[index show] do
       post :run, on: :member, to: "bugsnag_sync_runs#create"
     end
-    resources :agents, except: %i[index show]
     resources :workflows, except: :index do
       post :log_time, on: :collection, to: "workflow_time_logs#create"
       member do

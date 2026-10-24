@@ -10,32 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
-  create_table "agent_delegations", force: :cascade do |t|
-    t.integer "agent_id", null: false
-    t.datetime "created_at", null: false
-    t.integer "delegate_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["agent_id", "delegate_id"], name: "index_agent_delegations_on_agent_id_and_delegate_id", unique: true
-    t.index ["agent_id"], name: "index_agent_delegations_on_agent_id"
-    t.index ["delegate_id"], name: "index_agent_delegations_on_delegate_id"
-  end
-
-  create_table "agents", force: :cascade do |t|
-    t.json "allowed_tools", default: [], null: false
-    t.datetime "created_at", null: false
-    t.string "description", default: "", null: false
-    t.string "effort"
-    t.text "instructions", default: "", null: false
-    t.string "model"
-    t.string "name", null: false
-    t.integer "project_id", null: false
-    t.string "provider"
-    t.datetime "updated_at", null: false
-    t.index ["project_id", "name"], name: "index_agents_on_project_id_and_name", unique: true
-    t.index ["project_id"], name: "index_agents_on_project_id"
-  end
-
+ActiveRecord::Schema[8.1].define(version: 2026_10_23_100000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -113,6 +88,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
   create_table "prompt_templates", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
+    t.string "effort"
+    t.string "model"
     t.string "name", null: false
     t.integer "stage_type", null: false
     t.datetime "updated_at", null: false
@@ -129,7 +106,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
   end
 
   create_table "stages", force: :cascade do |t|
-    t.integer "agent_id"
     t.boolean "auto_advance", default: false, null: false
     t.string "channel"
     t.text "command"
@@ -143,7 +119,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
     t.datetime "updated_at", null: false
     t.string "wait_for_workflow"
     t.integer "workflow_id", null: false
-    t.index ["agent_id"], name: "index_stages_on_agent_id"
     t.index ["prompt_template_id"], name: "index_stages_on_prompt_template_id"
     t.index ["workflow_id"], name: "index_stages_on_workflow_id"
   end
@@ -198,13 +173,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_150000) do
     t.index ["project_id"], name: "index_workflows_on_project_id"
   end
 
-  add_foreign_key "agent_delegations", "agents"
-  add_foreign_key "agent_delegations", "agents", column: "delegate_id"
-  add_foreign_key "agents", "projects"
   add_foreign_key "bugsnag_syncs", "projects"
   add_foreign_key "jira_syncs", "projects"
   add_foreign_key "stage_runs", "stages"
-  add_foreign_key "stages", "agents", on_delete: :nullify
   add_foreign_key "stages", "prompt_templates"
   add_foreign_key "stages", "workflows"
   add_foreign_key "time_logs", "workflows"

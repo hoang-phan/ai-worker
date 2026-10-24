@@ -22,7 +22,6 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 ## Boundaries
 
 - Time-log checkboxes, the batch form, and `TimeLogsHelper` are governed by `ai-worker-jira-worklogs`.
-- The `_agents` section belongs to `ai-worker-project-agents`.
 - The Jira and Bugsnag sync tables belong to `ai-worker-jira-ticket-sync` and `ai-worker-bugsnag-triage`, respectively.
 - The `_brainstorm` section belongs to `ai-worker-brainstorm`.
 - Workflow CRUD, lifecycle actions, and detail pages remain in `ai-worker-ui` and their focused workflow skills.
