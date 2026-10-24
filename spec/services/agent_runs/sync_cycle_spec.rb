@@ -80,12 +80,12 @@ RSpec.describe AgentRuns::SyncCycle do
         expect(logger).to have_received(:info).with("[Spec] thing=1 summary(result-of-p)")
       end
 
-      context "with a custom log message" do
-        before { source.define_singleton_method(:log_message) { |r, s| "custom #{r} #{s}" } }
+      context "with a log detail" do
+        before { source.define_singleton_method(:log_detail) { |r| "detail #{r}" } }
 
-        it "logs it instead of the default" do
+        it "appends it to the default line" do
           outcome
-          expect(logger).to have_received(:info).with("custom result-of-p summary(result-of-p)")
+          expect(logger).to have_received(:info).with("[Spec] thing=1 summary(result-of-p) detail result-of-p")
         end
       end
 

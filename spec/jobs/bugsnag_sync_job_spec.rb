@@ -21,10 +21,6 @@ RSpec.describe BugsnagSyncJob, type: :job do
     described_class.perform_now
   end
 
-  it "re-exports the source run hour" do
-    expect(described_class::RUN_HOUR).to eq(Bugsnag::SyncCycleSource::RUN_HOUR)
-  end
-
   it "records an expected error and continues to the next sync" do
     project = build_jira_project
     failing_sync = project.bugsnag_syncs.create!(bugsnag_project: "web", jira_project: "WEB")

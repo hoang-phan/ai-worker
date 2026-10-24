@@ -4,16 +4,13 @@ module Jira
     FETCH_EVERY = 3.hours
     RESCUE_ERRORS = [ Jira::FetchError, AiCli::CommandError ].freeze
 
-    def initialize(jira_sync, log_prefix:, sync: nil)
+    def initialize(jira_sync, sync: nil)
       @jira_sync = jira_sync
-      @log_prefix = log_prefix
       sync ||= Jira::TicketSync.new(jira_sync)
       super(sync:, fetcher: sync.fetcher)
     end
 
-    def log_message(result, summary)
-      log_with_failures(@log_prefix, result, summary)
-    end
+    def log_detail(result) = failed_detail(result)
 
     def persist!(_result, summary)
       @jira_sync.update(last_synced_at: Time.current, last_result: summary)

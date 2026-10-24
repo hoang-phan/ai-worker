@@ -4,8 +4,6 @@
 class JiraSyncJob < ApplicationJob
   queue_as :default
 
-  FETCH_EVERY = Jira::SyncCycleSource::FETCH_EVERY
-
   def perform
     JiraSync.includes(:project).find_each do |jira_sync|
       project = jira_sync.project
@@ -13,7 +11,7 @@ class JiraSyncJob < ApplicationJob
 
       log_prefix = "[JiraSyncJob] jira_sync=#{jira_sync.id}"
       AgentRuns::SyncCycle.call(
-        source: Jira::SyncCycleSource.new(jira_sync, log_prefix: log_prefix),
+        source: Jira::SyncCycleSource.new(jira_sync),
         log_prefix: log_prefix
       )
     end

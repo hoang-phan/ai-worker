@@ -9,17 +9,13 @@ RSpec.describe JiraSyncJob, type: :job do
     source = instance_double(Jira::SyncCycleSource)
     prefix = "[JiraSyncJob] jira_sync=#{eligible_sync.id}"
 
-    expect(Jira::SyncCycleSource).to receive(:new).with(eligible_sync, log_prefix: prefix).and_return(source)
+    expect(Jira::SyncCycleSource).to receive(:new).with(eligible_sync).and_return(source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: source,
       log_prefix: prefix
     )
 
     described_class.perform_now
-  end
-
-  it "re-exports the source cadence" do
-    expect(described_class::FETCH_EVERY).to eq(Jira::SyncCycleSource::FETCH_EVERY)
   end
 
   it "records an expected error and continues to the next sync" do

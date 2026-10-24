@@ -12,7 +12,8 @@
 #   eligible? / idle? / due?    -> may start / nothing in flight / cadence allows
 #   blockers                    -> array of reasons not to start
 #   start!                      -> start the detached run
-#   log_message(result, summary) -> info line body, or nil for "<log_prefix> <summary>"
+#   log_detail(result)          -> extra text appended to the info line
+#                                  "<log_prefix> <summary>", or nil for none
 #   after_import(result)        -> post-import hook (default no-op)
 #   after_start                 -> hook run after a successful start (default no-op)
 #   rescue_errors               -> errors recorded as failures instead of raised
@@ -63,7 +64,10 @@ module AgentRuns
 
     def record(result)
       summary = @source.summary(result)
-      @logger.info(@source.log_message(result, summary) || "#{@log_prefix} #{summary}")
+      line = "#{@log_prefix} #{summary}"
+      detail = @source.log_detail(result)
+      line = "#{line} #{detail}".strip if detail.present?
+      @logger.info(line)
       @source.persist!(result, summary)
       @source.after_import(result)
     end

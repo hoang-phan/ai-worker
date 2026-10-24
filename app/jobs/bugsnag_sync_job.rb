@@ -5,8 +5,6 @@
 class BugsnagSyncJob < ApplicationJob
   queue_as :default
 
-  RUN_HOUR = Bugsnag::SyncCycleSource::RUN_HOUR
-
   def perform
     BugsnagSync.includes(:project).find_each do |bugsnag_sync|
       AgentRuns::SyncCycle.call(

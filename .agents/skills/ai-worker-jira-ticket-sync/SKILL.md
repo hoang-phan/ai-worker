@@ -22,7 +22,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 - `app/services/jira/ticket_importer.rb` — per-issue import (below); `ticket_importer_spec.rb`.
 - `app/services/jira/fetch_error.rb` — `Jira::FetchError`, passed as `error_class`; no own spec.
 - `app/services/jira/sync_cycle_source.rb` — `AgentRuns::CycleSource` subclass; `FETCH_EVERY = 3.hours` via `AgentRuns::Cadence.every`; `eligible?` = `auto_sync?`; persists `last_result`/`last_synced_at`; `sync_cycle_source_spec.rb`.
-- `app/jobs/jira_sync_job.rb` — iterates all `JiraSync`s, skips projects that are not `jira?` or have no `jira_base_url`; re-exports `FETCH_EVERY`; `spec/jobs/jira_sync_job_spec.rb`.
+- `app/jobs/jira_sync_job.rb` — iterates all `JiraSync`s, skips projects that are not `jira?` or have no `jira_base_url`; `spec/jobs/jira_sync_job_spec.rb`.
 - `config/schedule.yml` — `jira_sync` (`*/5 5-13`) and `jira_sync_off_hours` (hourly otherwise), Asia/Ho_Chi_Minh, queue `default`.
 - `app/controllers/jira_syncs_controller.rb` — new/create/edit/update/destroy (permits `jira_project`, `parent_ticket`, `auto_sync`), redirects to the project.
 - `app/controllers/jira_sync_runs_controller.rb` — `POST /projects/:project_id/jira_syncs/:id/run` ("Sync now"): `ManualStartFlash#start_manually` (`AgentRuns::ManualStart`) with `TicketSync#blockers` and `fetcher.start`; `spec/requests/jira_sync_runs_spec.rb`. CRUD coverage lives in `spec/requests/jira_syncs_spec.rb`; `spec/requests/projects_spec.rb` also touches the section.
@@ -45,7 +45,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 - New field imported from a ticket: add it to the prompt example and `TicketRows` (keep it pure, default missing values), carry it through `TicketImporter#workflow_attributes`, add the Workflow column per `ai-worker-domain` if needed; update the fetch_prompt, ticket_rows and ticket_importer specs.
 - Scope options (`jira_project`, `parent_ticket`): migration + `JiraSync`, `FetchPrompt` and `AgentFetcher#prompt`, controller `jira_sync_params`, `_form`, `_jira_syncs` partial and `label`; update the specs for each.
-- Cadence: change `FETCH_EVERY` on `Jira::SyncCycleSource` only (job re-exports it) or the `config/schedule.yml` crons; update `sync_cycle_source_spec.rb` and keep the doc in `ai-worker-detached-agent-runs` consistent.
+- Cadence: change `FETCH_EVERY` on `Jira::SyncCycleSource` only or the `config/schedule.yml` crons; update `sync_cycle_source_spec.rb` and keep the doc in `ai-worker-detached-agent-runs` consistent.
 
 ## Verification
 

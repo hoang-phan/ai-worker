@@ -8,17 +8,13 @@ RSpec.describe SlackReviewJob, type: :job do
     source = instance_double(Slack::ReviewCycleSource)
     prefix = "[SlackReviewJob] project=#{eligible_project.id}"
 
-    expect(Slack::ReviewCycleSource).to receive(:new).with(eligible_project, log_prefix: prefix).and_return(source)
+    expect(Slack::ReviewCycleSource).to receive(:new).with(eligible_project).and_return(source)
     expect(AgentRuns::SyncCycle).to receive(:call).with(
       source: source,
       log_prefix: prefix
     )
 
     described_class.perform_now
-  end
-
-  it "re-exports the source cadence" do
-    expect(described_class::FETCH_EVERY).to eq(Slack::ReviewCycleSource::FETCH_EVERY)
   end
 
   it "records an expected error and continues to the next project" do

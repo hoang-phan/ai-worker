@@ -4,12 +4,12 @@ RSpec.describe Jira::SyncCycleSource do
   let(:record) { double("jira_sync", update: true, auto_sync?: true) }
   let(:fetcher) { instance_double(Jira::AgentFetcher, poll: nil, running?: false, last_started_at: nil, start: nil) }
   let(:sync) { instance_double(Jira::TicketSync, fetcher: fetcher, blockers: []) }
-  let(:source) { described_class.new(record, log_prefix: "[Spec] jira_sync=1", sync: sync) }
+  let(:source) { described_class.new(record, sync: sync) }
   let(:result) { Jira::TicketSync::Result.new(blockers: [], created: [ "A-1" ], skipped: [], failed: [ "A-2: boom", "A-3: bad" ]) }
 
   it "appends failures to the log line" do
-    expect(source.log_message(result, "sum")).to eq("[Spec] jira_sync=1 sum A-2: boom; A-3: bad")
-    expect(source.log_message(result.dup.tap { |r| r.failed = [] }, "sum")).to eq("[Spec] jira_sync=1 sum")
+    expect(source.log_detail(result)).to eq("A-2: boom; A-3: bad")
+    expect(source.log_detail(result.dup.tap { |r| r.failed = [] })).to eq("")
   end
 
   it "persists the summary with a timestamp, and failures as last_result only" do

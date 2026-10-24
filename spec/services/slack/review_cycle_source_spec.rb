@@ -4,7 +4,7 @@ RSpec.describe Slack::ReviewCycleSource do
   let(:record) { double("project", update: true) }
   let(:fetcher) { instance_double(Slack::MentionFetcher, poll: nil, running?: false, last_started_at: nil, start: nil) }
   let(:sync) { instance_double(Slack::ReviewSync, fetcher: fetcher, blockers: [ "no token" ]) }
-  let(:source) { described_class.new(record, log_prefix: "[Spec] project=1", sync: sync) }
+  let(:source) { described_class.new(record, sync: sync) }
 
   def result(created: [], failed: [])
     Slack::ReviewSync::Result.new(blockers: [], created: created, skipped: [], failed: failed, skipped_reasons: Hash.new(0))
@@ -13,8 +13,8 @@ RSpec.describe Slack::ReviewCycleSource do
   before { allow(WorkflowSchedulerJob).to receive(:perform_later) }
 
   it "appends failures to the log line" do
-    expect(source.log_message(result(failed: [ "x", "y" ]), "sum")).to eq("[Spec] project=1 sum x; y")
-    expect(source.log_message(result, "sum")).to eq("[Spec] project=1 sum")
+    expect(source.log_detail(result(failed: [ "x", "y" ]))).to eq("x; y")
+    expect(source.log_detail(result)).to eq("")
   end
 
   it "persists to the slack_* columns" do

@@ -4,16 +4,13 @@ module Slack
     FETCH_EVERY = 30.minutes
     RESCUE_ERRORS = [ Slack::FetchError, AiCli::CommandError ].freeze
 
-    def initialize(project, log_prefix:, sync: nil)
+    def initialize(project, sync: nil)
       @project = project
-      @log_prefix = log_prefix
       sync ||= Slack::ReviewSync.new(project)
       super(sync:, fetcher: sync.fetcher)
     end
 
-    def log_message(result, summary)
-      log_with_failures(@log_prefix, result, summary)
-    end
+    def log_detail(result) = failed_detail(result)
 
     def persist!(_result, summary)
       @project.update(slack_last_synced_at: Time.current, slack_last_result: summary)
