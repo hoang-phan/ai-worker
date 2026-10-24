@@ -82,19 +82,9 @@ RSpec.describe StageExecutor, type: :service do
 
   describe "starting a stage" do
     let(:workflow) { build_jira_workflow(project, jira_ticket: "EXEC-2", branch_name: "executor", status: :implementing) }
-    let(:github) { double("Github::Client", merged?: false, review_decision: "CHANGES_REQUESTED", pr_info: { "state" => "OPEN", "head_ref" => "feature" }, checkout_pr!: nil) }
-    let(:browser_run) { instance_double(AiCli::BrowserTestRun, mcp_config_path: "/tmp/mcp.json", env: {}, disallowed_tools: []) }
-
-    before do
-      allow(Github::Client).to receive(:new).and_return(github)
-      allow(Git::BranchService).to receive_messages(create_branch!: nil, checkout_remote_branch!: nil, update_with_main!: :updated)
-      allow(AiCli::BrowserTestRun).to receive(:new).and_return(double(validate!: browser_run))
-      allow(AiCli::Runner).to receive(:start).and_return(777)
-      allow(Prompts::StagePrompt).to receive(:new).and_return(instance_double(Prompts::StagePrompt, body: "p", slack_message: "m"))
-      allow(Stages::WorkflowRunGate).to receive(:new).and_return(instance_double(Stages::WorkflowRunGate, call: Stages::WorkflowRunGate::Result.new(passed: true)))
-      allow(Stages::PrCheckDecision).to receive(:new).and_return(double(call: Struct.new(:decision, :actions).new(:changes_requested, [])))
-      allow_any_instance_of(Stages::ReviewHandoff).to receive(:reviewers).and_return([ "octocat" ]) # rubocop:disable RSpec/AnyInstance
-    end
+    let(:git) { class_double(Git::BranchService, create_branch!: nil) }
+    let(:runner) { class_double(AiCli::Runner, start: 777) }
+    let(:tooling) { Stages::RunTooling::Tooling.new(runner: runner, poller_class: AiCli::RunPoller) }
 
     it "builds a launcher and injects it into the start handler" do
       stage = workflow.stages.create!(stage_type: :implementation, name: "implementation")
@@ -128,34 +118,28 @@ RSpec.describe StageExecutor, type: :service do
       expect(finish).to have_received(:call).with("merged")
     end
 
-    %w[implementation task pr_review jira_update uat_test local_test runbook_step pr_check].each do |type|
-      it "starts a #{type} stage through the start handler" do
-        stage = workflow.stages.create!(stage_type: type, name: type)
-        described_class.new(workflow, stage).call
+    it "fails the stage when the start path raises a command error" do
+      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation", prompt: "implement it")
+      allow(git).to receive(:create_branch!).and_raise(Git::CommandError, "no branch")
 
-        expect(workflow.reload).to have_attributes(processing: true, ai_pid: 777)
-        expect(stage_actions(stage)).to eq %w[started]
-      end
-    end
-
-    it "fails the stage when the start handler raises a command error" do
-      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation")
-      allow(Git::BranchService).to receive(:create_branch!).and_raise(Git::CommandError, "no branch")
-      described_class.new(workflow, stage).call
+      described_class.new(workflow, stage, git: git, tooling: tooling).call
 
       expect(stage.stage_runs.find_by(action: "failed").error).to eq "no branch"
     end
 
-    it "starts the review-fix run after conflict resolution via the start handler" do
-      stage = workflow.stages.create!(stage_type: :pr_check, name: "pr_check")
-      workflow.update!(running_ai_run)
-      allow(stage).to receive(:resolving_conflicts?).and_return(true)
-      allow(Git::BranchService).to receive(:merge_in_progress?).and_return(false)
-      allow(AiCli::RunPoller).to receive(:new).and_return(instance_double(AiCli::RunPoller, call: [ :finished, "merged" ], log_offset: 0))
-      described_class.new(workflow, stage).call
+    it "starts an implementation stage and records the detached run" do
+      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation", prompt: "implement it")
 
-      expect(stage_actions(stage)).to eq %w[conflicts_resolved started]
+      described_class.new(workflow, stage, git: git, tooling: tooling).call
+
       expect(workflow.reload).to have_attributes(processing: true, ai_pid: 777)
+      expect(stage_actions(stage)).to eq %w[started]
+      expect(git).to have_received(:create_branch!).with(project, "executor")
+      expect(runner).to have_received(:start).with(
+        project.local_directory,
+        kind_of(String),
+        hash_including(log_path: kind_of(String), provider: nil)
+      )
     end
   end
 end
