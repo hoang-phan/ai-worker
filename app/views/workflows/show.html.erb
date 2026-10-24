@@ -9,7 +9,7 @@
       <%= button_to "Start", start_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
     <% if @workflow.can_advance? %>
-      <%= button_to (@workflow.next_runbook_stage ? "Next: #{@workflow.next_runbook_stage.display_name}" : "Finish"), advance_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
+      <%= button_to workflow_advance_label(@workflow), advance_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>
     <% end %>
     <% if @workflow.errored? %>
       <%= button_to "Resume", resume_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-primary" %>

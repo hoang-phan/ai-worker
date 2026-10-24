@@ -8,4 +8,28 @@ module StagesHelper
   def stage_template_options(stage)
     stage.candidate_templates.map { |template| [ template.name, template.id, { data: { body: template.body } } ] }
   end
+
+  # [name column, detail column] headers of the workflow page's stage table.
+  def stage_table_headers(workflow)
+    workflow.runbook? ? [ "Stage", "Channel" ] : [ "Type", "Template" ]
+  end
+
+  def stage_row_name(workflow, stage)
+    workflow.runbook? ? stage.display_name : stage.stage_type
+  end
+
+  # run_mode / "waits for ..." / advance-mode badges beside a stage row's name; only "waits for" shows outside runbooks.
+  def stage_row_badges(workflow, stage)
+    runbook = workflow.runbook?
+    safe_join([
+      (content_tag(:span, stage.run_mode, class: "badge badge-neutral") if runbook),
+      (content_tag(:span, "waits for #{stage.wait_for_workflow}", class: "badge badge-neutral") if stage.wait_for_workflow.present?),
+      (content_tag(:span, stage.auto_advance? ? "→ auto" : "⏸ then Next", class: "badge badge-neutral") if runbook)
+    ].compact, " ")
+  end
+
+  # Slack channel for a runbook stage, prompt template name otherwise.
+  def stage_row_detail(workflow, stage)
+    workflow.runbook? ? stage.channel : stage.effective_template&.name
+  end
 end

@@ -8,13 +8,14 @@
 </div>
 
 <% current_stage = workflow.current_stage %>
+<% name_header, detail_header = stage_table_headers(workflow) %>
 <div class="table-wrap">
   <table>
     <thead>
       <tr>
-        <th><%= workflow.runbook? ? "Stage" : "Type" %></th>
+        <th><%= name_header %></th>
         <th></th>
-        <th><%= workflow.runbook? ? "Channel" : "Template" %></th>
+        <th><%= detail_header %></th>
         <th></th>
       </tr>
     </thead>
@@ -23,13 +24,11 @@
         <% stage_badge = current_stage_badge(workflow, stage, current_stage) %>
         <tr>
           <td>
-            <%= workflow.runbook? ? stage.display_name : stage.stage_type %>
-            <%= content_tag(:span, stage.run_mode, class: "badge badge-neutral") if workflow.runbook? %>
-            <%= content_tag(:span, "waits for #{stage.wait_for_workflow}", class: "badge badge-neutral") if stage.wait_for_workflow.present? %>
-            <%= content_tag(:span, stage.auto_advance? ? "→ auto" : "⏸ then Next", class: "badge badge-neutral") if workflow.runbook? %>
+            <%= stage_row_name(workflow, stage) %>
+            <%= stage_row_badges(workflow, stage) %>
           </td>
           <td><%= content_tag(:span, stage_badge, class: "badge badge-info") if stage_badge %></td>
-          <td><%= workflow.runbook? ? stage.channel : stage.effective_template&.name %></td>
+          <td><%= stage_row_detail(workflow, stage) %></td>
           <td>
             <% if stage_runnable?(workflow, stage, current_stage) %>
               <%= button_to "Run", run_stage_project_workflow_path(project, workflow), method: :post, class: "btn btn-primary", form: { style: "display:inline" } %>

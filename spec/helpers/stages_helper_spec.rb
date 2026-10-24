@@ -34,4 +34,68 @@ RSpec.describe StagesHelper, type: :helper do
       ])
     end
   end
+
+  describe "stage row helpers" do
+    let_tmpdir(:local_directory, "stages-helper-spec")
+    let(:project) { build_jira_project(local_directory: local_directory) }
+
+    context "with a runbook workflow" do
+      let(:workflow) { build_runbook_workflow(project) }
+      let(:stage) do
+        build_runbook_stage(workflow, name: "Deploy", run_mode: :message, channel: "#deploys", auto_advance: true,
+                                      wait_for_workflow: "deploy.yml")
+      end
+
+      it "uses Stage / Channel headers" do
+        expect(helper.stage_table_headers(workflow)).to eq([ "Stage", "Channel" ])
+      end
+
+      it "names the row by display name and details it by channel" do
+        expect(helper.stage_row_name(workflow, stage)).to eq("Deploy")
+        expect(helper.stage_row_detail(workflow, stage)).to eq("#deploys")
+      end
+
+      it "badges run mode, the awaited workflow and auto advance" do
+        expect(helper.stage_row_badges(workflow, stage)).to eq(
+          '<span class="badge badge-neutral">message</span> ' \
+          '<span class="badge badge-neutral">waits for deploy.yml</span> ' \
+          '<span class="badge badge-neutral">→ auto</span>'
+        )
+      end
+
+      it "omits the waits-for badge and pauses for Next without auto advance" do
+        stage.update!(run_mode: :agent, channel: nil, auto_advance: false, wait_for_workflow: nil)
+
+        expect(helper.stage_row_badges(workflow, stage)).to eq(
+          '<span class="badge badge-neutral">agent</span> <span class="badge badge-neutral">⏸ then Next</span>'
+        )
+      end
+    end
+
+    context "with a development workflow" do
+      let(:workflow) { build_jira_workflow(project) }
+      let(:stage) { workflow.stages.find_by!(stage_type: :implementation) }
+
+      it "uses Type / Template headers" do
+        expect(helper.stage_table_headers(workflow)).to eq([ "Type", "Template" ])
+      end
+
+      it "names the row by stage type and details it by the effective template" do
+        template = PromptTemplate.create!(name: "Impl default", stage_type: :implementation, body: "Body")
+
+        expect(helper.stage_row_name(workflow, stage)).to eq("implementation")
+        expect(helper.stage_row_detail(workflow, stage)).to eq(template.name)
+      end
+
+      it "has no badges without an awaited workflow" do
+        expect(helper.stage_row_badges(workflow, stage)).to be_blank
+      end
+
+      it "badges only the awaited workflow" do
+        stage.update!(wait_for_workflow: "deploy.yml")
+
+        expect(helper.stage_row_badges(workflow, stage)).to eq('<span class="badge badge-neutral">waits for deploy.yml</span>')
+      end
+    end
+  end
 end

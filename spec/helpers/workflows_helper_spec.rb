@@ -108,6 +108,27 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
   end
 
+  describe "#workflow_advance_label" do
+    let_tmpdir(:local_directory, "workflows-helper-spec")
+    let(:project) { build_jira_project(local_directory: local_directory) }
+    let(:workflow) { build_runbook_workflow(project) }
+    let!(:first) { build_runbook_stage(workflow, name: "Build", position: 1) }
+
+    before { build_runbook_stage(workflow, name: "Ship", position: 2) }
+
+    it "names the following stage" do
+      workflow.update!(status: :waiting, current_stage_id: first.id)
+
+      expect(helper.workflow_advance_label(workflow)).to eq("Next: Ship")
+    end
+
+    it "is Finish at the last stage" do
+      workflow.update!(status: :waiting, current_stage_id: workflow.stages.last.id)
+
+      expect(helper.workflow_advance_label(workflow)).to eq("Finish")
+    end
+  end
+
   describe "#runbook_copy_source_options" do
     let(:project) { build_jira_project }
 
