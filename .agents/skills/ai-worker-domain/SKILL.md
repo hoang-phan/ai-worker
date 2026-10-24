@@ -1,11 +1,11 @@
 ---
 name: ai-worker-domain
-description: Applies ai-worker's data model discipline. Use for any task touching app/models/{project,workflow,stage,stage_run,prompt_template}.rb, app/models/stages/run_history.rb, app/models/workflows/{image_store,validator,label,summary_key}.rb, app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb, db/migrate/**, or db/schema.rb — including cross-cutting enum and migration rules.
+description: Applies ai-worker's data model discipline. Use for any task touching app/models/{project,workflow,stage,stage_run,prompt_template}.rb, app/models/stages/run_history.rb, app/models/workflows/{image_store,validator,label,summary_key,proposal_normalizer}.rb, app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb, db/migrate/**, or db/schema.rb — including cross-cutting enum and migration rules.
 ---
 
 # ai-worker-domain
 
-Scope: `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, `app/models/workflows/{image_store,validator,label,summary_key}.rb`, `app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb`, `db/migrate/**`, and `db/schema.rb`, plus cross-cutting enum and migration rules. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
+Scope: `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, `app/models/workflows/{image_store,validator,label,summary_key,proposal_normalizer}.rb`, `app/models/projects/{slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb`, `db/migrate/**`, and `db/schema.rb`, plus cross-cutting enum and migration rules. Do not read `app/jobs`, `app/services`, `app/controllers`, or `app/views` for this work — the model layer has no dependency on them, except where a model calls `Prompts::Renderer` / `AiCli::Output` (noted below). `db/schema.rb` is the source of truth for columns; this file does not repeat them.
 
 End-to-end Slack-driven reviews of someone else's PR: `ai-worker-pr-review-workflows`.
 Per-project settings across model, form, controller, prompts, tests, and onboarding docs: `ai-worker-project-settings`.
@@ -23,6 +23,7 @@ Browser-test behaviour behind the UAT/local readiness predicates, `Stage#local_t
 - `app/models/workflows/validator.rb` — `Workflows::Validator` (`validates_with` on Workflow): the kind/project-conditional presence rules, PR-review project check, variable-name check and `copy_stages_from_id` check. Spec: `spec/models/workflows/validator_spec.rb`. The `github_pr_url` format check stays in `workflow.rb`.
 - `app/models/workflows/label.rb` — `label` / `brief` / `heading` display text.
 - `app/models/workflows/summary_key.rb` — `Workflows::SummaryKey` normalizes workflow summaries for deduplication (`spec/models/workflows/summary_key_spec.rb`).
+- `app/models/workflows/proposal_normalizer.rb` — `Workflows::ProposalNormalizer`, pure; cleans agent-written proposal rows (`result.json` rows, FOLLOW_UPS blocks) into `{ "summary", "task" }` hashes plus optional `"skills"` (names match `/\A[\w:.\-\/]+\z/`, uniq, max 6, joined ", "; key absent when empty); drops non-Hash rows and blank summary/task; summary squished to `Workflow::SUMMARY_LENGTH`, task stripped to `TASK_LENGTH` (4000). Shared by `Brainstorm::Planner#poll` and `AiCli::Output#follow_ups` (`spec/models/workflows/proposal_normalizer_spec.rb`).
 - `app/models/workflows/variables.rb` — owned by `ai-worker-runbooks`.
 - `app/models/workflows/stage_outputs.rb` — owned by `ai-worker-runbooks`.
 - `app/models/projects/slack_user_map.rb` — parses `Project#slack_user_map` (`github-login=SlackUserID` lines) for reviewer tagging.

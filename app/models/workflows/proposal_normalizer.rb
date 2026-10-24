@@ -1,4 +1,4 @@
-module Brainstorm
+module Workflows
   # Pure: turns the parsed rows of the agent's result.json into proposals.
   #
   # Input: the Array DetachedRun yields (any elements). Output: an Array of { "summary", "task" } string hashes, plus a "skills" string

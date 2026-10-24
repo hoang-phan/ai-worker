@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Brainstorm::ProposalNormalizer do
+RSpec.describe Workflows::ProposalNormalizer do
   let(:summary_limit) { Workflow::SUMMARY_LENGTH }
   let(:task_limit) { described_class::TASK_LENGTH }
 

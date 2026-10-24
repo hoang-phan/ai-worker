@@ -56,11 +56,11 @@ module AiCli
     end
 
     # Rows of the last FOLLOW_UPS_BEGIN/FOLLOW_UPS_END block (the log may echo the prompt's own example): a JSON array
-    # of {"summary", "task"}, cleaned by Brainstorm::ProposalNormalizer. [] when the block is missing or not valid JSON.
+    # of {"summary", "task"}, cleaned by Workflows::ProposalNormalizer. [] when the block is missing or not valid JSON.
     def follow_ups
       body = last_block("FOLLOW_UPS_BEGIN", "FOLLOW_UPS_END", anchored: true)
       rows = JSON.parse(body.to_s)
-      rows.is_a?(Array) ? Brainstorm::ProposalNormalizer.call(rows) : []
+      rows.is_a?(Array) ? Workflows::ProposalNormalizer.call(rows) : []
     rescue JSON::ParserError
       []
     end

@@ -15,7 +15,7 @@ module Brainstorm
     STALE_AFTER = 45.minutes
     DEFAULT_MODEL = "gpt-6-sol".freeze
     DEFAULT_EFFORT = "high".freeze
-    TASK_LENGTH = ProposalNormalizer::TASK_LENGTH
+    TASK_LENGTH = Workflows::ProposalNormalizer::TASK_LENGTH
     # Read-only: the agent may look at the code and git history, and write the result file, nothing else.
     ALLOWED_TOOLS = [ "Read", "Grep", "Glob", "Write", "Bash(git log:*)", "Bash(git ls-files:*)", "Bash(git status:*)", "Bash(git diff:*)" ].freeze
 
@@ -67,7 +67,7 @@ module Brainstorm
     # Raises FetchError on failure.
     def poll
       context = launch_context
-      lifecycle.poll(prepare: -> { write_history(context) }, **launch_inputs(context)) { |rows| ProposalNormalizer.call(rows) }
+      lifecycle.poll(prepare: -> { write_history(context) }, **launch_inputs(context)) { |rows| Workflows::ProposalNormalizer.call(rows) }
     end
 
     # Creates a workflow per proposal; see ProposalImporter for the rules.
