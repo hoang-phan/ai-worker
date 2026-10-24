@@ -77,7 +77,7 @@ module Stages
     def run_pr_check
       Stages::PrCheckRun.new(
         workflow: workflow, stage: stage, project: project, github: github, git: git,
-        handoff: handoff, prompt: prompt, start_ai_run: launcher
+        handoff: handoff, prompt: prompt, launcher: launcher
       ).call
     end
   end

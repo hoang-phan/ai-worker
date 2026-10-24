@@ -74,7 +74,7 @@ class StageExecutor
   def conflict_resolution_finish
     Stages::ConflictResolutionFinish.new(
       workflow: workflow, stage: stage, project: project,
-      git: git, prompt: prompt, start_ai_run: launcher
+      git: git, prompt: prompt, launcher: launcher
     )
   end
 

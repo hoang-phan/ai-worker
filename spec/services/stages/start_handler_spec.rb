@@ -165,7 +165,7 @@ RSpec.describe Stages::StartHandler, type: :service do
 
       expect(Stages::PrCheckRun).to have_received(:new).with(
         hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git,
-                       handoff: handoff, prompt: prompt, start_ai_run: launcher)
+                       handoff: handoff, prompt: prompt, launcher: launcher)
       )
       expect(run).to have_received(:call)
     end

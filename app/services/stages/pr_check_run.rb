@@ -1,9 +1,9 @@
 module Stages
   # The pr_check start path: a merged PR closes the workflow; otherwise a Stages::PrCheckDecision either closes it as
   # approved, merges main and hands the agent a conflict-resolution or review-fix run, or leaves it pending. The agent
-  # is never spawned here — start_ai_run is the caller's callable (Stages::AiRunLauncher). Git/Github errors propagate.
+  # is never spawned here — launcher is the caller's callable (Stages::AiRunLauncher). Git/Github errors propagate.
   class PrCheckRun
-    def initialize(workflow:, stage:, project:, github:, git:, handoff:, prompt:, start_ai_run:)
+    def initialize(workflow:, stage:, project:, github:, git:, handoff:, prompt:, launcher:)
       @workflow = workflow
       @stage = stage
       @project = project
@@ -11,7 +11,7 @@ module Stages
       @git = git
       @handoff = handoff
       @prompt = prompt
-      @start_ai_run = start_ai_run
+      @launcher = launcher
     end
 
     def call
@@ -50,12 +50,12 @@ module Stages
 
     def start_fix_run
       if git.update_with_main!(project, workflow.branch_name) == :conflict
-        start_ai_run.call(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+        launcher.call(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
       else
-        start_ai_run.call(prompt.body)
+        launcher.call(prompt.body)
       end
     end
 
-    attr_reader :workflow, :stage, :project, :github, :git, :handoff, :prompt, :start_ai_run
+    attr_reader :workflow, :stage, :project, :github, :git, :handoff, :prompt, :launcher
   end
 end

@@ -10,12 +10,12 @@ RSpec.describe Stages::PrCheckRun, type: :service do
   let(:git) { double("Git::BranchService", update_with_main!: :updated) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ]) }
-  let(:start_ai_run) { spy("start_ai_run") }
+  let(:launcher) { spy("launcher") }
   let(:decision) { Struct.new(:decision, :actions) }
 
   def run
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git,
-                        handoff: handoff, prompt: prompt, start_ai_run: start_ai_run).call
+                        handoff: handoff, prompt: prompt, launcher: launcher).call
   end
 
   def stub_decision(name, actions = [])
@@ -30,7 +30,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     expect(workflow.reload.status).to eq "merged"
     expect(stage_actions(stage)).to eq %w[pr_merged_closed]
     expect(github).not_to have_received(:review_decision)
-    expect(start_ai_run).not_to have_received(:call)
+    expect(launcher).not_to have_received(:call)
   end
 
   it "closes an approved PR as done, logging the decision actions first" do
@@ -39,7 +39,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
 
     expect(workflow.reload.status).to eq "done"
     expect(stage_actions(stage)).to eq %w[check_passed approved_closed]
-    expect(start_ai_run).not_to have_received(:call)
+    expect(launcher).not_to have_received(:call)
   end
 
   it "starts the review-fix run when changes are requested and main merges cleanly" do
@@ -47,7 +47,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(git).to have_received(:update_with_main!).with(project, "pr-check-run")
-    expect(start_ai_run).to have_received(:call).with("the prompt")
+    expect(launcher).to have_received(:call).with("the prompt")
     expect(stage_actions(stage)).to be_empty
   end
 
@@ -56,8 +56,8 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     allow(git).to receive(:update_with_main!).and_return(:conflict)
     run
 
-    expect(start_ai_run).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
-    expect(start_ai_run).not_to have_received(:call).with("the prompt")
+    expect(launcher).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+    expect(launcher).not_to have_received(:call).with("the prompt")
   end
 
   it "logs decision actions before starting the fix run when changes are requested" do
@@ -65,7 +65,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(stage_actions(stage)).to eq %w[local_test_failing]
-    expect(start_ai_run).to have_received(:call).with("the prompt")
+    expect(launcher).to have_received(:call).with("the prompt")
   end
 
   it "logs decision actions before starting conflict resolution" do
@@ -74,7 +74,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(stage_actions(stage)).to eq %w[local_test_failing]
-    expect(start_ai_run).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+    expect(launcher).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
   end
 
   it "logs no_action_pending when nothing is decided" do
@@ -82,7 +82,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(stage_actions(stage)).to eq %w[no_action_pending]
-    expect(start_ai_run).not_to have_received(:call)
+    expect(launcher).not_to have_received(:call)
   end
 
   it "logs the decision actions then no_action_pending when pending" do
@@ -90,7 +90,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(stage_actions(stage)).to eq %w[checks_failing no_action_pending]
-    expect(start_ai_run).not_to have_received(:call)
+    expect(launcher).not_to have_received(:call)
   end
 
   it "propagates a git error without starting the agent" do
@@ -98,6 +98,6 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     allow(git).to receive(:update_with_main!).and_raise(Git::CommandError, "nope")
 
     expect { run }.to raise_error(Git::CommandError, "nope")
-    expect(start_ai_run).not_to have_received(:call)
+    expect(launcher).not_to have_received(:call)
   end
 end

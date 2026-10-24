@@ -113,7 +113,7 @@ RSpec.describe StageExecutor, type: :service do
       described_class.new(workflow, stage).call
 
       expect(Stages::ConflictResolutionFinish).to have_received(:new).with(
-        hash_including(workflow: workflow, stage: stage, project: project, start_ai_run: launcher)
+        hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher)
       )
       expect(finish).to have_received(:call).with("merged")
     end
