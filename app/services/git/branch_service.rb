@@ -27,22 +27,23 @@ module Git
     # Returns :pushed, or :up_to_date when there is nothing ahead of origin.
     # A rejected push (origin moved) is retried once after a rebase; never forces.
     def self.push_current!(project)
-      new(project, nil).push_current!
+      Pusher.new(project).push_current!
     end
 
     def self.merge_in_progress?(project)
-      new(project, nil).merge_in_progress?
+      MergeState.new(project).merge_in_progress?
     end
 
     # Aborts an unfinished merge (agent failed to resolve) so the clone is clean.
     def self.abort_merge!(project)
-      new(project, nil).abort_merge!
+      MergeState.new(project).abort_merge!
     end
 
-    def initialize(project, branch_name)
+    def initialize(project, branch_name, shell: nil, merge_state: nil)
       @project = project
       @branch_name = branch_name
-      @shell = Shell.new(project.local_directory)
+      @shell = shell || Shell.new(project.local_directory)
+      @merge_state = merge_state || MergeState.new(project, shell: @shell)
     end
 
     def create!
@@ -53,7 +54,7 @@ module Git
     def update_with_main!
       checkout_and_pull_main
       checkout_branch!(start_point: "origin/#{branch_name}")
-      merge_main!
+      merge_state.merge_main!
     end
 
     def checkout_remote!
@@ -62,28 +63,9 @@ module Git
       shell.run!([ "git", "pull", "--ff-only", "origin", branch_name ]) if existed
     end
 
-    def push_current!
-      branch = shell.run!(%w[git rev-parse --abbrev-ref HEAD]).strip
-      return :up_to_date if ahead_count(branch).zero?
-
-      unless shell.success?([ "git", "push", "origin", "HEAD" ])
-        shell.run!([ "git", "pull", "--rebase", "origin", branch ])
-        shell.run!([ "git", "push", "origin", "HEAD" ])
-      end
-      :pushed
-    end
-
-    def merge_in_progress?
-      shell.success?(%w[git rev-parse -q --verify MERGE_HEAD])
-    end
-
-    def abort_merge!
-      shell.run(%w[git merge --abort]) if merge_in_progress?
-    end
-
     private
 
-    attr_reader :project, :branch_name, :shell
+    attr_reader :project, :branch_name, :shell, :merge_state
 
     # Checks out the branch, creating it (from start_point when given) if it
     # isn't local yet. Returns true when the branch already existed locally.
@@ -97,32 +79,9 @@ module Git
       end
     end
 
-    # Commits not on origin/<branch> (all of them when the branch isn't on origin yet).
-    def ahead_count(branch)
-      on_origin = shell.success?([ "git", "rev-parse", "--verify", "--quiet", "origin/#{branch}" ])
-      range = on_origin ? "origin/#{branch}..HEAD" : "HEAD"
-      shell.run!([ "git", "rev-list", "--count", range ]).to_i
-    end
-
     def checkout_and_pull_main
       shell.checkout!(%w[git checkout main])
       shell.run!(%w[git pull origin main])
-    end
-
-    # Returns :merged, or :conflict when the merge stopped on conflicts. The
-    # conflicted merge is left in place for the agent to resolve. Any other
-    # failure aborts the merge and raises.
-    def merge_main!
-      out, err, status = shell.run(%w[git merge main --no-edit])
-      return :merged if status.success?
-      return :conflict if merge_in_progress? && !conflicted_files.empty?
-
-      shell.run(%w[git merge --abort])
-      raise CommandError, "git merge main failed: #{err.presence || out}"
-    end
-
-    def conflicted_files
-      shell.run!(%w[git diff --name-only --diff-filter=U]).split("\n")
     end
 
     def branch_exists_locally?
