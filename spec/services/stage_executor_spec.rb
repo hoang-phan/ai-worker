@@ -10,42 +10,40 @@ RSpec.describe StageExecutor, type: :service do
 
   it "fails without polling or starting when the project uses the live checkout" do
     allow(project).to receive(:runs_from_live_checkout?).and_return(true)
-    expect(AiCli::RunPoller).not_to receive(:new)
+    ai_run_poll = instance_double(Stages::AiRunPoll)
+    expect(ai_run_poll).not_to receive(:call)
     expect(Stages::StartHandler).not_to receive(:new)
 
-    described_class.new(workflow, stage).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
 
     expect(stage.stage_runs.find_by(action: "failed").error).to include("live ai-worker checkout")
   end
 
   it "hands a finished run's output to the completion handler" do
-    poller = instance_double(AiCli::RunPoller, call: [ :finished, "all done" ], log_offset: 0)
-    allow(AiCli::RunPoller).to receive(:new).and_return(poller)
+    ai_run_poll = instance_double(Stages::AiRunPoll, call: "all done")
     allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-    described_class.new(workflow, stage).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
 
     expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project))
     expect(handler).to have_received(:call).with("all done")
   end
 
   it "does not complete while the run is still going" do
-    poller = instance_double(AiCli::RunPoller, call: [ :running, nil ], log_offset: 0)
-    allow(AiCli::RunPoller).to receive(:new).and_return(poller)
+    ai_run_poll = instance_double(Stages::AiRunPoll, call: nil)
     allow(Stages::CompletionHandler).to receive(:new)
 
-    described_class.new(workflow, stage).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
 
     expect(Stages::CompletionHandler).not_to have_received(:new)
   end
 
   it "fails the stage when the handler raises a command error" do
-    poller = instance_double(AiCli::RunPoller, call: [ :finished, "x" ], log_offset: 0)
-    allow(AiCli::RunPoller).to receive(:new).and_return(poller)
+    ai_run_poll = instance_double(Stages::AiRunPoll, call: "x")
     allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
     allow(handler).to receive(:call).and_raise(AiCli::CommandError, "boom")
 
-    described_class.new(workflow, stage).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
 
     expect(stage.stage_runs.find_by(action: "failed").error).to eq "boom"
   end
@@ -53,30 +51,16 @@ RSpec.describe StageExecutor, type: :service do
   describe "injected collaborators" do
     let(:stage) { workflow.stages.create!(stage_type: :ci_check, name: "ci_check") }
 
-    it "polls a ci_check stage through the injected tooling and builds the github client once" do
-      poller_class = class_double(Ci::CheckPoller)
-      poller = instance_double(Ci::CheckPoller, call: [ :finished, "green" ], log_offset: 5)
-      tooling = Stages::RunTooling::Tooling.new(runner: double("runner"), poller_class: poller_class)
+    it "uses injected collaborators for a finished ci_check stage" do
+      ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
       github = double("Github::Client")
       git = double("Git::BranchService")
-      allow(poller_class).to receive(:new).and_return(poller)
       allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-      described_class.new(workflow, stage, github: github, git: git, tooling: tooling).call
+      described_class.new(workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll).call
 
-      expect(poller_class).to have_received(:new).with(hash_including(pid: 123, stale_after: StageExecutor::STALE_AFTER))
       expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, git: git))
       expect(handler).to have_received(:call).with("green")
-      expect(workflow.reload.ai_log_offset).to eq 5
-    end
-
-    it "picks the plain command tooling for a ci_check stage by default" do
-      poller = instance_double(Ci::CheckPoller, call: [ :running, nil ], log_offset: 0)
-      allow(Ci::CheckPoller).to receive(:new).and_return(poller)
-
-      described_class.new(workflow, stage).call
-
-      expect(Ci::CheckPoller).to have_received(:new)
     end
   end
 
@@ -105,12 +89,12 @@ RSpec.describe StageExecutor, type: :service do
       workflow.update!(running_ai_run)
       launcher = instance_double(Stages::AiRunLauncher)
       finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
+      ai_run_poll = instance_double(Stages::AiRunPoll, call: "merged")
       allow(stage).to receive(:resolving_conflicts?).and_return(true)
-      allow(AiCli::RunPoller).to receive(:new).and_return(instance_double(AiCli::RunPoller, call: [ :finished, "merged" ], log_offset: 0))
       allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
       allow(Stages::ConflictResolutionFinish).to receive(:new).and_return(finish)
 
-      described_class.new(workflow, stage).call
+      described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
 
       expect(Stages::ConflictResolutionFinish).to have_received(:new).with(
         hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher)

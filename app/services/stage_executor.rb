@@ -9,14 +9,17 @@ class StageExecutor
   # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
-  # `github:`, `git:` and `tooling:` default to the production collaborators; specs pass doubles.
-  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil)
+  # `github:`, `git:`, `tooling:` and `ai_run_poll:` default to production collaborators; specs pass doubles.
+  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil, ai_run_poll: nil)
     @workflow = workflow
     @stage = stage
     @project = workflow.project
     @github = github
     @git = git
     @tooling = tooling || Stages::RunTooling.for(stage)
+    @ai_run_poll = ai_run_poll || Stages::AiRunPoll.new(
+      workflow: workflow, stage: stage, poller_class: @tooling.poller_class, stale_after: STALE_AFTER
+    )
   end
 
   def call
@@ -33,7 +36,7 @@ class StageExecutor
 
   private
 
-  attr_reader :workflow, :stage, :project, :git, :tooling
+  attr_reader :workflow, :stage, :project, :git, :tooling, :ai_run_poll
 
   def github
     @github ||= Github::Client.new(project)
@@ -47,19 +50,8 @@ class StageExecutor
   end
 
   def poll_ai_run
-    poller = tooling.poller_class.new(
-      pid: workflow.ai_pid, log_path: workflow.ai_log_path, log_offset: workflow.ai_log_offset,
-      started_at: workflow.ai_started_at, log_tag: log_tag, stale_after: STALE_AFTER,
-      provider: workflow.ai_provider
-    )
-    begin
-      state, output = poller.call
-    ensure
-      workflow.update_column(:ai_log_offset, poller.log_offset) if poller.log_offset != workflow.ai_log_offset
-    end
-    return if state == :running
-
-    finalize_success(output)
+    output = ai_run_poll.call
+    finalize_success(output) if output
   end
 
   def finalize_success(output)
@@ -82,10 +74,6 @@ class StageExecutor
     Stages::FailureHandler.new(
       workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES
     ).call
-  end
-
-  def log_tag
-    "workflow=#{workflow.id} stage=#{stage.id}"
   end
 
   def handoff

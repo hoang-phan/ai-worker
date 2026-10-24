@@ -11,7 +11,8 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 ## File map
 
-- `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; persists poller log offsets, dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.
+- `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.
+- `app/services/stages/ai_run_poll.rb` — builds the configured poller from persisted workflow run state, durably advances its log offset even on errors, and returns completed output.
 - `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
 - `app/services/stages/completion_handler.rb` — dispatches successful completed output by stage type to the corresponding finish service.
 - `app/services/stages/failure_handler.rb` — aborts a resolving merge, clears run state without auto-run, logs `failed`, and parks workflows at the supplied consecutive-failure threshold.
@@ -47,7 +48,8 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 ## Specs
 
 - Run core coverage with `RAILS_ENV=test bundle exec rspec spec/services/stage_executor_spec.rb spec/services/stages/{ai_run_launcher,start_handler,completion_handler,failure_handler,conflict_resolution_finish,implementation_finish,pr_check_run,pr_check_decision,pr_check_finish,review_handoff,merge_check,task_finish,follow_up_importer,jira_update_finish}_spec.rb`.
-- `spec/services/stage_executor_spec.rb` covers the live-checkout guard, start/poll routing, persisted log offset, completion dispatch, and single rescue path.
+- `spec/services/stage_executor_spec.rb` covers the live-checkout guard, start/poll routing, completion dispatch, and single rescue path.
+- `spec/services/stages/ai_run_poll_spec.rb` covers poller construction, running/completed return values, and persisted log offsets.
 - `spec/services/stages/ai_run_launcher_spec.rb` and `start_handler_spec.rb` cover start-path state and injected launchers.
 - `spec/services/stages/completion_handler_spec.rb`, `conflict_resolution_finish_spec.rb`, `failure_handler_spec.rb`, `implementation_finish_spec.rb`, `pr_check_finish_spec.rb`, `jira_update_finish_spec.rb`, and `task_finish_spec.rb` cover completion/failure transitions and logged actions.
 - `spec/services/stages/pr_check_decision_spec.rb`, `pr_check_run_spec.rb`, and `merge_check_spec.rb` cover decisions and non-launching checks; `review_handoff_spec.rb` covers swallowed follow-up failures; `follow_up_importer_spec.rb` covers proposal import.
