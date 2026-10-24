@@ -11,7 +11,7 @@ module Slack
   #
   # State lives in tmp/slack_pings/<workflow_id>/<started_at>/: pid, agent.log.
   class ReviewNotifier
-    MODEL = ENV.fetch("SLACK_PING_MODEL", "haiku")
+    DEFAULT_MODEL = "haiku".freeze
     # Headless (`claude -p`) can't prompt: approve only the one tool that posts.
     ALLOWED_TOOLS = %w[mcp__claude_ai_Slack__slack_send_message].freeze
 
@@ -22,6 +22,8 @@ module Slack
       @root = Pathname(root)
       @collector = collector || PingCollector.new(root: @root, poller: runner.method(:poll))
     end
+
+    def self.model = ENV.fetch("SLACK_PING_MODEL", DEFAULT_MODEL)
 
     def enabled?
       project.slack_review_channel.present?
@@ -63,7 +65,7 @@ module Slack
     def spawn(run, prompt)
       FileUtils.mkdir_p(run.dir)
       pid = runner.start(run.to_s, prompt, log_path: run.log_file.to_s,
-                         allowed_tools: ALLOWED_TOOLS, model: MODEL)
+                         allowed_tools: ALLOWED_TOOLS, model: self.class.model)
       run.pid_file.write(pid)
     end
 

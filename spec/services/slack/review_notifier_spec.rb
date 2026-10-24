@@ -33,6 +33,26 @@ RSpec.describe Slack::ReviewNotifier do
       )
     end
 
+    it "uses haiku by default" do
+      allow(ENV).to receive(:fetch).with("SLACK_PING_MODEL", described_class::DEFAULT_MODEL).and_return("haiku")
+
+      notify
+
+      expect(runner).to have_received(:start).with(
+        run_dir.to_s, anything, hash_including(model: "haiku")
+      )
+    end
+
+    it "uses SLACK_PING_MODEL when set" do
+      allow(ENV).to receive(:fetch).with("SLACK_PING_MODEL", described_class::DEFAULT_MODEL).and_return("sonnet")
+
+      notify
+
+      expect(runner).to have_received(:start).with(
+        run_dir.to_s, anything, hash_including(model: "sonnet")
+      )
+    end
+
     it "returns nil; the thread id is collected later by PingCollector" do
       expect(notify).to be_nil
     end
