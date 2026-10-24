@@ -98,8 +98,8 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
   end
 
   it "starts a named non-auto-run runbook only when named" do
-    runbook = build_task_workflow(project, kind: :runbook, status: :implementing, position: 1, auto_run: false)
-    stage = runbook.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1)
+    runbook = build_runbook_workflow(project, status: :implementing, position: 1, auto_run: false)
+    stage = build_runbook_stage(runbook, name: "Deploy", position: 1)
     runbook.update!(current_stage_id: stage.id)
 
     runner.call

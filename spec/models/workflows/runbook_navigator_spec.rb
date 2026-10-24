@@ -3,11 +3,11 @@ require "rails_helper"
 RSpec.describe Workflows::RunbookNavigator do
   let_tmpdir(:local_directory, "runbook-navigator-spec")
   let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
-  let(:workflow) { project.workflows.create!(kind: :runbook, status: :pending) }
+  let(:workflow) { build_runbook_workflow(project, status: :pending) }
   let(:navigator) { described_class.new(workflow) }
 
   def add_stage(name, position)
-    workflow.stages.create!(stage_type: :runbook_step, name: name, position: position)
+    build_runbook_stage(workflow, name: name, position: position)
   end
 
   describe "#start!" do

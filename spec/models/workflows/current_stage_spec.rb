@@ -11,9 +11,9 @@ RSpec.describe Workflows::CurrentStage do
   def call(wf = workflow) = described_class.new(wf).call
 
   describe "runbooks" do
-    let(:runbook) { project.workflows.create!(kind: :runbook, status: :waiting) }
-    let!(:first) { runbook.stages.create!(stage_type: :runbook_step, name: "One", position: 1) }
-    let!(:second) { runbook.stages.create!(stage_type: :runbook_step, name: "Two", position: 2) }
+    let(:runbook) { build_runbook_workflow(project, status: :waiting) }
+    let!(:first) { build_runbook_stage(runbook, name: "One", position: 1) }
+    let!(:second) { build_runbook_stage(runbook, name: "Two", position: 2) }
 
     it "returns the stage at current_stage_id" do
       runbook.update!(current_stage_id: second.id)
@@ -62,7 +62,7 @@ RSpec.describe Workflows::CurrentStage do
   end
 
   it "maps a pr_review workflow to its pr_review stage" do
-    review = project.workflows.create!(kind: :pr_review, github_pr_url: "https://github.com/org/repo/pull/7", status: :implementing)
+    review = build_pr_review_workflow(project, status: :implementing)
     expect(call(review)).to eq(review.stages.find_by!(stage_type: :pr_review))
   end
 

@@ -21,7 +21,7 @@ RSpec.describe Workflows::StageSeeder do
   end
 
   it "seeds a pr_review stage for a PR review" do
-    workflow = project.workflows.create!(kind: :pr_review, github_pr_url: "https://github.com/org/repo/pull/7")
+    workflow = build_pr_review_workflow(project)
 
     expect(stage_types(workflow)).to eq(%w[pr_review])
   end
@@ -40,17 +40,17 @@ RSpec.describe Workflows::StageSeeder do
 
   describe "runbooks" do
     it "seeds nothing without a copy source" do
-      expect(project.workflows.create!(kind: :runbook).stages).to be_empty
+      expect(build_runbook_workflow(project).stages).to be_empty
     end
 
     it "copies every runbook attribute of the source's stages in order" do
-      source = project.workflows.create!(kind: :runbook)
-      source.stages.create!(stage_type: :runbook_step, name: "Announce", position: 2, run_mode: :message, channel: "#deploys",
-                            prompt: "Deploying {VERSION}", auto_advance: true, wait_for_workflow: "deploy.yml")
-      source.stages.create!(stage_type: :runbook_step, name: "Build", position: 1, run_mode: :agent, channel: nil,
-                            prompt: "Build it", auto_advance: false, wait_for_workflow: nil)
+      source = build_runbook_workflow(project)
+      build_runbook_stage(source, name: "Announce", position: 2, run_mode: :message, channel: "#deploys",
+                          prompt: "Deploying {VERSION}", auto_advance: true, wait_for_workflow: "deploy.yml")
+      build_runbook_stage(source, name: "Build", position: 1, run_mode: :agent, channel: nil,
+                          prompt: "Build it", auto_advance: false, wait_for_workflow: nil)
 
-      copy = project.workflows.create!(kind: :runbook, copy_stages_from_id: source.id)
+      copy = build_runbook_workflow(project, copy_stages_from_id: source.id)
 
       expect(copy.stages.map(&:stage_type).uniq).to eq(%w[runbook_step])
       expect(copy.stages.map { |s| s.slice(*described_class::COPIED_RUNBOOK_ATTRIBUTES) })

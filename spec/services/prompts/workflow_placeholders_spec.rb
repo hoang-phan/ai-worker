@@ -58,9 +58,9 @@ RSpec.describe Prompts::WorkflowPlaceholders do
   end
 
   describe "{PREV_OUTPUT}" do
-    let(:runbook) { build_task_workflow(project, kind: :runbook, task_description: "rb") }
-    let!(:first) { runbook.stages.create!(stage_type: :runbook_step, name: "First") }
-    let!(:second) { runbook.stages.create!(stage_type: :runbook_step, name: "Second") }
+    let(:runbook) { build_runbook_workflow(project) }
+    let!(:first) { build_runbook_stage(runbook, name: "First") }
+    let!(:second) { build_runbook_stage(runbook, name: "Second") }
 
     after { runbook.destroy }
 

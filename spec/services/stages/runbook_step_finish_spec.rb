@@ -4,11 +4,11 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
   let_tmpdir(:local_directory, "runbook-step-finish-spec")
   let(:project) { build_jira_project(local_directory: local_directory) }
   let(:workflow) do
-    build_jira_workflow(project, kind: :runbook, status: :implementing, **running_ai_run)
+    build_runbook_workflow(project, status: :implementing, **running_ai_run)
   end
   let(:stage) do
-    workflow.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1, run_mode: run_mode,
-                            channel: channel, auto_advance: auto_advance)
+    build_runbook_stage(workflow, name: "Deploy", position: 1, run_mode: run_mode,
+                        channel: channel, auto_advance: auto_advance)
   end
   let(:run_mode) { :agent }
   let(:channel) { nil }
@@ -61,7 +61,7 @@ RSpec.describe Stages::RunbookStepFinish, type: :service do
 
   context "when auto-advancing" do
     let(:auto_advance) { true }
-    let!(:next_stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Verify", position: 2) }
+    let!(:next_stage) { build_runbook_stage(workflow, name: "Verify", position: 2) }
 
     before { workflow.update!(current_stage_id: stage.id) }
 

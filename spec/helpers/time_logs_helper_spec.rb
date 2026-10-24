@@ -45,7 +45,7 @@ RSpec.describe TimeLogsHelper, type: :helper do
 
     describe "#workflow_logged_time_badge" do
       it "is nil for non-development workflows" do
-        runbook = project.workflows.create!(kind: :runbook)
+        runbook = build_runbook_workflow(project)
         expect(helper.workflow_logged_time_badge(runbook, 3600)).to be_nil
       end
 

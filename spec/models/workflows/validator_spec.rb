@@ -82,7 +82,7 @@ RSpec.describe Workflows::Validator do
   end
 
   describe "copy_stages_from_id" do
-    let!(:source) { jira_project.workflows.create!(kind: :runbook) }
+    let!(:source) { build_runbook_workflow(jira_project) }
 
     it "accepts a runbook of the same project" do
       expect(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: source.id)).to be_valid
@@ -93,7 +93,7 @@ RSpec.describe Workflows::Validator do
     end
 
     it "rejects a runbook of another project" do
-      other = build_jira_project(repo_full_name: "org/other", local_directory: local_directory).workflows.create!(kind: :runbook)
+      other = build_runbook_workflow(build_jira_project(repo_full_name: "org/other", local_directory: local_directory))
 
       expect(errors_for(jira_project.workflows.build(kind: :runbook, copy_stages_from_id: other.id))[:copy_stages_from_id])
         .to eq([ "must be a runbook workflow of this project" ])

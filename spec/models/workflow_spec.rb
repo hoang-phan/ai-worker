@@ -41,9 +41,9 @@ RSpec.describe Workflow, type: :model do
   end
 
   describe "stage output variables" do
-    let(:runbook) { project.workflows.create!(kind: :runbook, task_description: "rb", variables: { "CHANNEL" => "#ops", "PR_URL" => "typed" }) }
-    let!(:step) { runbook.stages.create!(stage_type: :runbook_step, name: "Step") }
-    let!(:other) { runbook.stages.create!(stage_type: :runbook_step, name: "Other") }
+    let(:runbook) { build_runbook_workflow(project, variables: { "CHANNEL" => "#ops", "PR_URL" => "typed" }) }
+    let!(:step) { build_runbook_stage(runbook, name: "Step") }
+    let!(:other) { build_runbook_stage(runbook, name: "Other") }
 
     after { runbook.destroy }
 

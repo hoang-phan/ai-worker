@@ -45,9 +45,9 @@ RSpec.describe WorkflowsHelper, type: :helper do
 
   describe "#stage_runnable?" do
     let(:project) { build_jira_project }
-    let(:workflow) { project.workflows.create!(kind: :runbook, status: :implementing) }
-    let(:stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Build", position: 1) }
-    let(:other_stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Ship", position: 2) }
+    let(:workflow) { build_runbook_workflow(project, status: :implementing) }
+    let(:stage) { build_runbook_stage(workflow, name: "Build", position: 1) }
+    let(:other_stage) { build_runbook_stage(workflow, name: "Ship", position: 2) }
 
     it "allows the current stage of an idle implementing runbook" do
       expect(helper.stage_runnable?(workflow, stage, stage)).to be(true)
@@ -117,9 +117,9 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
 
     it "lists only runbooks, newest first, as [label, id]" do
-      older = project.workflows.create!(kind: :runbook)
+      older = build_runbook_workflow(project)
       build_jira_workflow(project)
-      newer = project.workflows.create!(kind: :runbook, status: :implementing)
+      newer = build_runbook_workflow(project, status: :implementing)
 
       expect(helper.runbook_copy_source_options(project)).to eq([
         [ "##{newer.id} #{newer.label} (implementing)", newer.id ],
@@ -128,7 +128,7 @@ RSpec.describe WorkflowsHelper, type: :helper do
     end
 
     it "ignores other projects' runbooks" do
-      build_jira_project.workflows.create!(kind: :runbook)
+      build_runbook_workflow(build_jira_project)
       expect(helper.runbook_copy_source_options(project)).to eq([])
     end
   end
@@ -143,7 +143,7 @@ RSpec.describe WorkflowsHelper, type: :helper do
       end
 
       it "badges runbooks" do
-        runbook = project.workflows.create!(kind: :runbook)
+        runbook = build_runbook_workflow(project)
         expect(helper.workflow_kind_badges(runbook)).to eq('<span class="badge badge-neutral">runbook</span>')
       end
 

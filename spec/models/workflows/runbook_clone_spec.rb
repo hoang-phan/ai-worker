@@ -4,9 +4,9 @@ RSpec.describe Workflows::RunbookClone do
   let_tmpdir(:local_directory, "runbook-clone-spec")
   let(:project) { build_jira_project(repo_full_name: "org/repo", local_directory: local_directory) }
   let!(:source) do
-    project.workflows.create!(kind: :runbook, position: 4, variables: { "CHANNEL" => "#ops", "VERSION" => "1.0" }).tap do |runbook|
-      runbook.stages.create!(stage_type: :runbook_step, name: "Build", position: 1, prompt: "Build it")
-      runbook.stages.create!(stage_type: :runbook_step, name: "Ship", position: 2, prompt: "Ship it")
+    build_runbook_workflow(project, position: 4, variables: { "CHANNEL" => "#ops", "VERSION" => "1.0" }).tap do |runbook|
+      build_runbook_stage(runbook, name: "Build", position: 1, prompt: "Build it")
+      build_runbook_stage(runbook, name: "Ship", position: 2, prompt: "Ship it")
     end
   end
 

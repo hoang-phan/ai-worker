@@ -24,15 +24,15 @@ RSpec.describe Workflows::Transitions do
     end
 
     it "starts a runbook at its first stage" do
-      runbook = project.workflows.create!(kind: :runbook)
-      first = runbook.stages.create!(stage_type: :runbook_step, name: "One", position: 1)
+      runbook = build_runbook_workflow(project)
+      first = build_runbook_stage(runbook, name: "One", position: 1)
       expect(Workflows::Transitions.new(runbook).start!).to be true
       expect(runbook.reload).to be_implementing
       expect(runbook.current_stage_id).to eq(first.id)
     end
 
     it "finishes a runbook without stages" do
-      runbook = project.workflows.create!(kind: :runbook)
+      runbook = build_runbook_workflow(project)
       expect(Workflows::Transitions.new(runbook).start!).to be true
       expect(runbook.reload).to be_done
     end
@@ -45,7 +45,7 @@ RSpec.describe Workflows::Transitions do
   end
 
   describe "#request_stage_run!" do
-    let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
+    let(:runbook) { build_runbook_workflow(project, status: :implementing) }
 
     it "flags auto_run on an idle implementing runbook" do
       expect(transitions_for(runbook)).to be_can_run_stage
@@ -74,7 +74,7 @@ RSpec.describe Workflows::Transitions do
 
   describe "#can_advance?" do
     it "is true only for a runbook awaiting Next" do
-      runbook = project.workflows.create!(kind: :runbook, status: :implementing)
+      runbook = build_runbook_workflow(project, status: :implementing)
       expect(transitions_for(runbook)).not_to be_can_advance
       runbook.update!(awaiting_next: true)
       expect(transitions_for(runbook)).to be_can_advance
@@ -103,8 +103,8 @@ RSpec.describe Workflows::Transitions do
     end
 
     it "updates a runbook and logs one 'resumed' StageRun on its current stage" do
-      runbook = project.workflows.create!(kind: :runbook)
-      step = runbook.stages.create!(stage_type: :runbook_step, name: "One", position: 1)
+      runbook = build_runbook_workflow(project)
+      step = build_runbook_stage(runbook, name: "One", position: 1)
       runbook.update!(status: :errored, current_stage_id: step.id)
       expect { expect(Workflows::Transitions.new(runbook).resume!).to be true }.to change(StageRun, :count).by(1)
       expect(runbook.reload).to be_implementing
@@ -134,7 +134,7 @@ RSpec.describe Workflows::Transitions do
     end
 
     it "refuses a runbook" do
-      runbook = project.workflows.create!(kind: :runbook, status: :done, github_pr_url: pr_url)
+      runbook = build_runbook_workflow(project, status: :done, github_pr_url: pr_url)
       expect(Workflows::Transitions.new(runbook).rollback_to_review!).to be false
       expect(runbook.reload).to be_done
     end

@@ -6,7 +6,7 @@ RSpec.describe "Stages", type: :request do
   let(:development_workflow) do
     build_jira_workflow(project, jira_ticket: "STG-1")
   end
-  let(:runbook) { project.workflows.create!(kind: :runbook) }
+  let(:runbook) { build_runbook_workflow(project) }
 
   describe "runbook-only stage lists" do
     it "redirects new, create, and destroy on a non-runbook workflow" do
@@ -104,7 +104,7 @@ RSpec.describe "Stages", type: :request do
   end
 
   describe "DELETE destroy" do
-    let!(:current_stage) { runbook.stages.create!(stage_type: :runbook_step, name: "Current", position: 1) }
+    let!(:current_stage) { build_runbook_stage(runbook, name: "Current", position: 1) }
 
     it "refuses the current stage of a started runbook" do
       runbook.update!(status: :implementing, current_stage_id: current_stage.id)
@@ -124,14 +124,14 @@ RSpec.describe "Stages", type: :request do
         delete project_workflow_stage_path(project, runbook, current_stage)
       end.to change(Stage, :count).by(-1)
 
-      other_stage = runbook.stages.create!(stage_type: :runbook_step, name: "Other", position: 2)
+      other_stage = build_runbook_stage(runbook, name: "Other", position: 2)
       runbook.update!(status: :implementing, current_stage_id: other_stage.id)
 
       expect do
         delete project_workflow_stage_path(project, runbook, other_stage)
       end.not_to change(Stage, :count)
 
-      non_current_stage = runbook.stages.create!(stage_type: :runbook_step, name: "Non-current", position: 3)
+      non_current_stage = build_runbook_stage(runbook, name: "Non-current", position: 3)
       expect do
         delete project_workflow_stage_path(project, runbook, non_current_stage)
       end.to change(Stage, :count).by(-1)

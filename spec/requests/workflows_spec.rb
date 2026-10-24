@@ -34,7 +34,7 @@ RSpec.describe "Workflows", type: :request, active_job_test_adapter: true do
     end
 
     it "renders the runbook fields with a copy select when a runbook exists" do
-      source = project.workflows.create!(kind: :runbook)
+      source = build_runbook_workflow(project)
       get new_project_workflow_path(project, kind: "runbook")
       expect(response.body).to include("workflow[variables_text]", "workflow[copy_stages_from_id]", "##{source.id} ")
       expect(response.body).not_to include("workflow[images][]")
@@ -58,7 +58,7 @@ RSpec.describe "Workflows", type: :request, active_job_test_adapter: true do
     end
 
     describe "state-dependent buttons" do
-      let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
+      let(:runbook) { build_runbook_workflow(project, status: :implementing) }
 
       it "shows Next only for a runbook awaiting Next" do
         get project_workflow_path(project, runbook)

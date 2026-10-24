@@ -45,7 +45,7 @@ RSpec.describe Slack::ReviewImporter do
   end
 
   it "skips already-imported pairs without calling GitHub, but imports the same PR from another message" do
-    build_jira_workflow(project, kind: :pr_review, slack_url: slack_url, github_pr_url: pr_url, position: 1)
+    build_pr_review_workflow(project, slack_url: slack_url, github_pr_url: pr_url, position: 1)
     stub_pr(pr_url)
 
     importer.import([ mention ], result)

@@ -18,8 +18,8 @@ RSpec.describe "WorkflowRunbooks", type: :request, active_job_test_adapter: true
     end
 
     it "clones a runbook and opens the copy for editing" do
-      runbook = project.workflows.create!(kind: :runbook)
-      runbook.stages.create!(stage_type: :runbook_step, name: "Build", position: 1)
+      runbook = build_runbook_workflow(project)
+      build_runbook_stage(runbook, name: "Build", position: 1)
 
       expect { post clone_project_workflow_path(project, runbook) }.to change { project.workflows.count }.by(1)
 
@@ -30,7 +30,7 @@ RSpec.describe "WorkflowRunbooks", type: :request, active_job_test_adapter: true
   end
 
   describe "POST run_stage" do
-    let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
+    let(:runbook) { build_runbook_workflow(project, status: :implementing) }
 
     it "flags auto_run and enqueues the scheduler job" do
       expect { post run_stage_project_workflow_path(project, runbook) }.to have_enqueued_job(WorkflowSchedulerJob).with(runbook.id)

@@ -7,8 +7,8 @@ RSpec.describe Stage, type: :model do
   let(:stage) { workflow.stages.create!(stage_type: :pr_check) }
 
   describe "#removable?" do
-    let(:runbook) { project.workflows.create!(kind: :runbook, status: :implementing) }
-    let(:current_stage) { runbook.stages.create!(stage_type: :runbook_step, name: "Deploy", position: 1) }
+    let(:runbook) { build_runbook_workflow(project, status: :implementing) }
+    let(:current_stage) { build_runbook_stage(runbook, name: "Deploy", position: 1) }
 
     it "refuses the current stage after a runbook has started, but allows it while pending or when it is not current" do
       runbook.update!(current_stage_id: current_stage.id)
