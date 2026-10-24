@@ -32,7 +32,7 @@ module Brainstorm
     attr_reader :project, :in_flight
 
     def known_keys
-      in_flight.map { |workflow| Workflows::SummaryKey.call(workflow.brief) }.to_set
+      Workflows::SummaryKey.set(in_flight)
     end
 
     # Only created workflows count towards the maximum; skipped proposals don't.
@@ -54,19 +54,9 @@ module Brainstorm
     end
 
     def build(proposal)
-      project.workflows.new(
-        summary: proposal["summary"], task_description: proposal["task"], skills: skills_for(proposal),
-        status: project.brainstorm_auto_start? ? :implementing : :pending,
-        position: project.next_workflow_position
+      Workflows::ProposalWorkflow.new(project).build(
+        proposal, status: project.brainstorm_auto_start? ? :implementing : :pending, merge_skills: true
       )
-    end
-
-    # Default skills first, then the proposal's own, deduped; the defaults alone when the proposal names none.
-    def skills_for(proposal)
-      extra = proposal["skills"].to_s
-      return project.default_skills if extra.blank?
-
-      [ project.default_skills, extra ].flat_map { |list| list.to_s.split(",").map(&:strip) }.reject(&:blank?).uniq.join(", ")
     end
   end
 end

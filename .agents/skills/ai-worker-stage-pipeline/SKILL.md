@@ -23,8 +23,8 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 - `app/services/stages/pr_check_finish.rb` — requests review after a fix, chooses whether local testing must rerun, completes the run, best-effort records agent lessons, and notifies reviewers when no retest is needed.
 - `app/services/stages/review_handoff.rb` — best-effort reviewer notification and auto-merge work; catches notification/GitHub errors and logs them instead of failing a completed stage.
 - `app/services/stages/merge_check.rb` — on idle scheduler ticks, marks a merged tracked PR workflow as `merged`; logs GitHub lookup failures without raising.
-- `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups (via `follow_up_importer.rb`, rows pre-cleaned by `AiCli::Output#follow_ups` through `Workflows::ProposalNormalizer`; the importer owns the cap of 2, dedupe via `Workflows::SummaryKey`, and the pending workflow build) and pushes its commits, logging each outcome.
-- `app/services/stages/follow_up_importer.rb` — creates pending development workflows from FOLLOW_UPS proposals.
+- `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups (via `follow_up_importer.rb`, rows pre-cleaned by `AiCli::Output#follow_ups` through `Workflows::ProposalNormalizer`; the importer owns the cap of 2, dedupe via `Workflows::SummaryKey`, and the pending workflow build through `Workflows::ProposalWorkflow` without merging proposal skills) and pushes its commits, logging each outcome.
+- `app/services/stages/follow_up_importer.rb` — creates pending development workflows from FOLLOW_UPS proposals (built by `Workflows::ProposalWorkflow`, `merge_skills: false`).
 - `app/services/stages/jira_update_finish.rb` — parses `JIRA_RESULT` and completes `jira_update`, optionally scheduling delayed UAT.
 
 ### Owned elsewhere

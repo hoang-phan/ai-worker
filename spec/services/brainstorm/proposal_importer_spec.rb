@@ -30,18 +30,6 @@ RSpec.describe Brainstorm::ProposalImporter do
     expect(workflows.map(&:position)).to eq([ 1, 2 ])
   end
 
-  it "merges the proposal's skills after the default skills, deduped" do
-    importer.call([ proposal("Skilled #{suffix}").merge("skills" => "ai-worker-testing, ruby") ])
-
-    expect(project.workflows.last.skills).to eq("ruby, ai-worker-testing")
-  end
-
-  it "falls back to default skills when the proposal has none" do
-    importer.call([ proposal("Plain #{suffix}").merge("skills" => nil) ])
-
-    expect(project.workflows.last.skills).to eq("ruby")
-  end
-
   it "creates implementing workflows when auto start is on" do
     project.update!(brainstorm_auto_start: true)
 

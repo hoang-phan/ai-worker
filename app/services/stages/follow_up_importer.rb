@@ -10,7 +10,7 @@ module Stages
     end
 
     def call(proposals)
-      known = project.workflows.where.not(status: :done).map { |other| Workflows::SummaryKey.call(other.brief) }.to_set
+      known = Workflows::SummaryKey.set(project.workflows.where.not(status: :done))
       created = []
       proposals.each do |proposal|
         break if created.size >= MAX_FOLLOW_UPS
@@ -26,8 +26,7 @@ module Stages
     attr_reader :project
 
     def build(proposal)
-      project.workflows.new(summary: proposal["summary"], task_description: proposal["task"], status: :pending,
-                            kind: :development, skills: project.default_skills, position: project.next_workflow_position)
+      Workflows::ProposalWorkflow.new(project).build(proposal, status: :pending, merge_skills: false)
     end
   end
 end

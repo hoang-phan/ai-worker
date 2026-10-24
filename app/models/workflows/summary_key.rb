@@ -4,5 +4,9 @@ module Workflows
     def self.call(text)
       text.to_s.downcase.gsub(/[^a-z0-9]+/, " ").strip
     end
+
+    def self.set(workflows)
+      workflows.map { |workflow| call(workflow.brief) }.to_set
+    end
   end
 end
