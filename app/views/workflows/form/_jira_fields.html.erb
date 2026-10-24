@@ -17,7 +17,7 @@
 
 <% if project.ci_loop_ready? %>
   <%= render "shared/skills_field", f: f, attribute: :pr_skills, label: "PR skills (comma-separated)", rows: 2, project: project,
-                                    hint: "Only the PR stage uses these (<code>{PR_SKILLS}</code>).".html_safe %>
+                                    hint: safe_join(["Only the PR stage uses these (", tag.code("{PR_SKILLS}"), ")."]) %>
 <% end %>
 
 <div class="field">

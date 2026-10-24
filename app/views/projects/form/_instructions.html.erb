@@ -1,0 +1,17 @@
+<div class="field">
+  <%= f.label :ci_instructions, "Local CI instructions (optional)" %>
+  <%= f.text_area :ci_instructions, rows: 6, placeholder: "e.g. Run pnpm type-check and pnpm test before every push; only push when both pass." %>
+  <p class="field-hint">Substituted for <code>{CI_INSTRUCTIONS}</code> in the Implement and Review Fix templates, so each project can name its own pre-push checks. Leave blank if the repo has none.</p>
+</div>
+
+<div class="field">
+  <%= f.label :test_instructions, "Test instructions (optional)" %>
+  <%= f.text_area :test_instructions, rows: 6, placeholder: "e.g. Log in as the seeded admin, create a job from the New Job page, never delete existing records." %>
+  <p class="field-hint">Shared by UAT and local testing by the agent: how to log in, which data to prepare, a guide to read, things to avoid. Put anything that only works on UAT (e.g. GitHub Actions wrappers for test data) in the UAT-only box below.</p>
+</div>
+
+<div class="field">
+  <%= f.label :agent_lessons, "Agent lessons (optional)" %>
+  <%= f.text_area :agent_lessons, rows: 6 %>
+  <p class="field-hint">One rule per line. Review-fix runs add the rules they learn (newest 40 kept); implementation and task runs start with them. Remove the ones that are wrong or outdated.</p>
+</div>

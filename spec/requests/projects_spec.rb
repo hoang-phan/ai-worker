@@ -57,6 +57,10 @@ RSpec.describe "Projects", type: :request do
       %w[project_default_skills project_default_pr_skills].each do |id|
         expect(document.at_css(%([data-controller~="skill-insert"].field > ##{id}[data-skill-insert-target="input"]))).to be_present
       end
+      pr_skills_field = document.at_css(%([data-controller~="skill-insert"].field:has(> #project_default_pr_skills)))
+      pr_skills_token = pr_skills_field.at_css(".field-hint code")
+      expect(pr_skills_token).to be_present
+      expect(pr_skills_token.text).to eq("{PR_SKILLS}")
       expect(document.css(".skill-chip")).to be_empty
 
       FileUtils.mkdir_p(File.join(local_directory, ".agents", "skills", "spec-skill"))

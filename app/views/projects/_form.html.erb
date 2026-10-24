@@ -2,59 +2,8 @@
   <%= form_with model: project do |f| %>
     <%= render "projects/form/errors", project: project %>
 
-    <div class="field">
-      <%= f.label :name %>
-      <%= f.text_field :name %>
-    </div>
-
-    <div class="field">
-      <%= f.label :kind %>
-      <%= f.select :kind, Project.kinds.keys.map { |k| [k.titleize, k] } %>
-      <p class="field-hint">Jira: GitHub-backed, driven by Jira tickets, goes through branch/PR/review stages. Personal: local-only, each workflow is one task that gets implemented and committed directly, no PR. Deployments/releases are runbook <em>workflows</em> on any project, not a project kind.</p>
-    </div>
-
-    <div class="field">
-      <%= f.label :local_directory, "Local directory (absolute path, on main)" %>
-      <%= f.text_field :local_directory %>
-    </div>
-
-    <div class="field">
-      <%= f.label :repo_full_name, "GitHub repo (org/repo)" %>
-      <%= f.text_field :repo_full_name %>
-    </div>
-
-    <div class="field">
-      <%= f.label :default_reviewers, "Default GitHub reviewers (usernames, comma-separated)" %>
-      <%= f.text_field :default_reviewers %>
-      <p class="field-hint">Jira projects only. Prefilled on new workflows; override per workflow.</p>
-    </div>
-
-    <%= render "shared/skills_field", f: f, attribute: :default_skills, label: "Default skills (comma-separated)", rows: 3,
-                                      project: project, show_hints: project.persisted?,
-                                      hint: "Jira projects only. Prefilled on new workflows; override per workflow." %>
-
-    <%= render "shared/skills_field", f: f, attribute: :default_pr_skills, label: "Default PR skills (comma-separated)", rows: 2,
-                                      project: project, show_hints: project.persisted?,
-                                      hint: "Check / verify loop flow only. Used as <code>{PR_SKILLS}</code> in the PR stage's prompt only, e.g. a PR description skill; <code>{SKILLS}</code> stays for implementation. Prefilled on new workflows; override per workflow.".html_safe %>
-
-    <div class="field">
-      <%= f.label :ci_instructions, "Local CI instructions (optional)" %>
-      <%= f.text_area :ci_instructions, rows: 6, placeholder: "e.g. Run pnpm type-check and pnpm test before every push; only push when both pass." %>
-      <p class="field-hint">Substituted for <code>{CI_INSTRUCTIONS}</code> in the Implement and Review Fix templates, so each project can name its own pre-push checks. Leave blank if the repo has none.</p>
-    </div>
-
-    <div class="field">
-      <%= f.label :test_instructions, "Test instructions (optional)" %>
-      <%= f.text_area :test_instructions, rows: 6, placeholder: "e.g. Log in as the seeded admin, create a job from the New Job page, never delete existing records." %>
-      <p class="field-hint">Shared by UAT and local testing by the agent: how to log in, which data to prepare, a guide to read, things to avoid. Put anything that only works on UAT (e.g. GitHub Actions wrappers for test data) in the UAT-only box below.</p>
-    </div>
-
-    <div class="field">
-      <%= f.label :agent_lessons, "Agent lessons (optional)" %>
-      <%= f.text_area :agent_lessons, rows: 6 %>
-      <p class="field-hint">One rule per line. Review-fix runs add the rules they learn (newest 40 kept); implementation and task runs start with them. Remove the ones that are wrong or outdated.</p>
-    </div>
-
+    <%= render "projects/form/general", f: f, project: project %>
+    <%= render "projects/form/instructions", f: f %>
     <%= render "projects/form/jira", f: f %>
     <%= render "projects/form/uat_test", f: f %>
     <%= render "projects/form/ci_loop", f: f %>

@@ -14,6 +14,8 @@ Scope: project CRUD/forms, prompt templates, settings, sync CRUD/run screens, sh
 - `app/views/projects/_form.html.erb` — shared project form shell.
 - `app/views/projects/new.html.erb` — new-project wrapper.
 - `app/views/projects/edit.html.erb` — edit-project wrapper.
+- `app/views/projects/form/_general.html.erb` — project identity, repository, reviewer, and default-skills fields.
+- `app/views/projects/form/_instructions.html.erb` — CI, test, and agent-lesson instructions.
 - `app/views/projects/form/_jira.html.erb` — Jira project fields.
 - `app/views/projects/form/_uat_test.html.erb` — UAT fields.
 - `app/views/projects/form/_ci_loop.html.erb` — CI-loop fields.
