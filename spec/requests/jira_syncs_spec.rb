@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "JiraSyncs", type: :request do
-  let_tmpdir(:local_directory, "jira-syncs-request-spec")
-  let(:project) { build_jira_project(local_directory: local_directory) }
+  let_jira_project("jira-syncs-request-spec")
   let(:jira_sync) { project.jira_syncs.create!(jira_project: "APP", parent_ticket: "APP-1") }
 
   describe "GET new and edit" do

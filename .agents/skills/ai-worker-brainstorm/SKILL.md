@@ -45,7 +45,7 @@ Per project under `tmp/brainstorms/<project id>/` (`ROOT` joined with the id):
 
 ## Spec recipe
 
-- `spec/services/brainstorm/planner_spec.rb`: tmp `root:` (`Dir.mktmpdir`), an `instance_double(Brainstorm::RunLifecycle, running?:, last_started_at:, start:, poll:, result_path:)` as `lifecycle:`, and a `double("clock", current: at)` for `record_start!`.
+- `spec/services/brainstorm/planner_spec.rb`: tmp `root:` via `make_tmpdir`, an `instance_double(Brainstorm::RunLifecycle, running?:, last_started_at:, start:, poll:, result_path:)` as `lifecycle:`, and a `double("clock", current: at)` for `record_start!`.
 - `spec/services/brainstorm/run_lifecycle_spec.rb`: tmp dir, `runner: instance_double(AiCli::Runner.singleton_class)` (or a fake `run:`), hand-written `pid`, `agent.log` and `result.json`; cover the single retry on `aborted_streaming`, no second retry, and the `FetchError` message.
 - `run_outcome_spec.rb` writes `agent.log` lines; `prompt_spec.rb`, `proposal_normalizer_spec.rb` feed plain values/rows; `proposal_importer_spec.rb` covers queue gate, cap, dedupe, auto-start status and validation failures.
 - `spec/jobs/brainstorm_job_spec.rb`: stub `AgentRuns::SyncCycle.call`; assert it selects only enabled personal projects and calls it once per project with `Brainstorm::CycleSource`, the exact prefix, and `[ Brainstorm::FetchError, AiCli::CommandError ]`. Retain at most one thin real-cycle example for expected-error persistence and continuation; keep queue/blocker/start ordering, summaries, and `brainstorm_last_run_at` in the cycle-source/planner/`AgentRuns` specs. `spec/requests/project_brainstorms_spec.rb` covers the button.
