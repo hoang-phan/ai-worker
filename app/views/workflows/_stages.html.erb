@@ -31,11 +31,11 @@
           <td><%= stage_row_detail(workflow, stage) %></td>
           <td>
             <% if stage_runnable?(workflow, stage, current_stage) %>
-              <%= button_to "Run", run_stage_project_workflow_path(project, workflow), method: :post, class: "btn btn-primary", form: { style: "display:inline" } %>
+              <%= inline_button_to "Run", run_stage_project_workflow_path(project, workflow), method: :post, class: "btn btn-primary" %>
             <% end %>
             <%= link_to "Edit", edit_project_workflow_stage_path(project, workflow, stage), class: "btn btn-secondary" %>
             <% if workflow.runbook? %>
-              <%= link_to "Remove", project_workflow_stage_path(project, workflow, stage), class: "btn btn-secondary link-danger", data: { turbo_method: :delete, turbo_confirm: "Remove this stage?" } %>
+              <%= delete_link_to "Remove", project_workflow_stage_path(project, workflow, stage), class: "btn btn-secondary link-danger", confirm: "Remove this stage?" %>
             <% end %>
           </td>
         </tr>

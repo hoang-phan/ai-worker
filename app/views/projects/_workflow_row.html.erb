@@ -4,8 +4,8 @@
     <% end %>
     <td class="numeric">
       <%= workflow.position %>
-      <%= button_to "↑", move_project_workflow_path(project, workflow, direction: "up", status: status_filter), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == first, form: { style: "display:inline" } %>
-      <%= button_to "↓", move_project_workflow_path(project, workflow, direction: "down", status: status_filter), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == last, form: { style: "display:inline" } %>
+      <%= inline_button_to "↑", move_project_workflow_path(project, workflow, direction: "up", status: status_filter), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == first %>
+      <%= inline_button_to "↓", move_project_workflow_path(project, workflow, direction: "down", status: status_filter), method: :post, class: "link-action", title: "Move down (lower priority)", disabled: workflow == last %>
     </td>
     <td><%= link_to(truncate(workflow.label, length: 60), project_workflow_path(project, workflow)) %><%= workflow_kind_badges(workflow) %></td>
     <% if project.jira? %>
@@ -27,7 +27,7 @@
     <% end %>
     <td class="actions-cell">
       <% if workflow.pending? %>
-        <%= button_to "Start", start_project_workflow_path(project, workflow, status: status_filter), method: :post, class: "link-action", form: { style: "display:inline" } %>
+        <%= inline_button_to "Start", start_project_workflow_path(project, workflow, status: status_filter), method: :post, class: "link-action" %>
       <% end %>
       <%= link_to edit_project_workflow_path(project, workflow), class: "icon-button", aria: { label: "Edit #{workflow.label}" }, title: "Edit workflow" do %>
         <%= icon_svg(:edit) %>

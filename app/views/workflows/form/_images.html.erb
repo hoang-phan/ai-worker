@@ -5,7 +5,7 @@
     <% workflow.image_paths.each do |path| %>
       <p>
         <%= File.basename(path) %>
-        <%= link_to "Remove", image_project_workflow_path(project, workflow, name: File.basename(path)), class: "link-danger", data: { turbo_method: :delete } %>
+        <%= delete_link_to "Remove", image_project_workflow_path(project, workflow, name: File.basename(path)), class: "link-danger" %>
       </p>
     <% end %>
   <% end %>

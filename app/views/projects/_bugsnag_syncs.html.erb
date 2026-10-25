@@ -26,9 +26,9 @@
           <td class="text-muted"><%= time_ago_or_never(sync.last_synced_at) %></td>
           <td class="text-muted"><%= sync.last_result %></td>
           <td>
-            <%= button_to "Run now", run_project_bugsnag_sync_path(project, sync), class: "link-action", form: { style: "display:inline" } %>
+            <%= inline_button_to "Run now", run_project_bugsnag_sync_path(project, sync), class: "link-action" %>
             <%= link_to "Edit", edit_project_bugsnag_sync_path(project, sync), class: "link-action" %>
-            <%= link_to "Delete", project_bugsnag_sync_path(project, sync), class: "link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete this sync?" } %>
+            <%= delete_link_to "Delete", project_bugsnag_sync_path(project, sync), class: "link-danger", confirm: "Delete this sync?" %>
           </td>
         </tr>
       <% end %>

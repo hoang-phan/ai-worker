@@ -24,7 +24,7 @@
           <td>
             <div class="actions-cell">
               <%= link_to "Edit", edit_project_path(project), class: "link-action" %>
-              <%= link_to "Delete", project, class: "link-action link-danger", data: { turbo_method: :delete, turbo_confirm: "Delete #{project.name} and all its workflows?" } %>
+              <%= delete_link_to "Delete", project, class: "link-action link-danger", confirm: "Delete #{project.name} and all its workflows?" %>
             </div>
           </td>
         </tr>
