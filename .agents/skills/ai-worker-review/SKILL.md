@@ -36,7 +36,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb`, `defaults/jira_update.md`, its listed section files, `prompt_template.rb`, or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
    | `app/services/stage_executor.rb`, or remaining generic `app/services/stages/**` and their specs | `ai-worker-stage-pipeline` |
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |
-   | remaining ProjectsController CRUD, prompt templates, settings and rotations, shared UI, remaining Stimulus controllers, or routes | `ai-worker-ui` |
+   | remaining ProjectsController CRUD, prompt templates, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, or routes | `ai-worker-ui` |
    | `app/jobs/application_job.rb`, `config/initializers/sidekiq.rb`, shared subprocess/error conventions, or a new unowned service namespace/job | `ai-worker-orchestration` |
    | any `spec/**` not already matched above | `ai-worker-testing` |
 

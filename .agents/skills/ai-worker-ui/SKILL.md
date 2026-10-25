@@ -1,11 +1,11 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, prompt templates, settings and rotations, shared UI, remaining Stimulus controllers, and routes.
+description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, prompt templates, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, and routes.
 ---
 
 # ai-worker-ui
 
-Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared UI, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
+Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared UI, stylesheets under `app/assets/stylesheets/`, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
 
 ## File map
 
@@ -28,6 +28,17 @@ Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared
 - `app/views/layouts/application.html.erb` — navigation and flashes.
 - `app/views/layouts/mailer.html.erb` — mailer HTML layout.
 - `app/views/layouts/mailer.text.erb` — mailer text layout.
+- `app/assets/stylesheets/01_base.css` — design tokens (`:root`) and global resets; new tokens go here.
+- `app/assets/stylesheets/02_navigation.css` — top navigation / site header.
+- `app/assets/stylesheets/03_page_layout.css` — page shell and page header.
+- `app/assets/stylesheets/04_flash.css` — flash notice/alert banners.
+- `app/assets/stylesheets/05_cards.css` — card surfaces.
+- `app/assets/stylesheets/06_tables.css` — tables, empty states, icon buttons.
+- `app/assets/stylesheets/07_badges.css` — status badges.
+- `app/assets/stylesheets/08_buttons.css` — buttons and action links.
+- `app/assets/stylesheets/09_forms.css` — form fields, submits, error summary.
+- `app/assets/stylesheets/10_misc.css` — code blocks, chips, muted text, batch bar.
+- Stylesheet convention: Propshaft `:app` loads CSS alphabetically — keep the numeric prefixes so cascade order stays base → navigation → … → misc. Put new rules in the matching area file; design tokens live in `01_base.css`. Do not add `@import` (would double-load with `:app`).
 - `app/views/shared/_skill_hints.html.erb` — clickable project skill hints.
 - `app/views/shared/_error_summary.html.erb` — form validation errors.
 - `app/views/shared/_skills_field.html.erb` — reusable skill textarea and chips.

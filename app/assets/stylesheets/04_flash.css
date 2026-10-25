@@ -1,0 +1,21 @@
+/* Flash messages */
+
+.flash {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.flash-notice {
+  background: #e8f5e9;
+  color: #2a6a30;
+  border: 1px solid #c7e6c9;
+}
+
+.flash-alert {
+  background: #fdecea;
+  color: #9a2f2f;
+  border: 1px solid #f7c9c3;
+}
+

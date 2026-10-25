@@ -8,7 +8,8 @@ RSpec.describe "skill file maps" do
     "app/views/**/*.erb",
     "app/views/pwa/*",
     "app/javascript/controllers/*_controller.js",
-    "app/services/prompts/defaults/*.md"
+    "app/services/prompts/defaults/*.md",
+    "app/assets/stylesheets/*.css"
   ].freeze
   EXEMPT_FILES = %w[
     app/models/application_record.rb
@@ -63,7 +64,7 @@ RSpec.describe "skill file maps" do
     expect(unmapped).to be_empty, "Unmapped app files:\n#{unmapped.join("\n")}"
   end
 
-  it "maps every production view, Stimulus controller, and default prompt to a skill" do
+  it "maps every production view, Stimulus controller, default prompt, and stylesheet to a skill" do
     text = skill_text
     exempt_files = %w[
       app/javascript/application.js

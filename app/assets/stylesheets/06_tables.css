@@ -1,0 +1,86 @@
+/* Tables */
+
+.table-wrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+thead th {
+  background: #fafbfc;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-border);
+}
+
+tbody tr:hover {
+  background: #fafbfc;
+}
+
+td.numeric {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.workflow-table th,
+.workflow-table td {
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.icon-button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.empty-state {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
