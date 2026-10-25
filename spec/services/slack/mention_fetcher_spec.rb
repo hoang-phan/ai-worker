@@ -1,46 +1,26 @@
 require "rails_helper"
 
 RSpec.describe Slack::MentionFetcher do
-  # Records the keyword args `start` receives and yields canned rows to `poll`.
-  let(:fake_run_class) do
-    Class.new do
-      attr_reader :started
-      attr_accessor :last_started_at, :rows, :result_path
-
-      def start(**kwargs)
-        @started = kwargs
-      end
-
-      def running?
-        false
-      end
-
-      def poll
-        yield rows
-      end
-    end
-  end
-  let(:run) { fake_run_class.new }
+  let(:run) { FakeDetachedRun.new }
   let(:project) { double(id: 1, slack_mention: "@me", repo_full_name: "acme/app") }
   let(:root) { Pathname("/tmp/slack-root") }
   let(:fetcher) { described_class.new(project, root: root, run: run) }
 
   it "needs slack_url and at least one matching PR URL" do
-    Dir.mktmpdir do |tmp|
-      fetcher = described_class.new(project, root: Pathname(tmp))
-      FileUtils.mkdir_p(Pathname(tmp).join("1"))
-      Pathname(tmp).join("1", "pid").write("1")
-      pr = "https://github.com/acme/app/pull/7"
-      Pathname(tmp).join("1", "mentions.json").write([
-        { slack_url: "https://x.slack.com/archives/C1/p1", pr_urls: [ pr, pr, "https://example.com/nope" ] },
-        { slack_url: "", pr_urls: [ pr ] },
-        { slack_url: "https://x.slack.com/archives/C1/p2", pr_urls: [ "https://example.com/nope" ] },
-        "junk"
-      ].to_json)
-      allow(AiCli::Runner).to receive(:poll).and_return([ :completed, nil ])
+    tmp = make_tmpdir("slack-fetcher-spec")
+    fetcher = described_class.new(project, root: Pathname(tmp))
+    FileUtils.mkdir_p(Pathname(tmp).join("1"))
+    Pathname(tmp).join("1", "pid").write("1")
+    pr = "https://github.com/acme/app/pull/7"
+    Pathname(tmp).join("1", "mentions.json").write([
+      { slack_url: "https://x.slack.com/archives/C1/p1", pr_urls: [ pr, pr, "https://example.com/nope" ] },
+      { slack_url: "", pr_urls: [ pr ] },
+      { slack_url: "https://x.slack.com/archives/C1/p2", pr_urls: [ "https://example.com/nope" ] },
+      "junk"
+    ].to_json)
+    allow(AiCli::Runner).to receive(:poll).and_return([ :completed, nil ])
 
-      expect(fetcher.poll).to eq([ { "slack_url" => "https://x.slack.com/archives/C1/p1", "pr_urls" => [ pr ] } ])
-    end
+    expect(fetcher.poll).to eq([ { "slack_url" => "https://x.slack.com/archives/C1/p1", "pr_urls" => [ pr ] } ])
   end
 
   describe "#start" do
@@ -90,12 +70,5 @@ RSpec.describe Slack::MentionFetcher do
     end
   end
 
-  it "delegates running? and last_started_at to the run" do
-    time = Time.utc(2026, 1, 1)
-    run.last_started_at = time
-    allow(run).to receive(:running?).and_return(false)
-
-    expect(fetcher.running?).to be(false)
-    expect(fetcher.last_started_at).to eq(time)
-  end
+  it_behaves_like "a detached-run fetcher"
 end
