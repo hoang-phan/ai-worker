@@ -1,5 +1,4 @@
 require "rails_helper"
-require "tmpdir"
 
 RSpec.describe AiCli::Command do
   def build(agent: "claude", prompt: "do it", **opts)
@@ -35,23 +34,22 @@ RSpec.describe AiCli::Command do
 
   describe "codex" do
     it "places mcp_servers overrides before the prompt" do
-      Dir.mktmpdir do |dir|
-        path = File.join(dir, "mcp.json")
-        File.write(path, JSON.generate(mcpServers: { "browser" => { "command" => "npx", "args" => [ "-y", "pw" ], "env" => { "A" => "1" } } }))
-        cmd = build(agent: "codex", mcp_config: path)
+      dir = make_tmpdir("command-spec")
+      path = File.join(dir, "mcp.json")
+      File.write(path, JSON.generate(mcpServers: { "browser" => { "command" => "npx", "args" => [ "-y", "pw" ], "env" => { "A" => "1" } } }))
+      cmd = build(agent: "codex", mcp_config: path)
 
-        expect(cmd.first(2)).to eq([ "codex", "exec" ])
-        expect(cmd.last(2)).to eq([ "--dangerously-bypass-approvals-and-sandbox", "do it" ])
-        overrides = cmd[2...-2]
-        expect(overrides.each_slice(2).map(&:first).uniq).to eq([ "-c" ])
-        values = overrides.each_slice(2).map(&:last)
-        expect(values).to include(
-          'mcp_servers.browser.command="npx"',
-          'mcp_servers.browser.args=["-y","pw"]',
-          'mcp_servers.browser.env={"A" = "1"}',
-          "mcp_servers.browser.startup_timeout_sec=90"
-        )
-      end
+      expect(cmd.first(2)).to eq([ "codex", "exec" ])
+      expect(cmd.last(2)).to eq([ "--dangerously-bypass-approvals-and-sandbox", "do it" ])
+      overrides = cmd[2...-2]
+      expect(overrides.each_slice(2).map(&:first).uniq).to eq([ "-c" ])
+      values = overrides.each_slice(2).map(&:last)
+      expect(values).to include(
+        'mcp_servers.browser.command="npx"',
+        'mcp_servers.browser.args=["-y","pw"]',
+        'mcp_servers.browser.env={"A" = "1"}',
+        "mcp_servers.browser.startup_timeout_sec=90"
+      )
     end
   end
 

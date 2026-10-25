@@ -1,5 +1,4 @@
 require "rails_helper"
-require "tmpdir"
 
 RSpec.describe Projects::LiveCheckout do
   def live?(directory, app_root)
@@ -7,39 +6,32 @@ RSpec.describe Projects::LiveCheckout do
   end
 
   it "is live for the app root itself" do
-    Dir.mktmpdir do |root|
-      expect(live?(root, root)).to be(true)
-    end
+    root = make_tmpdir("live-checkout-spec")
+    expect(live?(root, root)).to be(true)
   end
 
   it "is live for a symlink to the app root" do
-    Dir.mktmpdir do |root|
-      Dir.mktmpdir do |links|
-        link = File.join(links, "clone")
-        File.symlink(root, link)
-        expect(live?(link, root)).to be(true)
-      end
-    end
+    root = make_tmpdir("live-checkout-spec")
+    links = make_tmpdir("live-checkout-links")
+    link = File.join(links, "clone")
+    File.symlink(root, link)
+    expect(live?(link, root)).to be(true)
   end
 
   it "is not live for a different directory" do
-    Dir.mktmpdir do |root|
-      Dir.mktmpdir do |other|
-        expect(live?(other, root)).to be(false)
-      end
-    end
+    root = make_tmpdir("live-checkout-spec")
+    other = make_tmpdir("live-checkout-other")
+    expect(live?(other, root)).to be(false)
   end
 
   it "is not live for a missing directory" do
-    Dir.mktmpdir do |root|
-      expect(live?(File.join(root, "nope"), root)).to be(false)
-    end
+    root = make_tmpdir("live-checkout-spec")
+    expect(live?(File.join(root, "nope"), root)).to be(false)
   end
 
   it "is not live when blank" do
-    Dir.mktmpdir do |root|
-      expect(live?("", root)).to be(false)
-      expect(live?(nil, root)).to be(false)
-    end
+    root = make_tmpdir("live-checkout-spec")
+    expect(live?("", root)).to be(false)
+    expect(live?(nil, root)).to be(false)
   end
 end

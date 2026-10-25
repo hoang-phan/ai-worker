@@ -10,22 +10,21 @@ RSpec.describe Scheduling::Planner do
 
   describe ".clone_key" do
     it "treats '~/x', 'x/' and a symlink as the same clone" do
-      Dir.mktmpdir do |tmp|
-        real = File.join(tmp, "clone")
-        FileUtils.mkdir_p(real)
-        link = File.join(tmp, "link")
-        File.symlink(real, link)
+      tmp = make_tmpdir("planner-spec")
+      real = File.join(tmp, "clone")
+      FileUtils.mkdir_p(real)
+      link = File.join(tmp, "link")
+      File.symlink(real, link)
 
-        home_dir = Dir.mktmpdir("clone-home", Dir.home)
-        begin
-          keys = [ real, "#{real}/", link, "#{tmp}/./clone" ].map { |dir| described_class.clone_key(project(dir)) }
-          expect(keys.uniq).to eq([ File.realpath(real) ])
+      home_dir = Dir.mktmpdir("clone-home", Dir.home)
+      begin
+        keys = [ real, "#{real}/", link, "#{tmp}/./clone" ].map { |dir| described_class.clone_key(project(dir)) }
+        expect(keys.uniq).to eq([ File.realpath(real) ])
 
-          tilde = "~/#{File.basename(home_dir)}"
-          expect(described_class.clone_key(project(tilde))).to eq(described_class.clone_key(project("#{home_dir}/")))
-        ensure
-          FileUtils.remove_entry(home_dir)
-        end
+        tilde = "~/#{File.basename(home_dir)}"
+        expect(described_class.clone_key(project(tilde))).to eq(described_class.clone_key(project("#{home_dir}/")))
+      ensure
+        FileUtils.remove_entry(home_dir)
       end
     end
 
