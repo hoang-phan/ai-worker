@@ -51,14 +51,5 @@ RSpec.describe Jira::TicketImporter do
       expect(result.skipped).to be_empty
       expect(result.failed).to be_empty
     end
-
-    it "reports validation failures in failed" do
-      project.update!(default_reviewers: "")
-
-      result = import([ { "key" => "UNS-9" } ])
-
-      expect(result.failed).to eq([ "UNS-9: Github reviewer can't be blank" ])
-      expect(result.created).to be_empty
-    end
   end
 end

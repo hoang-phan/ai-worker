@@ -23,6 +23,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `AiCli::DetachedRun` — detached agent run with JSON result file (`ai-worker-detached-agent-runs`)
 - `AgentRuns::ManualStart` + `ManualStartFlash` — "run now" buttons (`ai-worker-detached-agent-runs`, `ai-worker-ui`)
 - `AgentRuns::Cadence` — due-time logic (`ai-worker-detached-agent-runs`)
+- `AgentRuns::ImportResult` — Jira/Slack import result collections, summaries, and save outcome recording (`ai-worker-detached-agent-runs`)
 - `ProjectChildCrud` / `ProjectScoped` / `ProjectMemberScoped` / `WorkflowScoped` / `SettingsScreen` — controller concerns (`ai-worker-ui`; `WorkflowScoped` → `ai-worker-workflow-screens`)
 - `Projects::WorkflowDefaults` — new workflow attributes (`ai-worker-domain`)
 - `Workflows::SummaryKey` — summary dedupe (`ai-worker-domain`)

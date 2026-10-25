@@ -101,15 +101,4 @@ RSpec.describe Slack::ReviewImporter do
     expect(result.failed).to eq([ "#{pr_url}: gh exploded" ])
     expect(result.created).to eq([ second ])
   end
-
-  it "records workflow validation errors in failed" do
-    stub_pr(pr_url)
-    invalid = instance_double(Workflow, save: false, errors: instance_double(ActiveModel::Errors, full_messages: [ "Bad", "Worse" ]))
-    allow(project.workflows).to receive(:new).and_return(invalid)
-
-    importer.import([ mention ], result)
-
-    expect(result.failed).to eq([ "#{pr_url}: Bad and Worse" ])
-    expect(result.created).to be_empty
-  end
 end

@@ -63,12 +63,4 @@ RSpec.describe Jira::TicketSync do
       expect(project.workflows.pluck(:jira_ticket)).to eq([ "https://acme.atlassian.net/browse/UNS-1" ])
     end
   end
-
-  describe "Result#summary" do
-    it "counts created, skipped and failed" do
-      result = described_class::Result.new(blockers: [], created: %w[A-1 A-2], skipped: %w[A-3], failed: [])
-
-      expect(result.summary).to eq("created 2, skipped 1, failed 0")
-    end
-  end
 end

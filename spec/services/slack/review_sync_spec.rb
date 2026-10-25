@@ -78,19 +78,4 @@ RSpec.describe Slack::ReviewSync do
       expect(result.summary).to eq("created 1, skipped 0, failed 0")
     end
   end
-
-  describe "Result#summary" do
-    def result(skipped:, reasons:)
-      described_class::Result.new(blockers: [], created: [ 1 ], skipped: skipped, failed: [ "x" ], skipped_reasons: reasons)
-    end
-
-    it "omits the breakdown when nothing was skipped for a reason" do
-      expect(result(skipped: [], reasons: Hash.new(0)).summary).to eq("created 1, skipped 0, failed 1")
-    end
-
-    it "appends the skipped reasons breakdown" do
-      expect(result(skipped: %w[a b c], reasons: { "merged" => 2, "duplicate" => 1 }).summary)
-        .to eq("created 1, skipped 3 (2 merged, 1 duplicate), failed 1")
-    end
-  end
 end

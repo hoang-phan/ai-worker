@@ -4,11 +4,7 @@ module Jira
   # Idempotent: a ticket that already has a workflow in this project (in any
   # status) is skipped.
   class TicketSync
-    Result = Struct.new(:blockers, :created, :skipped, :failed, keyword_init: true) do
-      def summary
-        "created #{created.size}, skipped #{skipped.size}, failed #{failed.size}"
-      end
-    end
+    Result = AgentRuns::ImportResult
 
     def initialize(jira_sync, fetcher: nil)
       @jira_sync = jira_sync
@@ -28,17 +24,13 @@ module Jira
     # `issues` is the array AgentFetcher#poll returns.
     def import(issues)
       found = blockers
-      return empty_result(found) if found.any?
+      return Result.empty(found) if found.any?
 
-      TicketImporter.new(project).import(issues, empty_result)
+      TicketImporter.new(project).import(issues, Result.empty)
     end
 
     private
 
     attr_reader :jira_sync, :project
-
-    def empty_result(blockers = [])
-      Result.new(blockers: blockers, created: [], skipped: [], failed: [])
-    end
   end
 end

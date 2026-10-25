@@ -42,11 +42,7 @@ module Jira
 
     def create_workflow(issue, result)
       workflow = project.workflows.new(workflow_attributes(issue["key"]))
-      if workflow.save
-        result.created << issue["key"]
-      else
-        result.failed << "#{issue['key']}: #{workflow.errors.full_messages.to_sentence}"
-      end
+      result.record_save(workflow, issue["key"])
     end
   end
 end

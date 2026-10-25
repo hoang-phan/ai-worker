@@ -18,7 +18,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 - `app/services/jira/fetch_prompt.rb` — pure prompt (read-only, "To Do", assignee/project/parent as data, `[]` for none, no file on failure); `fetch_prompt_spec.rb`.
 - `app/services/jira/ticket_rows.rb` — pure filter of `tickets.json` rows to `{"key","summary"}`; drops non-hashes and invalid keys; `ticket_rows_spec.rb`.
 - `app/services/jira/ticket_ref.rb` — `KEY_PATTERN`/`KEY` regex, `key?`, `key_for(jira_ticket)` (used by `Workflow#jira_key`, so worklogs depend on it), `branch_name_for`, `url_for`; `ticket_ref_spec.rb`.
-- `app/services/jira/ticket_sync.rb` — `blockers` (via `Projects::RunBlockers`: jira_kind, jira_site_url, assignee, default_reviewers), memoised injectable `fetcher`, `import(issues)`, `Result` (blockers/created/skipped/failed, `summary`); `ticket_sync_spec.rb`.
+- `app/services/jira/ticket_sync.rb` — `blockers` (via `Projects::RunBlockers`: jira_kind, jira_site_url, assignee, default_reviewers), memoised injectable `fetcher`, `import(issues)`, and `Result` aliasing `AgentRuns::ImportResult` (blockers/created/skipped/failed, `summary`); `ticket_sync_spec.rb`.
 - `app/services/jira/ticket_importer.rb` — per-issue import (below); `ticket_importer_spec.rb`.
 - `app/services/jira/fetch_error.rb` — `Jira::FetchError`, passed as `error_class`; no own spec.
 - `app/services/jira/sync_cycle_source.rb` — `AgentRuns::CycleSource` subclass; `FETCH_EVERY = 3.hours` via `AgentRuns::Cadence.every`; `eligible?` = `auto_sync?`; persists `last_result`/`last_synced_at`; `sync_cycle_source_spec.rb`.

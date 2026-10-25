@@ -60,11 +60,7 @@ module Slack
         github_pr_url: pr_url,
         position: project.next_workflow_position
       )
-      if workflow.save
-        result.created << pr_url
-      else
-        result.failed << "#{pr_url}: #{workflow.errors.full_messages.to_sentence}"
-      end
+      result.record_save(workflow, pr_url)
     end
   end
 end
