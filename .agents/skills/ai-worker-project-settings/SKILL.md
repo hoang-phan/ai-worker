@@ -10,7 +10,8 @@ Use for the usual cross-layer change to a setting stored on `Project`. It joins 
 ## File map
 
 - `app/models/project.rb` — project enums, encrypted UAT/local passwords, per-feature conditional validations, and readiness predicates; spec: `spec/models/project_spec.rb`.
-- `app/controllers/projects_controller.rb` — owns `new`/`edit`/`create`/`update`/`destroy`/`project_params` (`create`/`update` render with 422 on failure; blank-password preservation); `index`/`show` belong to `ai-worker-project-dashboard`; spec: `spec/requests/projects_spec.rb`.
+- `app/controllers/projects_controller.rb` — owns `new`/`edit`/`create`/`update`/`destroy`; `project_params` is a thin forwarder to `Projects::SettingsParams` (`create`/`update` render with 422 on failure); `index`/`show` belong to `ai-worker-project-dashboard`; spec: `spec/requests/projects_spec.rb`.
+- `app/services/projects/settings_params.rb` — authoritative section attribute allowlists, strong-parameter filtering, and blank UAT/local password removal; spec: `spec/services/projects/settings_params_spec.rb`.
 - `app/views/projects/{_form,new,edit}.html.erb` — shared form shell, error rendering, and the new/edit wrappers; spec: `spec/requests/projects_spec.rb`.
 - `app/views/projects/form/{_general,_instructions,_jira}.html.erb` — general fields, shared instructions, and Jira settings; spec: `spec/requests/projects_spec.rb`.
 - `app/services/prompts/project_placeholders.rb` — project-derived `{TOKEN}` constants and values; spec: `spec/services/prompts/project_placeholders_spec.rb`.
@@ -22,7 +23,7 @@ Use for the usual cross-layer change to a setting stored on `Project`. It joins 
 
 1. Start with `ai-worker-domain`: add a migration and schema change. Every flag or other control-flow column has explicit `null: false, default:`. Do not run migrations against development data; use `RAILS_ENV=test` only for verification.
 2. In `Project`, add the validation conditional on the applicable kind, flow, or enable predicate, matching the existing style (`if: :uat_test_enabled?`, `if: :flow_ci_loop?`, and so on). If consumers need a configuration gate, add one readiness predicate in the `uat_test_ready?` / `local_test_ready?` style rather than scattering checks.
-3. Add the attribute to its section constant in `ProjectsController#project_params`; preserve the ordinary `create`/`update` behavior. For secrets, add the attribute to `KEEP_IF_BLANK`, declare `encrypts` in the model, never render the value back, and delete a blank submitted value so blank means “keep the saved one.”
+3. Add the attribute to its section constant in `Projects::SettingsParams`; preserve the ordinary `create`/`update` behavior through `ProjectsController#project_params`. For secrets, add the attribute to `KEEP_IF_BLANK`, declare `encrypts` in the model, never render the value back, and delete a blank submitted value so blank means “keep the saved one.” Add focused `SettingsParams` coverage for the allowlist and password filtering.
 4. Put the control in the relevant `app/views/projects/form/_<feature>.html.erb` fieldset, not inline in `projects/_form.html.erb`. Give user-visible behavior a `field-hint`; create a focused feature partial if no existing section fits.
 5. If prompts consume the setting, follow `ai-worker-prompts`' placeholder checklist: add the `{TOKEN}` to `Prompts::ProjectPlaceholders`, document it, and add its prompt specs. Never make a secret a placeholder.
 6. Add model validation coverage in `spec/models/project_spec.rb` and request coverage in `spec/requests/projects_spec.rb` for both create and update (including the blank-means-keep behavior for a secret).
