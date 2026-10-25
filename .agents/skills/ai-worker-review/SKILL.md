@@ -26,6 +26,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `app/services/ai_cli/command.rb`, `app/services/ai_cli/command/{claude,codex,cursor}.rb`, `spec/services/ai_cli/command_spec.rb`, or `spec/services/ai_cli/command/{claude,codex,cursor}_spec.rb` | `ai-worker-cli-commands` |
    | `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb`, or their listed specs | `ai-worker-agent-cli` |
    | a new detached-agent fetch/sync/triage service/job; `AiCli::DetachedRun`; or `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
+   | `app/models/workflows/{proposal_normalizer,proposal_workflow,summary_key}.rb`, `app/services/brainstorm/proposal_importer.rb`, `app/services/stages/follow_up_importer.rb`, or their mirrored specs | `ai-worker-proposal-imports` |
    | `app/services/brainstorm/**`, `app/jobs/brainstorm_job.rb`, `project_brainstorms_controller.rb`, or their listed specs | `ai-worker-brainstorm` |
    | `app/models/bugsnag_sync.rb`, `app/services/bugsnag/**`, `app/jobs/bugsnag_sync_job.rb`, bugsnag_sync schedule entries, Bugsnag controllers/views, or their listed specs | `ai-worker-bugsnag-triage` |
    | `app/models/jira_sync.rb`, listed Jira ticket-sync services, `app/jobs/jira_sync_job.rb`, jira_sync schedule entries, Jira-sync controllers/views, or their specs | `ai-worker-jira-ticket-sync` |
