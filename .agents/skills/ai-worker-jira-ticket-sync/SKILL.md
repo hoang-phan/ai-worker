@@ -1,6 +1,6 @@
 ---
 name: ai-worker-jira-ticket-sync
-description: Applies ai-worker's Jira ticket import discipline (agent fetches assigned tickets through the Atlassian MCP, app creates development workflows). Use for any task touching app/models/jira_sync.rb, app/services/jira/{agent_fetcher,fetch_prompt,ticket_rows,ticket_ref,ticket_sync,ticket_importer,fetch_error,sync_cycle_source}.rb, app/jobs/jira_sync_job.rb, the jira_sync entries in config/schedule.yml, app/controllers/jira_syncs_controller.rb, app/controllers/jira_sync_runs_controller.rb, app/views/jira_syncs/**, app/views/projects/_jira_syncs.html.erb, or their specs. Worklogs / time logging belong to ai-worker-jira-worklogs.
+description: Applies ai-worker's Jira ticket import discipline (agent fetches assigned tickets through the Atlassian MCP, app creates development workflows). Use for any task touching app/models/jira_sync.rb, app/services/jira/{agent_fetcher,fetch_prompt,ticket_rows,ticket_ref,ticket_sync,ticket_importer,fetch_error,sync_cycle_source}.rb, app/jobs/jira_sync_job.rb, the jira_sync entries in config/schedule.yml, app/controllers/jira_syncs_controller.rb, app/controllers/jira_sync_runs_controller.rb, app/views/jira_syncs/**, or their specs. Worklogs / time logging belong to ai-worker-jira-worklogs.
 ---
 
 # ai-worker-jira-ticket-sync
@@ -26,7 +26,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 - `config/schedule.yml` — `jira_sync` (`*/5 5-13`) and `jira_sync_off_hours` (hourly otherwise), Asia/Ho_Chi_Minh, queue `default`.
 - `app/controllers/jira_syncs_controller.rb` — new/create/edit/update/destroy (permits `jira_project`, `parent_ticket`, `auto_sync`), redirects to the project.
 - `app/controllers/jira_sync_runs_controller.rb` — `POST /projects/:project_id/jira_syncs/:id/run` ("Sync now"): `ManualStartFlash#start_manually` (`AgentRuns::ManualStart`) with `TicketSync#blockers` and `fetcher.start`; `spec/requests/jira_sync_runs_spec.rb`. CRUD coverage lives in `spec/requests/jira_syncs_spec.rb`; `spec/requests/projects_spec.rb` also touches the section.
-- `app/views/jira_syncs/{new,edit,_form}.html.erb`, `app/views/projects/_jira_syncs.html.erb` — form and the project-page list with last result and "Sync now".
+- `app/views/jira_syncs/{new,edit,_form,_list}.html.erb` — form and the project-page list with last result and "Sync now".
 
 ## Importer rules
 
@@ -44,7 +44,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 ## Change checklist
 
 - New field imported from a ticket: add it to the prompt example and `TicketRows` (keep it pure, default missing values), carry it through `TicketImporter#workflow_attributes`, add the Workflow column per `ai-worker-domain` if needed; update the fetch_prompt, ticket_rows and ticket_importer specs.
-- Scope options (`jira_project`, `parent_ticket`): migration + `JiraSync`, `FetchPrompt` and `AgentFetcher#prompt`, controller `jira_sync_params`, `_form`, `_jira_syncs` partial and `label`; update the specs for each.
+- Scope options (`jira_project`, `parent_ticket`): migration + `JiraSync`, `FetchPrompt` and `AgentFetcher#prompt`, controller `jira_sync_params`, `_form`, `_list` partial and `label`; update the specs for each.
 - Cadence: change `FETCH_EVERY` on `Jira::SyncCycleSource` only or the `config/schedule.yml` crons; update `sync_cycle_source_spec.rb` and keep the doc in `ai-worker-detached-agent-runs` consistent.
 
 ## Verification

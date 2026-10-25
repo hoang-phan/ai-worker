@@ -20,8 +20,8 @@
 
 
 <% if @project.jira? %>
-  <%= render "projects/jira_syncs", project: @project %>
-  <%= render "projects/bugsnag_syncs", project: @project %>
+  <%= render "jira_syncs/list", project: @project %>
+  <%= render "bugsnag_syncs/list", project: @project %>
 <% end %>
 
 <% if show_brainstorm_section?(@project) %>

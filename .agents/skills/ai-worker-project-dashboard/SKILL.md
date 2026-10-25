@@ -14,7 +14,7 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 - `app/models/projects/workflow_list.rb` — validates the optional status, orders workflows by position/id, supplies the unfiltered first/last ids for arrows, and batches logged Jira seconds.
 - `app/models/projects/workflow_reorder.rb` — swaps an in-project workflow with its neighbour and renumbers the complete priority list 1..n.
 - `app/views/projects/index.html.erb` — name-ordered project table, new/edit/delete links, and the empty state.
-- `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, sync (Jira then Bugsnag in one `jira?` block), brainstorm, and Slack-review sections.
+- `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, sync (Jira then Bugsnag in one `jira?` block), brainstorm, and Slack-review sections; the sync lists render from their owning feature directories.
 - `app/views/projects/_workflows.html.erb` — GET status filter, Jira time-log batch form, select-all workflow table, rows, and empty state.
 - `app/views/projects/_workflow_row.html.erb` — position arrows, checkbox, labels/kind/status/time badges, PR/edit actions, and pending Start action.
 - `app/helpers/projects_helper.rb` — `project_header_meta` (escaped directory + repo name), `workflow_status_filter_options`, `workflow_list_empty_message`, static-path `icon_svg`, and the `show_brainstorm_section?` / `show_slack_reviews_section?` visibility rules used by `show`.
@@ -23,7 +23,7 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 ## Boundaries
 
 - Time-log checkboxes, the batch form, and `TimeLogsHelper` are governed by `ai-worker-jira-worklogs`.
-- The Jira and Bugsnag sync tables belong to `ai-worker-jira-ticket-sync` and `ai-worker-bugsnag-triage`, respectively.
+- The Jira and Bugsnag sync tables (`app/views/jira_syncs/_list.html.erb` and `app/views/bugsnag_syncs/_list.html.erb`) belong to `ai-worker-jira-ticket-sync` and `ai-worker-bugsnag-triage`, respectively.
 - The `_brainstorm` section belongs to `ai-worker-brainstorm`.
 - Workflow CRUD and detail pages belong to `ai-worker-workflow-screens`; lifecycle actions belong to `ai-worker-workflow-lifecycle` and runbook actions to `ai-worker-runbooks`.
 
