@@ -13,7 +13,7 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 - `app/services/stage_executor.rb` — guards against the live checkout, starts a non-processing stage through `StartHandler`, or polls its configured run; dispatches completed output to `ConflictResolutionFinish` or `CompletionHandler`, and is the single rescue point for typed command errors and `ArgumentError`.
 - `app/services/stages/ai_run_poll.rb` — builds the configured poller from persisted workflow run state, durably advances its log offset even on errors, and returns completed output.
-- `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, and specialised start services, using injected collaborators.
+- `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
 - `app/services/stages/completion_handler.rb` — dispatches successful completed output by stage type to the corresponding finish service, including specialised finish services.
 - `app/services/stages/failure_handler.rb` — aborts a resolving merge, clears run state without auto-run, logs `failed`, and parks workflows at the supplied consecutive-failure threshold.
 - `app/services/stages/ai_run_launcher.rb` — resolves the provider via `RunProvider`, starts the injected runner, persists the workflow's detached-run pid/log/start/offset/`ai_provider` state, and logs the supplied start action.
@@ -24,16 +24,9 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 - `app/services/stages/pr_check_finish.rb` — requests review after a fix, chooses whether local testing must rerun, completes the run, best-effort records agent lessons, and notifies reviewers when no retest is needed.
 - `app/services/stages/review_handoff.rb` — best-effort reviewer notification and auto-merge work; catches notification/GitHub errors and logs them instead of failing a completed stage.
 - `app/services/stages/merge_check.rb` — on idle scheduler ticks, marks a merged tracked PR workflow as `merged`; logs GitHub lookup failures without raising.
-- `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups (via `follow_up_importer.rb`, rows pre-cleaned by `AiCli::Output#follow_ups` through `Workflows::ProposalNormalizer`; the importer owns the cap of 2, dedupe via `Workflows::SummaryKey`, and the pending workflow build through `Workflows::ProposalWorkflow` without merging proposal skills) and pushes its commits, logging each outcome.
-- `app/services/stages/follow_up_importer.rb` — creates pending development workflows from FOLLOW_UPS proposals (built by `Workflows::ProposalWorkflow`, `merge_skills: false`).
-- `app/services/stages/jira_update_finish.rb` — parses `JIRA_RESULT` and completes `jira_update`, optionally scheduling delayed UAT.
-- `app/services/stages/run_tooling.rb` — selects the detached agent or CI runner/poller pair; it is owned by `ai-worker-agent-cli`, not this layer.
-- `app/services/stages/runbook_step_finish.rb` — requires message stages to confirm posting, saves output variables and waiting state, then optionally advances and enqueues the workflow. Runbook lifecycle and invariants: `ai-worker-runbooks`.
-- `app/services/stages/simple_implementation_finish.rb` — completes a ci-loop implementation run into `opening_pr` and logs its output.
-- `app/services/stages/start_handler.rb` — dispatches every stage type's start path, including branch setup, PR checking, browser tests, CI commands, and runbook gating, using injected collaborators.
-- `app/services/stages/follow_up_importer.rb` — creates development workflows from FOLLOW_UPS proposals: `implementing` when `project.brainstorm_auto_start?`, else `pending`.
 - `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups (via `follow_up_importer.rb`, which owns the cap of 2, dedupe via `Workflows::SummaryKey`, and the workflow build) and pushes its commits, logging each outcome.
-- `app/services/stages/workflow_run_gate.rb` — gates a runbook step on the newest relevant GitHub Actions run, logging pass/wait once and raising for a failed run.
+- `app/services/stages/follow_up_importer.rb` — creates development workflows from FOLLOW_UPS proposals: `implementing` when `project.brainstorm_auto_start?`, else `pending`.
+- `app/services/stages/jira_update_finish.rb` — parses `JIRA_RESULT` and completes `jira_update`, optionally scheduling delayed UAT.
 
 ### Owned elsewhere
 

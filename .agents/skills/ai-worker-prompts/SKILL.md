@@ -75,4 +75,3 @@ Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::Local
 - `spec/services/prompts/stage_prompt_spec.rb` — precedence, defaults fallback, sections appended after the rendered body, agent-brief wiring, and one forwarding example each for `slack_message` and `CONFLICT`; section wording is tested per section. `spec/services/prompts/stage_prompt/ci_loop_spec.rb` covers the ci_loop prompts.
 - `spec/services/prompts/stage_sections/<snake_name>_spec.rb` — one spec per section: guards and text.
 - `spec/models/prompt_template_spec.rb` — model validations.
-- `spec/requests/prompt_templates_spec.rb` — prompt-template CRUD requests.
