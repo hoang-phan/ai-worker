@@ -55,7 +55,7 @@ module Brainstorm
 
     def build(proposal)
       Workflows::ProposalWorkflow.new(project).build(
-        proposal, status: project.brainstorm_auto_start? ? :implementing : :pending, merge_skills: true
+        proposal, merge_skills: true
       )
     end
   end

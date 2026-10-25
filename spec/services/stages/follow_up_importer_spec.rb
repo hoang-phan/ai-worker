@@ -18,6 +18,13 @@ RSpec.describe Stages::FollowUpImporter, type: :service do
     expect(follow_ups.first.position).to be > current.position
   end
 
+  it "starts them (implementing) when the project auto-starts brainstormed workflows" do
+    project.update!(brainstorm_auto_start: true)
+
+    expect(call("Fix A")).to eq [ "Fix A" ]
+    expect(follow_ups.map(&:status)).to eq [ "implementing" ]
+  end
+
   it "creates at most 2" do
     expect(call("Fix A", "Fix B", "Fix C")).to eq [ "Fix A", "Fix B" ]
     expect(follow_ups.map(&:summary)).to eq [ "Fix A", "Fix B" ]

@@ -19,8 +19,8 @@ module Stages
 
     attr_reader :workflow, :stage, :project, :git
 
-    # Work the agent found outside this task's scope becomes pending workflows, never started automatically. Best
-    # effort and after the workflow is `done`: a failure is logged, never fails the stage (a retry would re-run the task).
+    # Work the agent found outside this task's scope becomes new workflows, started only when the project auto-starts
+    # brainstormed workflows. Best effort and after the workflow is `done`: a failure is logged, never fails the stage (a retry would re-run the task).
     def queue_follow_ups(output)
       return unless project.personal?
 

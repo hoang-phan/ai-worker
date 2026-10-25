@@ -1,6 +1,7 @@
 module Stages
-  # Turns the follow-ups an agent proposed into pending development workflows (never started automatically), up to
-  # MAX_FOLLOW_UPS, skipping any whose summary matches a non-done workflow's brief or an earlier proposal in the batch.
+  # Turns the follow-ups an agent proposed into development workflows, up to MAX_FOLLOW_UPS: started (`implementing`)
+  # when the project opts into brainstorm_auto_start?, otherwise `pending`, skipping any whose summary matches a
+  # non-done workflow's brief or an earlier proposal in the batch.
   # Returns the summaries of the workflows actually created.
   class FollowUpImporter
     MAX_FOLLOW_UPS = 2
@@ -26,7 +27,7 @@ module Stages
     attr_reader :project
 
     def build(proposal)
-      Workflows::ProposalWorkflow.new(project).build(proposal, status: :pending, merge_skills: false)
+      Workflows::ProposalWorkflow.new(project).build(proposal, merge_skills: false)
     end
   end
 end

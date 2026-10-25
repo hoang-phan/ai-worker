@@ -6,11 +6,11 @@ module Workflows
     end
 
     # `merge_skills` adds the proposal's own skills after the project's defaults; otherwise only the defaults apply.
-    def build(proposal, status:, merge_skills:)
+    def build(proposal, merge_skills:)
       project.workflows.new(
         kind: :development, summary: proposal["summary"], task_description: proposal["task"],
         skills: merge_skills ? merged_skills(proposal) : project.default_skills,
-        status: status, position: project.next_workflow_position
+        status: resolved_status, position: project.next_workflow_position
       )
     end
 
@@ -24,6 +24,10 @@ module Workflows
       return project.default_skills if extra.blank?
 
       [ project.default_skills, extra ].flat_map { |list| list.to_s.split(",").map(&:strip) }.reject(&:blank?).uniq.join(", ")
+    end
+
+    def resolved_status
+      project.brainstorm_auto_start? ? :implementing : :pending
     end
   end
 end
