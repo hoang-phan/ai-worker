@@ -10,7 +10,6 @@ Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets u
 ## File map
 
 - `config/routes.rb` — project, sync, workflow, stage, prompt-template, settings, root, Sidekiq, and health routes. Keep existing helper names when routing a controller action.
-- `app/controllers/projects_controller.rb` — project CRUD; dashboard `index`/`show` details belong to `ai-worker-project-dashboard`.
 - `app/controllers/settings_controller.rb` — agent-setting update.
 - `app/controllers/settings/rotations_controller.rb` — rotation-weight update.
 - `app/views/settings/show.html.erb` — both settings forms.
@@ -20,7 +19,7 @@ Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets u
 - `app/controllers/concerns/manual_start_flash.rb` — `AgentRuns::ManualStart` redirect and flash mapping.
 - `app/controllers/concerns/settings_screen.rb` — settings loading and 422 rendering.
 - `app/helpers/action_links_helper.rb` — reusable destructive links and inline button forms; spec: `spec/helpers/action_links_helper_spec.rb`.
-- `app/views/layouts/application.html.erb` — navigation and flashes.
+- `app/views/layouts/application.html.erb` — navigation and flashes; spec: `spec/requests/layout_spec.rb`.
 - `app/views/layouts/mailer.html.erb` — mailer HTML layout.
 - `app/views/layouts/mailer.text.erb` — mailer text layout.
 - `app/assets/stylesheets/01_base.css` — design tokens (`:root`) and global resets; new tokens go here.
@@ -33,7 +32,7 @@ Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets u
 - `app/assets/stylesheets/08_buttons.css` — buttons and action links.
 - `app/assets/stylesheets/09_forms.css` — form fields, submits, error summary.
 - `app/assets/stylesheets/10_misc.css` — code blocks, chips, muted text, batch bar.
-- Stylesheet convention: Propshaft `:app` loads CSS alphabetically — keep the numeric prefixes so cascade order stays base → navigation → … → misc. Put new rules in the matching area file; design tokens live in `01_base.css`. Do not add `@import` (would double-load with `:app`).
+- Stylesheet convention: Propshaft `:app` loads CSS alphabetically — keep the numeric prefixes so cascade order stays base → navigation → … → misc. Put new rules in the matching area file; design tokens live in `01_base.css`. Do not add `@import` (would double-load with `:app`). Spec: `spec/requests/layout_spec.rb`.
 - `app/views/shared/_skill_hints.html.erb` — clickable project skill hints.
 - `app/views/shared/_error_summary.html.erb` — form validation errors.
 - `app/views/shared/_skills_field.html.erb` — reusable skill textarea and chips.
@@ -44,6 +43,7 @@ Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets u
 
 ## Owned elsewhere
 
+- `app/controllers/projects_controller.rb` — CRUD → `ai-worker-project-settings`, index/show → `ai-worker-project-dashboard`.
 - Project form partials (`app/views/projects/{_form,new,edit}.html.erb`, `app/views/projects/form/*`) — `ai-worker-project-settings`.
 - Prompt-template CRUD (`app/controllers/prompt_templates_controller.rb`, `app/views/prompt_templates/**`, `spec/requests/prompt_templates_spec.rb`) — `ai-worker-prompts`.
 - Jira sync CRUD, run actions, and views (`app/controllers/jira_syncs_controller.rb`, `app/controllers/jira_sync_runs_controller.rb`, `app/views/jira_syncs/**`) — `ai-worker-jira-ticket-sync`.

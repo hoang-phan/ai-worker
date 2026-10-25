@@ -5,7 +5,7 @@ description: Applies ai-worker's project-dashboard discipline. Use for app/contr
 
 # ai-worker project dashboard
 
-Scope: project index/show, workflow list/reordering, and status/kind badges; read affected code, as this map is not a substitute for it. Project CRUD/forms remain in `ai-worker-ui`.
+Scope: project index/show, workflow list/reordering, and status/kind badges; read affected code, as this map is not a substitute for it. Project CRUD/forms belong to `ai-worker-project-settings`.
 
 ## File map
 
@@ -45,7 +45,7 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 
 ## Specs
 
-- `spec/requests/projects_spec.rb` — index/show rendering, status filtering, dashboard sections, compact row controls, and time-log selection.
+- `spec/requests/project_dashboard_spec.rb` — index/show rendering, status filtering, dashboard sections, compact row controls, and time-log selection.
 - `spec/requests/workflow_positions_spec.rb` — valid moves, duplicate positions, end no-ops, invalid direction, and status-preserving redirects.
 - `spec/models/projects/workflow_list_spec.rb` — valid/invalid filtering, unfiltered ends, empty lists, and grouped logged seconds.
 - `spec/models/projects/workflow_reorder_spec.rb` — up/down movement, renumbering, ends, and foreign workflows.
@@ -53,4 +53,4 @@ Scope: project index/show, workflow list/reordering, and status/kind badges; rea
 - `spec/helpers/workflows_helper_spec.rb` — every status badge mapping/fallback and workflow kind badges.
 ## Verification
 
-Run `RAILS_ENV=test bundle exec rspec spec/requests/{projects,workflow_positions}_spec.rb spec/models/projects/{workflow_list,workflow_reorder}_spec.rb spec/helpers/{workflows,projects}_helper_spec.rb` for dashboard changes.
+Run `RAILS_ENV=test bundle exec rspec spec/requests/{project_dashboard,workflow_positions}_spec.rb spec/models/projects/{workflow_list,workflow_reorder}_spec.rb spec/helpers/{workflows,projects}_helper_spec.rb` for dashboard changes.
