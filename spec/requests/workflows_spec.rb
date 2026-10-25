@@ -67,6 +67,26 @@ RSpec.describe "Workflows", type: :request, active_job_test_adapter: true do
     end
   end
 
+  describe "invalid create and update" do
+    it "re-renders the workflow error summary when creating" do
+      expect {
+        post project_workflows_path(project), params: { workflow: { jira_ticket: "", branch_name: "", github_reviewer: "" } }
+      }.not_to change(Workflow, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
+      expect(summary).to include("prevented this workflow from saving", "Jira ticket can't be blank")
+    end
+
+    it "re-renders the workflow error summary when updating" do
+      patch project_workflow_path(project, workflow), params: { workflow: { jira_ticket: "" } }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      summary = Nokogiri::HTML(response.body).at_css(".error-summary").text
+      expect(summary).to include("prevented this workflow from saving", "Jira ticket can't be blank")
+    end
+  end
+
   describe "GET show" do
     it "renders the stages table and stage run history" do
       workflow.stages.first.stage_runs.create!(action: "started", output: "Started the implementation")

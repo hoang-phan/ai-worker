@@ -12,7 +12,7 @@ Use for the usual cross-layer change to a setting stored on `Project`. It joins 
 - `app/models/project.rb` — project enums, encrypted UAT/local passwords, per-feature conditional validations, and readiness predicates; spec: `spec/models/project_spec.rb`.
 - `app/controllers/projects_controller.rb` — CRUD (`create`/`update` render with 422 on failure) and `project_params`, including blank-password preservation; spec: `spec/requests/projects_spec.rb`.
 - `app/views/projects/{_form,new,edit}.html.erb` — shared form shell, error rendering, and the new/edit wrappers; spec: `spec/requests/projects_spec.rb`.
-- `app/views/projects/form/{_errors,_general,_instructions,_jira}.html.erb` — general fields, shared instructions, Jira settings, and form errors; spec: `spec/requests/projects_spec.rb`.
+- `app/views/projects/form/{_general,_instructions,_jira}.html.erb` — general fields, shared instructions, and Jira settings; spec: `spec/requests/projects_spec.rb`.
 - `app/services/prompts/project_placeholders.rb` — project-derived `{TOKEN}` constants and values; spec: `spec/services/prompts/project_placeholders_spec.rb`.
 - `spec/models/project_spec.rb` — project behavior and validation coverage.
 - `spec/requests/projects_spec.rb` — project form rendering and create/update request behavior.

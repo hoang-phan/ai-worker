@@ -12,6 +12,6 @@
   </div>
   <div class="field">
     <label>Last run</label>
-    <p class="text-muted"><%= time_ago_or_never(project.brainstorm_last_run_at) %><%= " · #{project.brainstorm_last_result}" if project.brainstorm_last_result.present? %> &middot; <%= project.workflows.queued.count %> pending</p>
+    <p class="text-muted"><%= last_run_summary(project.brainstorm_last_run_at, project.brainstorm_last_result) %> &middot; <%= project.workflows.queued.count %> pending</p>
   </div>
 </div>

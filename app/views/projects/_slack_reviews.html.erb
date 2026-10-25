@@ -12,6 +12,6 @@
   </div>
   <div class="field">
     <label>Last synced</label>
-    <p class="text-muted"><%= time_ago_or_never(project.slack_last_synced_at) %><%= " · #{project.slack_last_result}" if project.slack_last_result.present? %></p>
+    <p class="text-muted"><%= last_run_summary(project.slack_last_synced_at, project.slack_last_result) %></p>
   </div>
 </div>

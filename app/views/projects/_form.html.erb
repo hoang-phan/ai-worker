@@ -1,6 +1,6 @@
 <div class="card form-card" data-controller="skill-insert">
   <%= form_with model: project do |f| %>
-    <%= render "projects/form/errors", project: project %>
+    <%= render "shared/error_summary", record: project %>
 
     <%= render "projects/form/general", f: f, project: project %>
     <%= render "projects/form/instructions", f: f %>

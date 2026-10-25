@@ -167,12 +167,20 @@ RSpec.describe "Projects", type: :request do
     end
 
     it "renders the brainstorm section for a personal project" do
-      personal = Project.create!(name: "Personal spec", kind: :personal, local_directory: local_directory, brainstorm_enabled: true, brainstorm_goal: "Ship it", brainstorm_last_run_at: 3.days.ago)
+      personal = Project.create!(name: "Personal spec", kind: :personal, local_directory: local_directory, brainstorm_enabled: true, brainstorm_goal: "Ship it", brainstorm_last_run_at: 3.days.ago, brainstorm_last_result: "created 2")
 
       get project_path(personal)
 
-      expect(response.body).to include("Brainstorm", "3 days ago")
+      expect(Nokogiri::HTML(response.body).text).to include("Brainstorm", "3 days ago · created 2 · 0 pending")
       expect(response.body).not_to include("Jira syncs")
+    end
+
+    it "renders the Slack review last-run summary" do
+      project.update!(slack_review_enabled: true, slack_last_synced_at: 2.hours.ago, slack_last_result: "created 1")
+
+      get project_path(project)
+
+      expect(response.body).to include("Slack PR reviews", "about 2 hours ago · created 1")
     end
 
     it "says never for a brainstorm that has not run" do

@@ -1,15 +1,6 @@
 <div class="card form-card" data-controller="skill-insert">
   <%= form_with model: [project, workflow] do |f| %>
-    <% if workflow.errors.any? %>
-      <div class="error-summary">
-        <strong><%= pluralize(workflow.errors.count, "error") %> prevented this workflow from saving:</strong>
-        <ul>
-          <% workflow.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "shared/error_summary", record: workflow %>
 
     <% if workflow.pr_review? %>
       <p class="field-hint">Review workflows are created from Slack mentions: <%= workflow.label %>.</p>
