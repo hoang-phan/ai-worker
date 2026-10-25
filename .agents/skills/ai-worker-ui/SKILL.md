@@ -1,23 +1,19 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, and routes.
+description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, and routes.
 ---
 
 # ai-worker-ui
 
-Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets under `app/assets/stylesheets/`, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
+Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesheets/`, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
 
 ## File map
 
 - `config/routes.rb` — project, sync, workflow, stage, prompt-template, settings, root, Sidekiq, and health routes. Keep existing helper names when routing a controller action.
-- `app/controllers/settings_controller.rb` — agent-setting update.
-- `app/controllers/settings/rotations_controller.rb` — rotation-weight update.
-- `app/views/settings/show.html.erb` — both settings forms.
 - `app/controllers/concerns/project_scoped.rb` — project loading for nested controllers.
 - `app/controllers/concerns/project_child_crud.rb` — reusable project-nested CRUD actions.
 - `app/controllers/concerns/project_member_scoped.rb` — project loading for `/projects/:id` member actions.
 - `app/controllers/concerns/manual_start_flash.rb` — `AgentRuns::ManualStart` redirect and flash mapping.
-- `app/controllers/concerns/settings_screen.rb` — settings loading and 422 rendering.
 - `app/helpers/action_links_helper.rb` — reusable destructive links and inline button forms; spec: `spec/helpers/action_links_helper_spec.rb`.
 - `app/views/layouts/application.html.erb` — navigation and flashes; spec: `spec/requests/layout_spec.rb`.
 - `app/views/layouts/mailer.html.erb` — mailer HTML layout.
@@ -43,6 +39,7 @@ Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets u
 
 ## Owned elsewhere
 
+- Settings screen (`app/controllers/settings_controller.rb`, `app/controllers/settings/rotations_controller.rb`, `app/controllers/concerns/settings_screen.rb`, `app/views/settings/show.html.erb`, and their request specs) — `ai-worker-cli-selection`.
 - `app/controllers/projects_controller.rb` — CRUD → `ai-worker-project-settings`, index/show → `ai-worker-project-dashboard`.
 - Project form partials (`app/views/projects/{_form,new,edit}.html.erb`, `app/views/projects/form/*`) — `ai-worker-project-settings`.
 - Prompt-template CRUD (`app/controllers/prompt_templates_controller.rb`, `app/views/prompt_templates/**`, `spec/requests/prompt_templates_spec.rb`) — `ai-worker-prompts`.

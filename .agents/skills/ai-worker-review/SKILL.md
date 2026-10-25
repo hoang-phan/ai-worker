@@ -22,7 +22,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `projects_controller.rb` index/show, `workflow_positions_controller.rb`, `app/models/projects/{workflow_list,workflow_reorder}.rb`, project dashboard views/helpers, or their listed specs | `ai-worker-project-dashboard` |
    | per-project settings in `project.rb`, `ProjectsController#project_params/create/update`, project form views, `project_placeholders.rb`, listed project specs, or `docs/ADDING_A_PROJECT.md` | `ai-worker-project-settings` |
    | `app/controllers/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_controller.rb`, `app/controllers/concerns/workflow_scoped.rb`, listed workflow/stage helpers, views, template-fill controller, or their request/helper specs | `ai-worker-workflow-screens` |
-   | `app/services/stages/run_provider.rb`, `app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb`, or their listed specs | `ai-worker-cli-selection` |
+   | `app/services/stages/run_provider.rb`, `app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb`, `app/controllers/settings_controller.rb`, `app/controllers/settings/rotations_controller.rb`, `app/controllers/concerns/settings_screen.rb`, `app/views/settings/**`, or their listed specs | `ai-worker-cli-selection` |
    | `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb`, or their listed specs | `ai-worker-agent-cli` |
    | a new detached-agent fetch/sync/triage service/job; `AiCli::DetachedRun`; or `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
    | `app/services/brainstorm/**`, `app/jobs/brainstorm_job.rb`, `project_brainstorms_controller.rb`, or their listed specs | `ai-worker-brainstorm` |
@@ -36,7 +36,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb`, `defaults/jira_update.md`, its listed section files, `prompt_template.rb`, prompt templates (CRUD controller/views/request spec), or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
    | `app/services/stage_executor.rb`, or remaining generic `app/services/stages/**` and their specs | `ai-worker-stage-pipeline` |
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |
-   | remaining ProjectsController CRUD, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, or routes | `ai-worker-ui` |
+   | remaining ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, or routes | `ai-worker-ui` |
    | `app/jobs/application_job.rb`, `config/initializers/sidekiq.rb`, shared subprocess/error conventions, or a new unowned service namespace/job | `ai-worker-orchestration` |
    | any `spec/**` not already matched above | `ai-worker-testing` |
 
