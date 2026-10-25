@@ -7,39 +7,18 @@ RSpec.describe "JiraSyncRuns", type: :request do
   let(:sync) { instance_double(Jira::TicketSync, blockers: [], fetcher: fetcher) }
 
   before { allow(Jira::TicketSync).to receive(:new).and_return(sync) }
+
   describe "POST create" do
-    it "reports the blockers" do
-      allow(sync).to receive(:blockers).and_return([ "no base url" ])
-
-      post run_project_jira_sync_path(project, jira_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Jira sync blocked: no base url")
-      expect(fetcher).not_to have_received(:start)
-    end
-
-    it "starts the fetch" do
-      post run_project_jira_sync_path(project, jira_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:notice]).to eq("Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing.")
-    end
-
-    it "says when a fetch is already running" do
-      allow(fetcher).to receive(:start).and_return(false)
-
-      post run_project_jira_sync_path(project, jira_sync)
-
-      expect(flash[:alert]).to eq("A Jira fetch is already running for this sync.")
-    end
-
-    it "reports a failed start" do
-      allow(fetcher).to receive(:start).and_raise(Jira::FetchError, "bad token")
-
-      post run_project_jira_sync_path(project, jira_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Jira sync failed: bad token")
+    it_behaves_like "a manual start action" do
+      let(:perform_request) { -> { post run_project_jira_sync_path(project, jira_sync) } }
+      let(:starter) { fetcher }
+      let(:blockers_owner) { sync }
+      let(:blocked_blockers) { [ "no base url" ] }
+      let(:blocked_alert) { "Jira sync blocked: no base url" }
+      let(:started_notice) { "Asking the agent to fetch your Jira tickets. Workflows appear within a minute or two of it finishing." }
+      let(:running_alert) { "A Jira fetch is already running for this sync." }
+      let(:start_error) { Jira::FetchError.new("bad token") }
+      let(:failed_alert) { "Jira sync failed: bad token" }
     end
   end
 end

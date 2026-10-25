@@ -9,38 +9,16 @@ RSpec.describe "Project Slack syncs", type: :request do
 
     before { allow(Slack::ReviewSync).to receive(:new).and_return(sync) }
 
-    it "reports the blockers" do
-      allow(sync).to receive(:blockers).and_return([ "no channel", "no mention" ])
-
-      post sync_slack_project_path(project)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Slack sync blocked: no channel; no mention")
-      expect(fetcher).not_to have_received(:start)
-    end
-
-    it "starts the fetch" do
-      post sync_slack_project_path(project)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:notice]).to eq("Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing.")
-    end
-
-    it "says when a fetch is already running" do
-      allow(fetcher).to receive(:start).and_return(false)
-
-      post sync_slack_project_path(project)
-
-      expect(flash[:alert]).to eq("A Slack fetch is already running for this project.")
-    end
-
-    it "reports a failed start" do
-      allow(fetcher).to receive(:start).and_raise(AiCli::CommandError, "claude exploded")
-
-      post sync_slack_project_path(project)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Slack sync failed: claude exploded")
+    it_behaves_like "a manual start action" do
+      let(:perform_request) { -> { post sync_slack_project_path(project) } }
+      let(:starter) { fetcher }
+      let(:blockers_owner) { sync }
+      let(:blocked_blockers) { [ "no channel", "no mention" ] }
+      let(:blocked_alert) { "Slack sync blocked: no channel; no mention" }
+      let(:started_notice) { "Asking the agent to look through your Slack mentions. Review workflows appear within a minute or two of it finishing." }
+      let(:running_alert) { "A Slack fetch is already running for this project." }
+      let(:start_error) { AiCli::CommandError.new("claude exploded") }
+      let(:failed_alert) { "Slack sync failed: claude exploded" }
     end
   end
 end

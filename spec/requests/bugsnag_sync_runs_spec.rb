@@ -7,39 +7,18 @@ RSpec.describe "BugsnagSyncRuns", type: :request do
   let(:triage_sync) { instance_double(Bugsnag::TriageSync, blockers: [], triager: triager) }
 
   before { allow(Bugsnag::TriageSync).to receive(:new).and_return(triage_sync) }
+
   describe "POST create" do
-    it "reports the blockers" do
-      allow(triage_sync).to receive(:blockers).and_return([ "no token" ])
-
-      post run_project_bugsnag_sync_path(project, bugsnag_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Bugsnag sync blocked: no token")
-      expect(triager).not_to have_received(:start)
-    end
-
-    it "starts the triage" do
-      post run_project_bugsnag_sync_path(project, bugsnag_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:notice]).to eq("Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes.")
-    end
-
-    it "says when a triage is already running" do
-      allow(triager).to receive(:start).and_return(false)
-
-      post run_project_bugsnag_sync_path(project, bugsnag_sync)
-
-      expect(flash[:alert]).to eq("A Bugsnag triage is already running for this sync.")
-    end
-
-    it "reports a failed start" do
-      allow(triager).to receive(:start).and_raise(Bugsnag::FetchError, "bad token")
-
-      post run_project_bugsnag_sync_path(project, bugsnag_sync)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Bugsnag sync failed: bad token")
+    it_behaves_like "a manual start action" do
+      let(:perform_request) { -> { post run_project_bugsnag_sync_path(project, bugsnag_sync) } }
+      let(:starter) { triager }
+      let(:blockers_owner) { triage_sync }
+      let(:blocked_blockers) { [ "no token" ] }
+      let(:blocked_alert) { "Bugsnag sync blocked: no token" }
+      let(:started_notice) { "Agent is triaging Bugsnag errors into Jira. The result shows here when it finishes." }
+      let(:running_alert) { "A Bugsnag triage is already running for this sync." }
+      let(:start_error) { Bugsnag::FetchError.new("bad token") }
+      let(:failed_alert) { "Bugsnag sync failed: bad token" }
     end
   end
 end

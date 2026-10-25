@@ -12,14 +12,16 @@ RSpec.describe "Project brainstorms", type: :request do
       allow(Brainstorm::Planner).to receive(:new).and_return(planner)
     end
 
-    it "reports the blockers" do
-      allow(planner).to receive(:blockers).and_return([ "brainstorm is off" ])
-
-      post brainstorm_project_path(project)
-
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:alert]).to eq("Brainstorm blocked: brainstorm is off")
-      expect(planner).not_to have_received(:start)
+    it_behaves_like "a manual start action" do
+      let(:perform_request) { -> { post brainstorm_project_path(project) } }
+      let(:starter) { planner }
+      let(:blockers_owner) { planner }
+      let(:blocked_blockers) { [ "brainstorm is off" ] }
+      let(:blocked_alert) { "Brainstorm blocked: brainstorm is off" }
+      let(:started_notice) { "Agent is brainstorming workflows. They appear within the hour after it finishes." }
+      let(:running_alert) { "A brainstorm is already running for this project." }
+      let(:start_error) { AiCli::CommandError.new("claude exploded") }
+      let(:failed_alert) { "Brainstorm failed: claude exploded" }
     end
 
     it "skips while workflows are pending" do
@@ -31,28 +33,10 @@ RSpec.describe "Project brainstorms", type: :request do
       expect(planner).not_to have_received(:start)
     end
 
-    it "starts a brainstorm and records the run time" do
+    it "records the run time when a brainstorm starts" do
       post brainstorm_project_path(project)
 
-      expect(response).to redirect_to(project_path(project))
-      expect(flash[:notice]).to eq("Agent is brainstorming workflows. They appear within the hour after it finishes.")
       expect(project.reload.brainstorm_last_run_at).to be_present
-    end
-
-    it "says when a brainstorm is already running" do
-      allow(planner).to receive(:start).and_return(false)
-
-      post brainstorm_project_path(project)
-
-      expect(flash[:alert]).to eq("A brainstorm is already running for this project.")
-    end
-
-    it "reports a failed start" do
-      allow(planner).to receive(:start).and_raise(AiCli::CommandError, "claude exploded")
-
-      post brainstorm_project_path(project)
-
-      expect(flash[:alert]).to eq("Brainstorm failed: claude exploded")
     end
   end
 end
