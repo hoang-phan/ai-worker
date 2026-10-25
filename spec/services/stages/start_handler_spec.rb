@@ -52,6 +52,38 @@ RSpec.describe Stages::StartHandler, type: :service do
     end
   end
 
+  describe "dispatch over Stage::STAGE_TYPES" do
+    starter_classes = {
+      pr_check: Stages::PrCheckRun,
+      pr_review: Stages::PrReviewStart,
+      ci_check: Stages::CiCheckStart,
+      browser_test: Stages::BrowserTestStart,
+      runbook_step: Stages::RunbookStepStart
+    }.freeze
+
+    Stage::STAGE_TYPES.each_key do |type|
+      context "with #{type}" do
+        let(:stage_type) { type }
+
+        it "dispatches exactly one start path" do
+          started_paths = []
+          allow(launcher).to receive(:call) { started_paths << :launcher }
+
+          starter_classes.each do |name, klass|
+            starter = instance_double(klass, call: nil)
+            allow(klass).to receive(:new).and_return(starter)
+            allow(starter).to receive(:call) { started_paths << name }
+          end
+
+          handler.call
+
+          expect(started_paths.size).to eq(1),
+            "expected stage type #{type.inspect} to dispatch exactly one start path, but dispatched #{started_paths.inspect}"
+        end
+      end
+    end
+  end
+
   describe "simple_implementation" do
     let(:stage_type) { :simple_implementation }
 
@@ -136,5 +168,15 @@ RSpec.describe Stages::StartHandler, type: :service do
       )
       expect(run).to have_received(:call)
     end
+  end
+
+  it "is a no-op returning nil for an unknown stage type" do
+    starter_classes = [ Stages::PrCheckRun, Stages::PrReviewStart, Stages::CiCheckStart, Stages::BrowserTestStart, Stages::RunbookStepStart ]
+    starter_classes.each { |klass| allow(klass).to receive(:new) }
+    allow(stage).to receive(:stage_type).and_return("bogus")
+
+    expect(handler.call).to be_nil
+    expect(launcher).not_to have_received(:call)
+    starter_classes.each { |klass| expect(klass).not_to have_received(:new) }
   end
 end
