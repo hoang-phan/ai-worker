@@ -1,22 +1,16 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, prompt templates, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, and routes.
+description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, settings and rotations, shared UI, stylesheets, remaining Stimulus controllers, and routes.
 ---
 
 # ai-worker-ui
 
-Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared UI, stylesheets under `app/assets/stylesheets/`, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
+Scope: ProjectsController CRUD, settings and rotations, shared UI, stylesheets under `app/assets/stylesheets/`, remaining Stimulus controllers, and `config/routes.rb`. Workflow and stage screens belong to `ai-worker-workflow-screens`; project dashboard/list screens belong to `ai-worker-project-dashboard`.
 
 ## File map
 
 - `config/routes.rb` — project, sync, workflow, stage, prompt-template, settings, root, Sidekiq, and health routes. Keep existing helper names when routing a controller action.
 - `app/controllers/projects_controller.rb` — project CRUD; dashboard `index`/`show` details belong to `ai-worker-project-dashboard`.
-- `app/controllers/prompt_templates_controller.rb` — prompt-template CRUD.
-- `app/views/prompt_templates/_form.html.erb` — prompt-template form and built-in tokens.
-- `app/views/prompt_templates/index.html.erb` — prompt-template list.
-- `app/views/prompt_templates/show.html.erb` — prompt-template detail.
-- `app/views/prompt_templates/new.html.erb` — new prompt-template wrapper.
-- `app/views/prompt_templates/edit.html.erb` — edit prompt-template wrapper.
 - `app/controllers/settings_controller.rb` — agent-setting update.
 - `app/controllers/settings/rotations_controller.rb` — rotation-weight update.
 - `app/views/settings/show.html.erb` — both settings forms.
@@ -51,6 +45,7 @@ Scope: ProjectsController CRUD, prompt templates, settings and rotations, shared
 ## Owned elsewhere
 
 - Project form partials (`app/views/projects/{_form,new,edit}.html.erb`, `app/views/projects/form/*`) — `ai-worker-project-settings`.
+- Prompt-template CRUD (`app/controllers/prompt_templates_controller.rb`, `app/views/prompt_templates/**`, `spec/requests/prompt_templates_spec.rb`) — `ai-worker-prompts`.
 - Jira sync CRUD, run actions, and views (`app/controllers/jira_syncs_controller.rb`, `app/controllers/jira_sync_runs_controller.rb`, `app/views/jira_syncs/**`) — `ai-worker-jira-ticket-sync`.
 - Bugsnag sync CRUD, run actions, and views (`app/controllers/bugsnag_syncs_controller.rb`, `app/controllers/bugsnag_sync_runs_controller.rb`, `app/views/bugsnag_syncs/**`) — `ai-worker-bugsnag-triage`.
 - Project brainstorm action (`app/controllers/project_brainstorms_controller.rb`) — `ai-worker-brainstorm`.

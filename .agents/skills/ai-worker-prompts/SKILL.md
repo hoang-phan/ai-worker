@@ -1,13 +1,13 @@
 ---
 name: ai-worker-prompts
-description: Applies ai-worker's prompt discipline. Use for app/services/prompts/{slack_post,conflict_resolution,stage_prompt,stage_section_list,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb, app/services/prompts/defaults/jira_update.md, app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb, app/models/prompt_template.rb, or docs/PROMPT_TEMPLATES.md. This skill remains the authority for placeholder and section rules everywhere.
+description: Applies ai-worker's prompt discipline. Use for app/services/prompts/{slack_post,conflict_resolution,stage_prompt,stage_section_list,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb, app/services/prompts/defaults/jira_update.md, app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb, app/models/prompt_template.rb, app/controllers/prompt_templates_controller.rb, app/views/prompt_templates/{_form,index,show,new,edit}.html.erb, spec/requests/prompt_templates_spec.rb, or docs/PROMPT_TEMPLATES.md. This skill remains the authority for placeholder and section rules everywhere.
 ---
 
 # ai-worker-prompts
 
 Single home for prompt knowledge. Other skills point here. Where `docs/PROMPT_TEMPLATES.md` and the code disagree, the code wins (and the doc gets fixed).
 
-Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::LocalFeedback`) and their credential/marker rules: `ai-worker-browser-tests`.
+Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::LocalFeedback`) and their credential/marker rules: `ai-worker-browser-tests`. Prompt-template CRUD is plain Rails — follow `ai-worker-ui` for generic CRUD conventions.
 
 ## File map
 
@@ -28,6 +28,13 @@ Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::Local
   - `FollowUps` (`follow_ups.rb`): task; asks for out-of-scope work between `FOLLOW_UPS_BEGIN/END`, queued as workflows by `Stages::TaskFinish`.
   - `LocalFeedback` (`local_feedback.rb`): pr_check on a locally-testable project (failure feedback plus the `LOCAL_RETEST: YES|NO` question).
 - `app/models/prompt_template.rb` — `PromptTemplate`: `name`, `body` (both required), `stage_type` enum reusing `Stage::STAGE_TYPES`, `has_many :stages, dependent: :nullify`. It holds no placeholder list; the UI reads `Prompts::Renderer::BUILT_IN_TOKENS`.
+- `app/controllers/prompt_templates_controller.rb` — prompt-template CRUD.
+- `app/views/prompt_templates/_form.html.erb` — shared form; chips iterate `Prompts::Renderer::BUILT_IN_TOKENS` (from `WorkflowPlaceholders::TOKENS` + `ProjectPlaceholders::TOKENS`).
+- `app/views/prompt_templates/index.html.erb` — prompt-template list.
+- `app/views/prompt_templates/show.html.erb` — prompt-template detail.
+- `app/views/prompt_templates/new.html.erb` — new prompt-template wrapper.
+- `app/views/prompt_templates/edit.html.erb` — edit prompt-template wrapper.
+- `spec/requests/prompt_templates_spec.rb` — prompt-template CRUD requests.
 - `docs/PROMPT_TEMPLATES.md` — the user-facing placeholder table and template examples.
 
 ## Adding a placeholder
@@ -54,6 +61,8 @@ Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::Local
 - Never substitute outside `Prompts::Renderer`; never re-scan substituted values; don't give custom variables a way to override built-ins.
 - Result marker lines a prompt asks for (`JIRA_RESULT`, `UAT_RESULT`, `LOCAL_TEST_RESULT`, ...) are parsed by `AiCli::Output`; see `ai-worker-stage-types`.
 - Sections stay pure: values in, string out, no model or I/O access inside `StageSections`.
+- The built-in token list on the template form must stay in sync with the placeholders the renderer supports (`WorkflowPlaceholders` / `ProjectPlaceholders` → `BUILT_IN_TOKENS`). A new placeholder updates both; do not hard-code a separate chip list in `_form.html.erb`.
+- Prompt-template screens are plain CRUD — use `ai-worker-ui` conventions rather than duplicating them here.
 
 ## Specs to update (see `ai-worker-testing`)
 
@@ -66,3 +75,4 @@ Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::Local
 - `spec/services/prompts/stage_prompt_spec.rb` — precedence, defaults fallback, sections appended after the rendered body, agent-brief wiring, and one forwarding example each for `slack_message` and `CONFLICT`; section wording is tested per section. `spec/services/prompts/stage_prompt/ci_loop_spec.rb` covers the ci_loop prompts.
 - `spec/services/prompts/stage_sections/<snake_name>_spec.rb` — one spec per section: guards and text.
 - `spec/models/prompt_template_spec.rb` — model validations.
+- `spec/requests/prompt_templates_spec.rb` — prompt-template CRUD requests.
