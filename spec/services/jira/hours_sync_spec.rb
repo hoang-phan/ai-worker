@@ -18,7 +18,7 @@ RSpec.describe Jira::HoursSync do
   end
 
   describe "#call" do
-    it "mirrors each ticket's worklogs, linking them to the workflow, and stamps the sync time" do
+    it "mirrors each ticket's worklogs via TimeLogMirror, linking them to the workflow, and stamps the sync time" do
       workflow = workflow_for("HRS-1")
       allow(client).to receive(:my_worklogs).with("HRS-1").and_return([ worklog("1", 3600), worklog("2", 1800) ])
 
@@ -30,18 +30,7 @@ RSpec.describe Jira::HoursSync do
       expect(workflow.jira_logged_synced_at).to be_within(1.minute).of(Time.current)
     end
 
-    it "updates changed worklogs and drops the ones deleted in Jira, without duplicating" do
-      workflow = workflow_for("HRS-2")
-      TimeLog.create!(workflow: workflow, ticket_key: "HRS-2", jira_worklog_id: "1", started_at: Time.current, seconds: 3600)
-      TimeLog.create!(workflow: workflow, ticket_key: "HRS-2", jira_worklog_id: "gone", started_at: Time.current, seconds: 900)
-      allow(client).to receive(:my_worklogs).with("HRS-2").and_return([ worklog("1", 7200) ])
-
-      sync.call
-
-      expect(TimeLog.where(ticket_key: "HRS-2").pluck(:jira_worklog_id, :seconds)).to eq([ [ "1", 7200 ] ])
-    end
-
-    it "mirrors tickets logged this month that the app has no workflow for (so the day totals are complete)" do
+    it "discovers tickets logged this month that the app has no workflow for (so the day totals are complete)" do
       allow(client).to receive(:keys_with_my_worklogs_since).with(Date.new(2026, 9, 30)).and_return([ "OTHER-9" ])
       allow(client).to receive(:my_worklogs).with("OTHER-9").and_return([ worklog("9", 21_600) ])
 
@@ -51,49 +40,39 @@ RSpec.describe Jira::HoursSync do
       expect([ log.workflow_id, log.seconds ]).to eq([ nil, 21_600 ])
     end
 
-    it "the planner then skips a day filled directly in Jira" do
-      allow(client).to receive(:keys_with_my_worklogs_since).and_return([ "OTHER-9" ])
-      allow(client).to receive(:my_worklogs).with("OTHER-9").and_return([ worklog("9", 6 * 3600, started: Time.zone.local(2026, 10, 1, 9)) ])
+    it "aggregates synced and failed counts across Jira sites" do
+      other_dir = make_tmpdir("hours-sync-other")
+      other = build_jira_project(local_directory: other_dir, jira_base_url: "https://other.atlassian.net", name: "Other #{SecureRandom.hex(4)}")
+      workflow_for("HRS-10")
+      build_jira_workflow(other, jira_ticket: "HRS-11")
+      clients = {
+        base_url => client,
+        "https://other.atlassian.net" => instance_double(Jira::WorklogClient, keys_with_my_worklogs_since: [])
+      }
+      allow(clients[base_url]).to receive(:my_worklogs).with("HRS-10").and_return([ worklog("a", 3600) ])
+      allow(clients["https://other.atlassian.net"]).to receive(:my_worklogs).with("HRS-11")
+        .and_raise(Jira::WorklogError, "Jira HRS-11 could not be read (HTTP 404)")
+      multi = described_class.new(client_factory: ->(url) { clients.fetch(url) }, today: -> { Date.new(2026, 10, 22) })
 
-      sync.call
+      result = multi.call
 
-      expect(Jira::TimeSlotPlanner.new(today: Date.new(2026, 10, 22)).next_start(5400).to_date).to eq(Date.new(2026, 10, 2))
-    end
-
-    it "keeps the previous rows of a failing ticket and carries on with the rest" do
-      bad = workflow_for("HRS-3")
-      TimeLog.create!(workflow: bad, ticket_key: "HRS-3", jira_worklog_id: "1", started_at: Time.current, seconds: 100)
-      good = workflow_for("HRS-4")
-      allow(client).to receive(:my_worklogs).with("HRS-3").and_raise(Jira::WorklogError, "Jira HRS-3 could not be read (HTTP 404)")
-      allow(client).to receive(:my_worklogs).with("HRS-4").and_return([ worklog("4", 3600) ])
-
-      result = sync.call
-
-      expect(result.failed).to eq([ "HRS-3: Jira HRS-3 could not be read (HTTP 404)" ])
-      expect(bad.reload.logged_seconds).to eq(100)
-      expect(bad.jira_logged_synced_at).to be_nil
-      expect(good.reload.logged_seconds).to eq(3600)
-    end
-
-    it "aborts when credentials are missing" do
-      workflow_for("HRS-5")
-      allow(client).to receive(:my_worklogs).and_raise(Jira::WorklogError.new("JIRA_EMAIL / JIRA_ACCESS_TOKEN are not set", reason: :missing_credentials))
-
-      expect { sync.call }.to raise_error(Jira::WorklogError, /not set/)
-    end
-
-    it "treats an ordinary Jira error whose text contains 'are not set' as a per-ticket failure" do
-      bad = workflow_for("HRS-8")
-      good = workflow_for("HRS-9")
-      allow(client).to receive(:my_worklogs).with("HRS-8").and_raise(Jira::WorklogError, "Custom fields are not set")
-      allow(client).to receive(:my_worklogs).with("HRS-9").and_return([ worklog("9", 3600) ])
-
-      result = sync.call
-
-      expect(result.failed).to eq([ "HRS-8: Custom fields are not set" ])
       expect(result.synced).to eq(1)
-      expect(bad.reload.jira_logged_synced_at).to be_nil
-      expect(good.reload.logged_seconds).to eq(3600)
+      expect(result.failed).to eq([ "HRS-11: Jira HRS-11 could not be read (HTTP 404)" ])
+    end
+
+    it "reuses one client instance per site across recent-key lookup and ticket sync" do
+      workflow_for("HRS-1")
+      created = []
+      factory = lambda { |url|
+        created << url
+        client
+      }
+      allow(client).to receive(:my_worklogs).with("HRS-1").and_return([])
+      described_class.new(client_factory: factory, today: -> { Date.new(2026, 10, 22) }).call
+
+      expect(created).to eq([ base_url ])
+      expect(client).to have_received(:keys_with_my_worklogs_since).once
+      expect(client).to have_received(:my_worklogs).with("HRS-1").once
     end
 
     it "skips projects without a Jira site URL" do
@@ -105,13 +84,15 @@ RSpec.describe Jira::HoursSync do
   end
 
   describe "#recent" do
-    it "mirrors only this month's tickets" do
-      workflow_for("HRS-7")
+    it "discovers and mirrors only this month's tickets, without stamping unrelated workflows" do
+      workflow = workflow_for("HRS-7")
       allow(client).to receive(:keys_with_my_worklogs_since).and_return([ "OTHER-1" ])
       allow(client).to receive(:my_worklogs).with("OTHER-1").and_return([ worklog("1", 3600) ])
 
       expect(sync.recent(base_url).synced).to eq(1)
       expect(client).not_to have_received(:my_worklogs).with("HRS-7")
+      expect(TimeLog.find_by!(ticket_key: "OTHER-1").workflow_id).to be_nil
+      expect(workflow.reload.jira_logged_synced_at).to be_nil
     end
   end
 end

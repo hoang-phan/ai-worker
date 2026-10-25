@@ -1,7 +1,8 @@
 module Jira
   # Mirrors the JIRA_EMAIL user's Jira worklogs into time_logs, so the day allocation, the badges and every hours figure
-  # agree with Jira. Per ticket the local rows are replaced by what Jira has (worklogs are matched by id); a failed
-  # ticket keeps its previous rows and is reported in the result. Missing credentials abort the run.
+  # agree with Jira. Discovers sites/workflows and recent ticket keys, reuses one client per site, and aggregates
+  # WorklogSiteSync results. A failed ticket keeps its previous rows and is reported in the result. Missing credentials
+  # abort the run.
   class HoursSync
     Result = Struct.new(:synced, :failed, keyword_init: true)
 
@@ -42,37 +43,7 @@ module Jira
     end
 
     def sync_site(base_url, workflows, keys)
-      result = Result.new(synced: 0, failed: [])
-      workflow_by_key = workflows.select(&:jira_key).index_by(&:jira_key)
-      failed_keys = keys.uniq.reject { |key| sync_ticket(base_url, key, workflow_by_key[key], result) }
-      stamp_synced(workflows, failed_keys)
-      result
-    end
-
-    # Mirrors one ticket; returns true on success. A failure is recorded in the result and the ticket keeps its old rows,
-    # except missing credentials, which abort the whole run.
-    def sync_ticket(base_url, key, workflow, result)
-      mirror.replace(key, client(base_url).my_worklogs(key), workflow: workflow)
-      result.synced += 1
-      true
-    rescue WorklogError => e
-      raise if e.missing_credentials?
-
-      result.failed << "#{key}: #{e.message}"
-      false
-    end
-
-    def stamp_synced(workflows, failed_keys)
-      workflows.each do |workflow|
-        next unless workflow.jira_key
-        next if failed_keys.include?(workflow.jira_key)
-
-        workflow.update_columns(jira_logged_synced_at: Time.current)
-      end
-    end
-
-    def mirror
-      @mirror ||= TimeLogMirror.new
+      WorklogSiteSync.new(client: client(base_url)).call(workflows, keys)
     end
 
     def client(base_url)
