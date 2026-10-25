@@ -38,7 +38,7 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 ## Conventions
 
-- **Inject collaborators by keyword with production defaults.** Executors, starts, finishes, and decisions accept keyword collaborators (`github:`, `git:`, `launcher:`, `handoff:`, `enqueue:` and similar) so specs can pass doubles; keep I/O out of pure decision objects.
+- **Inject collaborators by keyword with production defaults.** Executors, starts, finishes, and decisions accept keyword collaborators (`github:`, `git:`, `launcher:`, `handoff:`, `enqueue:` and similar) so specs can pass doubles; keep I/O out of pure decision objects. For `StageExecutor`, accept `handoff: nil`, memoize it, and construct the production default as `Stages::ReviewHandoff.new(workflow, stage, github: github)` so its auto-merge and PR-title calls share the executor's lazily resolved GitHub client. Forward that same handoff to both `StartHandler` and `CompletionHandler`.
 - **`StageExecutor` is the single rescue point.** Let `Git::CommandError`, `Github::CommandError`, `AiCli::CommandError`, and configuration `ArgumentError` propagate from pipeline services to `StageExecutor#call`, which delegates failure state to `FailureHandler`; do not add competing broad rescues.
 - **Log through the stage.** Every outcome uses `stage.log_run!`; its action must already be in `StageRun::ACTIONS` (see `ai-worker-domain`). Do not create `stage_runs` directly.
 - **Every successful run clears its tracked state.** Each success path calls `workflow.finish_ai_run!` before it reaches a terminal or next workflow state; `ConflictResolutionFinish` clears the completed run before launching its replacement run.

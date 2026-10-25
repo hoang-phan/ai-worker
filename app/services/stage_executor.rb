@@ -9,8 +9,8 @@ class StageExecutor
   # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
-  # `github:`, `git:`, `tooling:` and `ai_run_poll:` default to production collaborators; specs pass doubles.
-  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil, ai_run_poll: nil)
+  # `github:`, `git:`, `tooling:`, `ai_run_poll:` and `handoff:` default to production collaborators; specs pass doubles.
+  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil, ai_run_poll: nil, handoff: nil)
     @workflow = workflow
     @stage = stage
     @project = workflow.project
@@ -20,6 +20,7 @@ class StageExecutor
     @ai_run_poll = ai_run_poll || Stages::AiRunPoll.new(
       workflow: workflow, stage: stage, poller_class: @tooling.poller_class, stale_after: STALE_AFTER
     )
+    @handoff = handoff
   end
 
   def call
@@ -77,7 +78,7 @@ class StageExecutor
   end
 
   def handoff
-    @handoff ||= Stages::ReviewHandoff.new(workflow, stage)
+    @handoff ||= Stages::ReviewHandoff.new(workflow, stage, github: github)
   end
 
   def prompt

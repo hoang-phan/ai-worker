@@ -55,12 +55,45 @@ RSpec.describe StageExecutor, type: :service do
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
       github = double("Github::Client")
       git = double("Git::BranchService")
+      handoff = double("Stages::ReviewHandoff")
       allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-      described_class.new(workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll).call
+      described_class.new(workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll, handoff: handoff).call
 
-      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, git: git))
+      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, git: git, handoff: handoff))
       expect(handler).to have_received(:call).with("green")
+    end
+
+    it "builds the default handoff with its lazy GitHub client" do
+      ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
+      github = double("Github::Client")
+      handoff = instance_double(Stages::ReviewHandoff)
+      allow(Github::Client).to receive(:new).with(project).and_return(github)
+      allow(Stages::ReviewHandoff).to receive(:new).with(workflow, stage, github: github).and_return(handoff)
+      allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
+
+      described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+
+      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, handoff: handoff))
+    end
+
+    it "completes an implementation run using only injected GitHub and poller collaborators" do
+      implementation = build_stage(workflow, :implementation)
+      pr_url = "https://github.com/acme/widgets/pull/99"
+      ai_run_poll = instance_double(Stages::AiRunPoll, call: "opened #{pr_url}")
+      github = instance_double(Github::Client, find_pr_url: pr_url, enable_auto_merge!: nil, pr_title: "Use injected GitHub")
+      notifier = instance_double(Slack::ReviewNotifier, enabled?: true, collect: nil, notify!: nil)
+      handoff = Stages::ReviewHandoff.new(workflow, implementation, notifier: notifier, github: github)
+      expect(Github::Client).not_to receive(:new)
+
+      described_class.new(workflow, implementation, github: github, ai_run_poll: ai_run_poll, handoff: handoff).call
+
+      expect(workflow.reload).to have_attributes(status: "reviewing", github_pr_url: pr_url).and have_finished_ai_run
+      expect(stage_actions(implementation)).to eq %w[ran_implementation auto_merge_enabled slack_review_notified]
+      expect(github).to have_received(:find_pr_url).with(branch_name: "executor", jira_ticket: "EXEC-1", output: "opened #{pr_url}")
+      expect(github).to have_received(:enable_auto_merge!).with(pr_url)
+      expect(github).to have_received(:pr_title).with(pr_url)
+      expect(notifier).to have_received(:notify!).with(hash_including(pr_url: pr_url, label: "EXEC-1 Use injected GitHub"))
     end
   end
 
@@ -74,13 +107,16 @@ RSpec.describe StageExecutor, type: :service do
       stage = build_stage(workflow, :implementation)
       launcher = instance_double(Stages::AiRunLauncher)
       start_handler = instance_double(Stages::StartHandler, call: nil)
+      handoff = instance_double(Stages::ReviewHandoff)
       allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
       allow(Stages::StartHandler).to receive(:new).and_return(start_handler)
 
-      described_class.new(workflow, stage).call
+      described_class.new(workflow, stage, handoff: handoff).call
 
       expect(Stages::AiRunLauncher).to have_received(:new).with(workflow: workflow, stage: stage, project: project, runner: AiCli::Runner)
-      expect(Stages::StartHandler).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher))
+      expect(Stages::StartHandler).to have_received(:new).with(
+        hash_including(workflow: workflow, stage: stage, project: project, handoff: handoff, launcher: launcher)
+      )
       expect(start_handler).to have_received(:call)
     end
 
