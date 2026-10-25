@@ -5,7 +5,7 @@ RSpec.describe Stages::ConflictResolutionFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "CRF-1", branch_name: "conflict-finish", status: :implementing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
+  let(:stage) { build_stage(workflow, :pr_check) }
   let(:git) { double("Git::BranchService", merge_in_progress?: false, abort_merge!: nil) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:launcher) { spy("launcher") }

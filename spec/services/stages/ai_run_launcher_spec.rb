@@ -5,7 +5,7 @@ RSpec.describe Stages::AiRunLauncher, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "LAUNCH-1", branch_name: "launcher", status: :implementing)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :implementation, name: "implementation") }
+  let(:stage) { build_stage(workflow, :implementation) }
   let(:runner) do
     Class.new do
       class << self

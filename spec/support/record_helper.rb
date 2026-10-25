@@ -53,6 +53,10 @@ module RecordHelper
                                 github_pr_url: "https://github.com/acme/widgets/pull/#{PR_NUMBER_SEQUENCE.next}" }.merge(attrs))
   end
 
+  def build_stage(workflow, stage_type, **attrs)
+    workflow.stages.create!({ stage_type: stage_type, name: stage_type.to_s }.merge(attrs))
+  end
+
   def build_runbook_stage(workflow, **attrs)
     workflow.stages.create!({ stage_type: :runbook_step, name: "Step" }.merge(attrs))
   end

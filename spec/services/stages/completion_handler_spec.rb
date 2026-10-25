@@ -6,7 +6,7 @@ RSpec.describe Stages::CompletionHandler, type: :service do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "completion-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing, **running_ai_run)
   end
   let(:stage_type) { :implementation }
-  let(:stage) { workflow.stages.create!(stage_type: stage_type, name: stage_type.to_s) }
+  let(:stage) { build_stage(workflow, stage_type) }
   let(:github) { double("Github::Client") }
   let(:git) { double("Git::BranchService") }
   let(:handoff) { double("Stages::ReviewHandoff") }

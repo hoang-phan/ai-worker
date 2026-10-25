@@ -6,7 +6,7 @@ RSpec.describe Stages::StartHandler, type: :service do
     build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
   end
   let(:stage_type) { :implementation }
-  let(:stage) { workflow.stages.create!(stage_type: stage_type, name: stage_type.to_s) }
+  let(:stage) { build_stage(workflow, stage_type) }
   let(:github) { double("Github::Client") }
   let(:git) { class_double(Git::BranchService, create_branch!: nil, checkout_remote_branch!: nil, update_with_main!: :updated) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }

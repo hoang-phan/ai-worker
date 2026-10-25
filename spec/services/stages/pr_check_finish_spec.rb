@@ -5,7 +5,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "PCF-1", branch_name: "pr-check-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :reviewing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
+  let(:stage) { build_stage(workflow, :pr_check) }
   let(:github) { double("Github::Client", request_review!: nil) }
   let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ], notify_reviewers!: nil) }
 
@@ -15,7 +15,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
 
   it "schedules a retest, clears feedback, and does not notify reviewers" do
     workflow.update!(local_test_feedback: "The login button is broken")
-    workflow.stages.create!(stage_type: :local_test, name: "local_test")
+    build_stage(workflow, :local_test)
     allow(project).to receive(:local_test_ready?).and_return(true)
 
     finish("LOCAL_RETEST: YES\nFIXED_SUMMARY_BEGIN\n- fixed login\nFIXED_SUMMARY_END")

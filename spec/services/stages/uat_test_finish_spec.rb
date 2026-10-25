@@ -5,7 +5,7 @@ RSpec.describe Stages::UatTestFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :uat_test, name: "uat_test") }
+  let(:stage) { build_stage(workflow, :uat_test) }
 
   def finish(output)
     described_class.new(workflow: workflow, stage: stage).call(output)

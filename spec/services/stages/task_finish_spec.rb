@@ -5,7 +5,7 @@ RSpec.describe Stages::TaskFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :task, name: "task") }
+  let(:stage) { build_stage(workflow, :task) }
   let(:git) { class_double(Git::BranchService, push_current!: :pushed) }
 
   def finish(output = "agent output")
@@ -72,7 +72,7 @@ RSpec.describe Stages::TaskFinish, type: :service do
     it "skips follow-ups for a non-personal project" do
       jira_project = build_jira_project(local_directory: local_directory)
       jira_workflow = build_jira_workflow(jira_project, jira_ticket: "TASK-2", branch_name: "t2", status: :implementing)
-      jira_stage = jira_workflow.stages.create!(stage_type: :task, name: "task")
+      jira_stage = build_stage(jira_workflow, :task)
 
       described_class.new(workflow: jira_workflow, stage: jira_stage, project: jira_project, git: git).call(block("Fix A"))
       expect(jira_project.workflows.count).to eq 1

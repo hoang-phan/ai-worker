@@ -5,7 +5,7 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "implementation-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :implementation, name: "implementation") }
+  let(:stage) { build_stage(workflow, :implementation) }
   let(:github) { double("Github::Client", find_pr_url: "https://github.com/acme/widgets/pull/9") }
   let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
   let(:output) { "agent output" }

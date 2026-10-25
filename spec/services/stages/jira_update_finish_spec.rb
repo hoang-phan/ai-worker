@@ -7,7 +7,7 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, **running_ai_run)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :jira_update, name: "jira_update") }
+  let(:stage) { build_stage(workflow, :jira_update) }
 
   def finish(output)
     described_class.new(workflow: workflow, stage: stage, project: project).call(output)

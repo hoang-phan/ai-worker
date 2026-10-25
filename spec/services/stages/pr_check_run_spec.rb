@@ -5,7 +5,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "PRC-1", branch_name: "pr-check-run", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
   end
-  let(:stage) { workflow.stages.create!(stage_type: :pr_check, name: "pr_check") }
+  let(:stage) { build_stage(workflow, :pr_check) }
   let(:github) { double("Github::Client", merged?: false, review_decision: "CHANGES_REQUESTED", checks_failing?: false) }
   let(:git) { double("Git::BranchService", update_with_main!: :updated) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }

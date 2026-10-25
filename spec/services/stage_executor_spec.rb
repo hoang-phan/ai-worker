@@ -49,7 +49,7 @@ RSpec.describe StageExecutor, type: :service do
   end
 
   describe "injected collaborators" do
-    let(:stage) { workflow.stages.create!(stage_type: :ci_check, name: "ci_check") }
+    let(:stage) { build_stage(workflow, :ci_check) }
 
     it "uses injected collaborators for a finished ci_check stage" do
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
@@ -71,7 +71,7 @@ RSpec.describe StageExecutor, type: :service do
     let(:tooling) { Stages::RunTooling::Tooling.new(runner: runner, poller_class: AiCli::RunPoller) }
 
     it "builds a launcher and injects it into the start handler" do
-      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation")
+      stage = build_stage(workflow, :implementation)
       launcher = instance_double(Stages::AiRunLauncher)
       start_handler = instance_double(Stages::StartHandler, call: nil)
       allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
@@ -85,7 +85,7 @@ RSpec.describe StageExecutor, type: :service do
     end
 
     it "passes its launcher to conflict resolution finishing" do
-      stage = workflow.stages.create!(stage_type: :pr_check, name: "pr_check")
+      stage = build_stage(workflow, :pr_check)
       workflow.update!(running_ai_run)
       launcher = instance_double(Stages::AiRunLauncher)
       finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
@@ -103,7 +103,7 @@ RSpec.describe StageExecutor, type: :service do
     end
 
     it "fails the stage when the start path raises a command error" do
-      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation", prompt: "implement it")
+      stage = build_stage(workflow, :implementation, prompt: "implement it")
       allow(git).to receive(:create_branch!).and_raise(Git::CommandError, "no branch")
 
       described_class.new(workflow, stage, git: git, tooling: tooling).call
@@ -112,7 +112,7 @@ RSpec.describe StageExecutor, type: :service do
     end
 
     it "starts an implementation stage and records the detached run" do
-      stage = workflow.stages.create!(stage_type: :implementation, name: "implementation", prompt: "implement it")
+      stage = build_stage(workflow, :implementation, prompt: "implement it")
 
       described_class.new(workflow, stage, git: git, tooling: tooling).call
 
