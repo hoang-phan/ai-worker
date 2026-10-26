@@ -28,6 +28,15 @@ module AiCli
       new.poll(pid)
     end
 
+    # Seams for specs, defaulting to the real collaborators: spawn is called like Process.spawn; command_builder
+    # responds to `new(agent:, prompt:, **options)` returning an object with #to_a (Command); providers responds to
+    # `fetch(name)` returning a provider with #wrap (Providers).
+    def initialize(spawn: Process.method(:spawn), command_builder: Command, providers: Providers)
+      @spawn = spawn
+      @command_builder = command_builder
+      @providers = providers
+    end
+
     # allowed_tools (claude only): run with exactly these tools approved
     # (`--allowedTools`) instead of skipping every permission check, for runs
     # that should be read-only, e.g. the Slack mention fetch. Anything not
@@ -54,7 +63,7 @@ module AiCli
                           model: model, effort: effort }
       command = agent_command(project_directory, prompt, provider: provider, **command_options)
 
-      Process.spawn(
+      @spawn.call(
         spawn_env(env),
         *command,
         chdir: project_directory,
@@ -74,8 +83,8 @@ module AiCli
     # (cursor writes its MCP file around the run).
     def agent_command(project_directory, prompt, provider: nil, **command_options)
       agent = provider.presence || self.class.agent
-      command = Command.new(agent: agent, prompt: prompt, **command_options).to_a
-      Providers.fetch(agent).wrap(command, project_directory: project_directory, mcp_config: command_options[:mcp_config])
+      command = @command_builder.new(agent: agent, prompt: prompt, **command_options).to_a
+      @providers.fetch(agent).wrap(command, project_directory: project_directory, mcp_config: command_options[:mcp_config])
     end
 
     # Process environment for the spawn: LEAKED_ENV unset (nil), the caller's env stringified on top (so it wins).
