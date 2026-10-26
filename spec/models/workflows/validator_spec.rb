@@ -112,4 +112,50 @@ RSpec.describe Workflows::Validator do
       expect(workflow).to be_valid
     end
   end
+
+  describe "reusing one validator instance" do
+    let(:validator) { described_class.new }
+
+    def validate_with(validator, workflow)
+      validator.validate(workflow)
+      workflow.errors
+    end
+
+    it "keeps errors on the intended record across sequential invocations" do
+      invalid = personal_project.workflows.build
+      valid = personal_project.workflows.build(task_description: "Do it")
+
+      validate_with(validator, invalid)
+      validate_with(validator, valid)
+
+      expect(invalid.errors.details[:task_description]).to eq([ { error: :blank } ])
+      expect(valid.errors).to be_empty
+    end
+
+    it "does not retain the workflow between invocations" do
+      validator.validate(personal_project.workflows.build)
+
+      expect(validator.instance_variables).to eq([ :@options ])
+    end
+
+    it "keeps errors on each record when re-entered for a second record mid-validation" do
+      outer = jira_project.workflows.build(jira_ticket: "V-1", branch_name: "v-1", github_reviewer: "octocat", kind: :runbook)
+      outer.variables = { "bad-name" => "x" }
+      inner = personal_project.workflows.build
+      reentered = false
+      allow(outer).to receive(:runbook?).and_wrap_original do |original|
+        unless reentered
+          reentered = true
+          validator.validate(inner)
+        end
+        original.call
+      end
+
+      validator.validate(outer)
+
+      expect(reentered).to be(true)
+      expect(inner.errors.attribute_names).to eq([ :task_description ])
+      expect(outer.errors.attribute_names).to eq([ :variables ])
+    end
+  end
 end

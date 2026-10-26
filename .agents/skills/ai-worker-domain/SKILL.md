@@ -20,7 +20,7 @@ Browser-test behaviour behind the UAT/local readiness predicates, `Stage#local_t
 - `app/models/workflows/runbook_navigator.rb` — owned by `ai-worker-runbooks`.
 - `app/models/workflows/runbook_clone.rb` — owned by `ai-worker-runbooks`.
 - `app/models/workflows/image_store.rb` — reference images as plain files under `tmp/workflow_images/<id>` (not Active Storage), exposed via `{IMAGES}`.
-- `app/models/workflows/validator.rb` — `Workflows::Validator` (`validates_with` on Workflow): the kind/project-conditional presence rules, PR-review project check, variable-name check and `copy_stages_from_id` check. Spec: `spec/models/workflows/validator_spec.rb`. The `github_pr_url` format check stays in `workflow.rb`.
+- `app/models/workflows/validator.rb` — `Workflows::Validator` (`validates_with` on Workflow): the kind/project-conditional presence rules, PR-review project check, variable-name check and `copy_stages_from_id` check. Spec: `spec/models/workflows/validator_spec.rb`. The `github_pr_url` format check stays in `workflow.rb`. Validators are reusable and record-local: never assign the record to an ivar or `attr_reader`; pass the record explicitly to every private rule helper and predicate, so re-entrant or repeated `validate` calls cannot overwrite each other (covered in the validator spec).
 - `app/models/workflows/label.rb` — `label` / `brief` / `heading` display text.
 - `app/models/workflows/variables.rb` — owned by `ai-worker-runbooks`.
 - `app/models/workflows/stage_outputs.rb` — owned by `ai-worker-runbooks`.
