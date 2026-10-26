@@ -34,7 +34,8 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | listed Slack review-ping services, `app/jobs/slack_ping_job.rb`, slack_ping schedule entry, or their listed specs | `ai-worker-slack-review-pings` |
    | `app/services/scheduling/**`, `app/jobs/workflow_scheduler_job.rb`, `config/sidekiq.yml`, `config/schedule.yml`, or scheduler concurrency specs | `ai-worker-scheduling` |
    | a stage type, Workflow status, or agent result-marker change spanning Stage, StageRun::ACTIONS, Workflow, StageExecutor, prompts, AiCli::Output, and scheduler | `ai-worker-stage-types` |
-   | `app/services/{git,github}/**`, or their specs | `ai-worker-git-github` |
+   | `app/services/github/**`, or their specs | `ai-worker-github` |
+   | `app/services/git/**`, or their specs | `ai-worker-git-github` |
    | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb`, `defaults/jira_update.md`, its listed section files, `prompt_template.rb`, prompt templates (CRUD controller/views/request spec), or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
    | `app/services/stage_executor.rb`, or remaining generic `app/services/stages/**` and their specs | `ai-worker-stage-pipeline` |
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |

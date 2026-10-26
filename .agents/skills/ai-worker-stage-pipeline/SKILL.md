@@ -7,7 +7,7 @@ description: Applies ai-worker's stage execution discipline. Use for any task to
 
 This layer executes one workflow stage at a time: it starts or polls a detached run, turns its completed output into the next workflow state, and records the auditable `StageRun` history. Read the affected file before changing it; this map describes the current seams, not a substitute for the code.
 
-Core scope: `app/services/stage_executor.rb` and the generic handlers listed below. Detached launch/poll mechanics live in `ai-worker-agent-cli`; adding or renaming a stage type follows `ai-worker-stage-types`; scheduler eligibility/capacity is `ai-worker-scheduling`; prompt construction is `ai-worker-prompts`; Git/GitHub clients are `ai-worker-git-github`.
+Core scope: `app/services/stage_executor.rb` and the generic handlers listed below. Detached launch/poll mechanics live in `ai-worker-agent-cli`; adding or renaming a stage type follows `ai-worker-stage-types`; scheduler eligibility/capacity is `ai-worker-scheduling`; prompt construction is `ai-worker-prompts`; Git is `ai-worker-git-github` and GitHub is `ai-worker-github`.
 
 ## File map
 

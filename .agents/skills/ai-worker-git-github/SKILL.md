@@ -1,11 +1,11 @@
 ---
 name: ai-worker-git-github
-description: Applies ai-worker's Git/GitHub layer discipline. Use for any task touching app/services/git/**, app/services/github/**, or their specs (spec/services/git/**, spec/services/github/**) — Git::Shell, Git::BranchService, Github::Client, Reader, Writer, PrLocator, Runner and the CommandError classes.
+description: Applies ai-worker's Git layer discipline. Use for any task touching app/services/git/** or matching specs (spec/services/git/**) — Git::Shell, BranchService, Pusher, MergeState, and Git::CommandError.
 ---
 
-# ai-worker Git / GitHub layer
+# ai-worker Git layer
 
-Every `git` and `gh` subprocess in the app goes through one of these objects, always inside the project's clone (`project.local_directory`). Read the file before changing it; this is a map, not a substitute.
+Git subprocesses run inside the project's clone (`project.local_directory`). Read the file before changing it; this is a map, not a substitute. GitHub service ownership is in `ai-worker-github`.
 
 ## Git (`app/services/git/`)
 
@@ -24,30 +24,13 @@ Every `git` and `gh` subprocess in the app goes through one of these objects, al
   - `push_current!(project)` — returns `:pushed` / `:up_to_date`; a rejected push is retried once after `pull --rebase`; never forces.
   - `merge_in_progress?(project)` (`MERGE_HEAD` probe) and `abort_merge!(project)`.
 
-## GitHub (`app/services/github/`)
-
-- `github/client.rb` — `Github::Client.new(project)`: a thin facade (`delegate`) over a reader and a writer sharing one `Runner`. It also keeps the `FAILED_*` constants (reviewer parsing lives in `Workflow#reviewer_list`). Callers use the facade; collaborators are injectable (`reader:`, `writer:`) for specs. It owns no logic of its own — and does **not** own PR lookup.
-- `github/reader.rb` — `Github::Reader`, query-only: `pr_url_for_branch`, `find_pr_url` (delegates to `PrLocator`), `pr_info`, `pr_title`, `current_login`, `merged?`, `review_decision` (any assigned reviewer approving wins), `checks_failing?`, `workflow_run_state`.
-- `github/review_decision.rb` — `Github::ReviewDecision.call(latest_reviews, reviewers)`: pure review-state selection; an approval wins over a change request.
-- `github/failing_checks.rb` — `Github::FailingChecks.call(rollup)`: pure check of a `statusCheckRollup` for a finished failing check (owns `FAILED_CONCLUSIONS`/`FAILED_STATES`); queued/in-progress checks are ignored.
-- `github/workflow_run_state.rb` — `Github::WorkflowRunState.call(runs, since:)`: pure selection and mapping of the newest eligible Actions run.
-- `github/pr_locator.rb` — `Github::PrLocator#call(branch_name:, jira_ticket:, output: nil)`: finds the PR the agent opened. Order: last PR URL for this repo printed in the agent output → `gh pr view <branch>` → open PR whose head branch contains the Jira key. Raises `Github::CommandError` if none. Read-only.
-- `github/writer.rb` — `Github::Writer`, side effects only: `checkout_pr!`, `request_review!` (via `gh api`, no `-R`), `enable_auto_merge!`.
-- `github/runner.rb` — `Github::Runner#run!(argv, scope_to_repo: true, repo:)`: appends `-R <repo>` (skipped for `gh api`, which has none), runs `Open3.capture3(*argv, chdir: local_directory)`, raises `Github::CommandError`.
-- `github/command_error.rb` — `Github::CommandError < StandardError`.
-
-**PR creation is done by the agent, not the app.** The implementation stage's prompt tells the agent to run `gh pr create` during its coding run; the app only *finds* the PR afterwards (`find_pr_url`). Do not add a `create_pr` to Writer/Client.
-
 ## Conventions
 
 - **Never interpolate into a shell string.** Build an argv array and pass it with `chdir:` (`Open3.capture3(*argv, chdir: dir)`); never `cd X && ...`, backticks or `system("...#{x}")`. Untrusted text (ticket text, PR titles, branch names, reviewer logins) is an argv element, never part of a command string.
-- **Raise your own `CommandError`.** Each service raises its own class (`Git::CommandError`, `Github::CommandError`) on non-zero exit, with the command and stderr in the message. Don't rescue inside these objects (except deliberate fallbacks like `PrLocator#url_for_head`); `StageExecutor` in `ai-worker-stage-pipeline` turns stage failures into a `failed` `StageRun`.
-- Probes use `success?`/`run`, mutations use `run!`/`checkout!`. Run `git` only through `Git::Shell`, `gh` only through `Github::Runner`.
+- **Raise `Git::CommandError`.** Git commands report a non-zero exit with the command and stderr in the message. Don't rescue inside these objects; `StageExecutor` in `ai-worker-stage-pipeline` turns stage failures into a `failed` `StageRun`.
+- Probes use `success?`/`run`, mutations use `run!`/`checkout!`. Run `git` only through `Git::Shell`.
 
 ## Specs
 
-- Always `RAILS_ENV=test bundle exec rspec spec/services/git spec/services/github`.
 - `spec/services/git/shell_spec.rb`, `branch_service_spec.rb`, `pusher_spec.rb`, `merge_state_spec.rb` — real temp git repos via `GitRepoHelper` (`spec/support/git_repo_helper.rb`: `build_git_fixture(root)` → `[origin, clone]`, `build_other_clone`, `commit_file`, `git`) under `let_tmpdir(:root, ...)`; assert the clone path is inside `Dir.tmpdir` first. `branch_service_spec.rb` keeps orchestration plus one forwarding example per class method; push and merge-state behaviour is covered in `pusher_spec.rb` / `merge_state_spec.rb`.
-- `spec/services/github/reader_spec.rb`, `writer_spec.rb`, `pr_locator_spec.rb` — inject an `instance_double(Github::Runner)` and assert exact `run!` argv and keywords; use an unsaved `Project.new(... repo_full_name: "acme/widgets")`.
-- `runner_spec.rb` — use its injected `capture:` seam to assert argv, repository scoping, `chdir:`, and `Github::CommandError` message construction. `client_spec.rb` — inject `instance_double(Github::Reader/Writer)` into the facade.
-- Specs of other code stub `Github::Client` / `Git::*`; never call real `gh` or touch a real project clone.
+- Specs of other code stub `Git::*`; never touch a real project clone except the temp repos above.

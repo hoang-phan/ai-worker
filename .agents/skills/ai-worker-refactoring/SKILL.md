@@ -29,7 +29,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `Workflows::SummaryKey` and `Workflows::ProposalNormalizer` — proposal dedupe and agent proposal rows (`ai-worker-proposal-imports`)
 - `AiCli::Output` — result markers (`ai-worker-agent-cli`)
 - `Prompts::Renderer` + `Prompts::StageSections` — prompt text (`ai-worker-prompts`)
-- `Github::Runner` / `Git::Shell` — `gh` / `git` subprocesses (`ai-worker-git-github`)
+- `Github::Runner` — `gh` subprocesses (`ai-worker-github`); `Git::Shell` — `git` subprocesses (`ai-worker-git-github`)
 - `spec/support` helpers (`RecordHelper`, `let_tmpdir`, `FakeDetachedRun`, `GitRepoHelper`, `StageRunHelper`, `active_job_test_adapter`) — shared spec setup (`ai-worker-testing`)
 
 ## Specs and file maps
