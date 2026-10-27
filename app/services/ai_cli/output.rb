@@ -1,5 +1,5 @@
 module AiCli
-  # Reads the markers the agent prints in its log (see the stage prompts). Pure: no I/O, no workflow state.
+  # Reads the markers the agent prints in its log (see the stage prompts); claude's own result event is AiCli::ClaudeResult. Pure: no I/O, no workflow state.
   class Output
     def initialize(text)
       @text = text.to_s
@@ -70,31 +70,23 @@ module AiCli
       text.match?(/^\s*POSTED\s*$/)
     end
 
-    # The last valid `{"type":"result"}` event claude writes, or nil. Invalid JSON lines are skipped.
+    # The last valid claude result event, or nil (see AiCli::ClaudeResult).
     def result_event
-      text.each_line.reverse_each do |line|
-        next unless line.start_with?("{")
-
-        event = JSON.parse(line)
-        return event if event.is_a?(Hash) && event["type"] == "result"
-      rescue JSON::ParserError
-        next
-      end
-      nil
+      claude_result.result_event
     end
 
-    # :success / :error from the last `{"type":"result"}` event claude writes,
-    # nil if there is none (run killed mid-way, or another agent).
+    # :success / :error from the last claude result event, or nil (see AiCli::ClaudeResult).
     def final_outcome
-      event = result_event
-      return unless event
-
-      event["is_error"] ? :error : :success
+      claude_result.final_outcome
     end
 
     private
 
     attr_reader :text
+
+    def claude_result
+      ClaudeResult.new(text)
+    end
 
     def marker(name, values)
       text[marker_pattern(name, values), 1]
