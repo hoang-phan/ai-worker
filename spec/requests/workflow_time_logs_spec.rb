@@ -5,13 +5,16 @@ RSpec.describe "WorkflowTimeLogs", type: :request do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "SPEC-1", status: :errored, github_pr_url: "https://github.com/org/repo/pull/7")
   end
+  let(:jira_requests) { [] }
+  let(:worklog_status) { 201 }
 
   describe "POST log_time" do
-    let(:client) { instance_double(Jira::WorklogClient, add_worklog: "10001", set_original_estimate_if_blank: true, keys_with_my_worklogs_since: []) }
-
     before do
       project.update!(jira_base_url: "https://example.atlassian.net")
-      allow(Jira::WorklogClient).to receive(:new).and_return(client)
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with("JIRA_EMAIL").and_return("test@example.com")
+      allow(ENV).to receive(:[]).with("JIRA_ACCESS_TOKEN").and_return("fake-token")
+      stub_jira_http
     end
 
     it "logs the preset hours on each selected workflow" do
@@ -22,7 +25,7 @@ RSpec.describe "WorkflowTimeLogs", type: :request do
       }.to change(TimeLog, :count).by(2)
 
       expect(flash[:notice]).to start_with("Logged 1.5 h")
-      expect(client).to have_received(:add_worklog).with("SPEC-1", hash_including(seconds: 5400))
+      expect(JSON.parse(spec1_worklog_post.body)).to include("timeSpentSeconds" => 5400)
       expect(other.time_logs.first.ticket_key).to eq("SPEC-2")
     end
 
@@ -33,13 +36,48 @@ RSpec.describe "WorkflowTimeLogs", type: :request do
       expect(flash[:alert]).to include("Pick one of")
     end
 
-    it "records nothing when Jira rejects the worklog" do
-      allow(client).to receive(:add_worklog).and_raise(Jira::WorklogError, "Jira worklog for SPEC-1 failed (HTTP 400)")
+    context "when Jira rejects the worklog" do
+      let(:worklog_status) { 400 }
 
-      expect {
-        post log_time_project_workflows_path(project), params: { workflow_ids: [ workflow.id ], hours: "1" }
-      }.not_to change(TimeLog, :count)
-      expect(flash[:alert]).to include("HTTP 400")
+      it "records nothing" do
+        expect {
+          post log_time_project_workflows_path(project), params: { workflow_ids: [ workflow.id ], hours: "1" }
+        }.not_to change(TimeLog, :count)
+        expect(flash[:alert]).to include("HTTP 400")
+      end
     end
+  end
+
+  def stub_jira_http
+    http = instance_double(Net::HTTP)
+    allow(Net::HTTP).to receive(:start).and_yield(http)
+    allow(http).to receive(:request) do |req|
+      jira_requests << req
+      jira_response_for(req)
+    end
+  end
+
+  def http_response(code, body = nil)
+    instance_double(Net::HTTPResponse, code: code.to_s, body: body.nil? ? nil : body.to_json)
+  end
+
+  def jira_response_for(req)
+    path = req.path.split("?", 2).first
+    case
+    when req.is_a?(Net::HTTP::Get) && path == "/rest/api/3/search/jql"
+      http_response(200, { "issues" => [] })
+    when req.is_a?(Net::HTTP::Post) && path.match?(%r{\A/rest/api/3/issue/[^/]+/worklog\z})
+      worklog_status == 201 ? http_response(201, { "id" => "10001" }) : http_response(worklog_status, {})
+    when req.is_a?(Net::HTTP::Get) && path.match?(%r{\A/rest/api/3/issue/[^/]+\z})
+      http_response(200, { "fields" => { "timetracking" => { "originalEstimateSeconds" => 0 } } })
+    when req.is_a?(Net::HTTP::Put) && path.match?(%r{\A/rest/api/3/issue/[^/]+\z})
+      http_response(204)
+    else
+      raise "unexpected Jira request: #{req.method} #{req.path}"
+    end
+  end
+
+  def spec1_worklog_post
+    jira_requests.find { |req| req.is_a?(Net::HTTP::Post) && req.path.include?("SPEC-1/worklog") }
   end
 end

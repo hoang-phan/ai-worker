@@ -14,7 +14,6 @@ RSpec.describe "constructor stub ratchet" do
     "spec/requests/jira_sync_runs_spec.rb" => 1,
     "spec/requests/project_brainstorms_spec.rb" => 1,
     "spec/requests/project_slack_syncs_spec.rb" => 1,
-    "spec/requests/workflow_time_logs_spec.rb" => 1,
     "spec/services/slack/review_sync_spec.rb" => 0,
     "spec/services/stage_executor_spec.rb" => 1
   }.freeze
