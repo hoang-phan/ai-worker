@@ -1,18 +1,15 @@
 ---
 name: ai-worker-jira-worklogs
-description: Applies ai-worker's Jira worklog / time-logging discipline. Use for any task touching app/services/jira/{http_transport,worklog_client,worklog_error,rest_client,worklog_target,time_logger,time_log_batch,time_log_mirror,time_slot_planner,hours_sync,worklog_site_sync}.rb, app/jobs/jira_hours_sync_job.rb, app/models/time_log.rb, WorkflowTimeLogsController, or the log-time buttons in the project/workflow views.
+description: Applies ai-worker's Jira worklog / time-logging discipline. Use for any task touching app/services/jira/{worklog_target,time_logger,time_log_batch,time_log_mirror,time_slot_planner,hours_sync,worklog_site_sync}.rb, app/jobs/jira_hours_sync_job.rb, app/models/time_log.rb, WorkflowTimeLogsController, or the log-time buttons in the project/workflow views.
 ---
 
 # ai-worker Jira worklogs
 
-A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud over plain REST (`Net::HTTP`) with `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN` env vars, not through the agent/MCP (see `ai-worker-detached-agent-runs` for that side).
+A separate subsystem from the agent-backed Jira fetchers. Its external Jira Cloud REST implementation is owned by `ai-worker-jira-rest-client`; it uses `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN`, not the agent/MCP (see `ai-worker-detached-agent-runs` for that side).
 
 ## File map
 
-- `app/services/jira/worklog_client.rb` — `Jira::WorklogClient.new(base_url)`: `add_worklog(key, started_at:, seconds:)` (returns the worklog id), `set_original_estimate_if_blank(key, seconds)` (true if it updated), `my_worklogs(key)` (the credentials' user's worklogs, matched on accountId: `[{ id:, started:, seconds: }]`), `keys_with_my_worklogs_since(date)` (JQL search, includes tickets the app doesn't know). It builds a `Jira::RestClient` (or takes `rest:`) and delegates the plumbing to it.
-- `app/services/jira/rest_client.rb` — `Jira::RestClient.new(base_url, email:, token:, transport:)`: generic Jira Cloud REST plumbing — `ensure_credentials!`, `get_json`, `request(method, path, params:, body:, expect:) { |code| message }` (basic auth, JSON, transport errors mapped to `WorklogError`), `each_offset_page` (startAt/total) and `each_token_page` (nextPageToken).
-- `app/services/jira/http_transport.rb` — `Jira::HttpTransport#call(request, uri)` performs the `Net::HTTP` round trip with Jira's five-second open and 15-second read timeouts. Inject it into `WorklogClient` specs instead of globally stubbing `Net::HTTP`.
-- `app/services/jira/worklog_error.rb` — `Jira::WorklogError`, the only error type of this subsystem.
+- External-client pointer: `ai-worker-jira-rest-client` owns `Jira::WorklogClient`, `Jira::RestClient`, `Jira::HttpTransport`, and `Jira::WorklogError`, including their direct specs, REST/authentication/pagination contracts, and Jira request errors.
 - `app/services/jira/worklog_target.rb` — `WorklogTarget.new(workflow)`: `base_url`, `key`, and `problem` (nil, or why the workflow can't log time: not a Jira-kind project + development workflow, no site URL, no ticket key). Pure value object. Ticket keys come from `Jira::TicketRef`.
 - `app/services/jira/time_logger.rb` — `TimeLogger#log(workflow, hours)`; `PRESET_HOURS` (0.5/1/1.5/2) feeds the controller and views.
 - `app/services/jira/time_slot_planner.rb` — `TimeSlotPlanner#next_start(seconds)`: first weekday of the current month under `DAILY_TARGET` (6 h) across all `time_logs`, at a free whole hour between 6 and 17. Its `logs:` collaborator defaults to the `TimeLog` query and can be injected for isolated slot-picking specs.
@@ -24,7 +21,7 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 - `app/models/time_log.rb` — mirror row (`ticket_key`, `started_at`, `seconds`, `jira_worklog_id`, optional `workflow`); `Workflow#logged_seconds` and `ProjectsController#show` sum it.
 - `app/helpers/time_logs_helper.rb` — formats logged Jira hours, sync phrases, badges, and select-all checkbox data for time-log views.
 - Entry point: `WorkflowTimeLogsController#create` (routed as `post :log_time, on: :collection, to: "workflow_time_logs#create"`, helper `log_time_project_workflows_path`), driven by the batch bars in `app/views/projects/show.html.erb` and `app/views/workflows/_details.html.erb`. It validates hours against `PRESET_HOURS`, then calls `TimeLogBatch`.
-- Specs: `spec/services/jira/{worklog_client,rest_client,time_logger,time_log_batch,time_log_mirror,time_slot_planner,hours_sync,worklog_site_sync}_spec.rb`, `spec/jobs/jira_hours_sync_job_spec.rb`, plus `spec/requests/{workflows,projects}_spec.rb`. `rest_client_spec` owns paging and HTTP edge cases (empty page, `isLast`, blank token, non-200 mapping); `worklog_client_spec` owns the worklog domain calls (request bodies/paths, domain error messages, accountId filtering, query params, key collection) — don't re-test plumbing there.
+- Specs: `spec/services/jira/{time_logger,time_log_batch,time_log_mirror,time_slot_planner,hours_sync,worklog_site_sync}_spec.rb`, `spec/jobs/jira_hours_sync_job_spec.rb`, plus `spec/requests/{workflows,projects}_spec.rb`. Direct client specs belong to `ai-worker-jira-rest-client`; pipeline specs use injected clients and do not re-test REST plumbing.
 
 ## Data flow
 
@@ -34,14 +31,14 @@ A separate subsystem from the agent-backed Jira fetchers: it talks to Jira Cloud
 
 ## Conventions
 
-- Never call Jira from specs. Inject the `client_factory:` lambda (`TimeLogger`, `HoursSync`), `WorklogSiteSync`'s `client:` / `mirror:` / `clock:`, or `WorklogClient`'s `transport:` (client spec). Stub `Net::HTTP.start` only in `HttpTransport` specs.
+- Never call Jira from specs. Inject the `client_factory:` lambda (`TimeLogger`, `HoursSync`) or `WorklogSiteSync`'s `client:` / `mirror:` / `clock:`. Client transport seams and `Net::HTTP` coverage belong to `ai-worker-jira-rest-client`.
 - Missing `JIRA_EMAIL` / `JIRA_ACCESS_TOKEN` abort: the client raises `WorklogError` (`reason: :missing_credentials`) and `WorklogSiteSync` re-raises it instead of recording it per ticket.
-- `Jira::WorklogError` is the only error type: map transport/HTTP/JSON failures to it in the client; callers rescue only it.
+- `Jira::WorklogError` is the only error type callers rescue; client-side failure mapping belongs to `ai-worker-jira-rest-client`.
 - No code in this subsystem writes `time_logs` except `TimeLogger` (new worklog) and `TimeLogMirror` (via `WorklogSiteSync`).
 
 ## Spec recipe
 
-- Injection seams — use them in specs instead of `stub_const` or `allow(X).to receive(:new)`: `HoursSync.new(client_factory:, today:)`, `WorklogSiteSync.new(client:, mirror:, clock:)`, `TimeLogger.new(client_factory:, planner:)`, `TimeSlotPlanner.new(today:, random:, logs:)`, `WorklogClient` / `RestClient` `transport:`.
+- Injection seams — use them in specs instead of `stub_const` or `allow(X).to receive(:new)`: `HoursSync.new(client_factory:, today:)`, `WorklogSiteSync.new(client:, mirror:, clock:)`, `TimeLogger.new(client_factory:, planner:)`, `TimeSlotPlanner.new(today:, random:, logs:)`. REST client seams are documented by `ai-worker-jira-rest-client`.
 - `spec/services/jira/worklog_site_sync_spec.rb`: `instance_double` for `client` / `mirror` / workflow, a fixed `clock:`; cover key uniq/order, last-wins duplicate keys, ordinary vs `missing_credentials?` errors, empty-workflows sync (no stamps).
 - `spec/services/jira/hours_sync_spec.rb`: discovery (sites, recent keys without workflows), client reuse, cross-site aggregation, `#recent` not stamping unrelated workflows, plus one thin real-`TimeLogMirror` integration example. Per-ticket failure/stamping behaviour lives in `worklog_site_sync_spec`.
 - `spec/services/jira/time_log_mirror_spec.rb` keeps persistence coverage (upsert, delete-gone, workflow attach-once).

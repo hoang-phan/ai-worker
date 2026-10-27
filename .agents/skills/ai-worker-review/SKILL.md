@@ -30,7 +30,8 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `app/services/brainstorm/**`, `app/jobs/brainstorm_job.rb`, `project_brainstorms_controller.rb`, or their listed specs | `ai-worker-brainstorm` |
    | `app/models/bugsnag_sync.rb`, `app/services/bugsnag/**`, `app/jobs/bugsnag_sync_job.rb`, bugsnag_sync schedule entries, Bugsnag controllers/views, or their listed specs | `ai-worker-bugsnag-triage` |
    | `app/models/jira_sync.rb`, listed Jira ticket-sync services, `app/jobs/jira_sync_job.rb`, jira_sync schedule entries, Jira-sync controllers/views, or their specs | `ai-worker-jira-ticket-sync` |
-   | listed Jira worklog/time-log services, `app/jobs/jira_hours_sync_job.rb`, `app/models/time_log.rb`, `WorkflowTimeLogsController`, or log-time project/workflow views | `ai-worker-jira-worklogs` |
+   | `app/services/jira/{http_transport,rest_client,worklog_client,worklog_error}.rb`, or `spec/services/jira/{http_transport,rest_client,worklog_client,worklog_error}_spec.rb` | `ai-worker-jira-rest-client` |
+   | remaining listed Jira worklog/time-log services, `app/jobs/jira_hours_sync_job.rb`, `app/models/time_log.rb`, `WorkflowTimeLogsController`, log-time project/workflow views, or their listed specs | `ai-worker-jira-worklogs` |
    | listed Slack review-ping services, `app/jobs/slack_ping_job.rb`, slack_ping schedule entry, or their listed specs | `ai-worker-slack-review-pings` |
    | `app/services/scheduling/**`, `app/jobs/workflow_scheduler_job.rb`, `config/sidekiq.yml`, `config/schedule.yml`, or scheduler concurrency specs | `ai-worker-scheduling` |
    | a stage type, Workflow status, or agent result-marker change spanning Stage, StageRun::ACTIONS, Workflow, StageExecutor, prompts, AiCli::Output, and scheduler | `ai-worker-stage-types` |

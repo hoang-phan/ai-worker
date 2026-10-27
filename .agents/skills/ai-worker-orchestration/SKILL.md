@@ -17,7 +17,8 @@ Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Ot
 | `app/jobs/brainstorm_job.rb`, `app/services/brainstorm/**` | `ai-worker-brainstorm` |
 | `app/jobs/bugsnag_sync_job.rb`, `app/services/bugsnag/**` | `ai-worker-bugsnag-triage` |
 | `app/jobs/jira_sync_job.rb`, `app/services/jira/{agent_fetcher,fetch_error,fetch_prompt,sync_cycle_source,ticket_importer,ticket_ref,ticket_rows,ticket_sync}.rb` | `ai-worker-jira-ticket-sync` |
-| `app/jobs/jira_hours_sync_job.rb`, `app/services/jira/{hours_sync,http_transport,rest_client,time_log_batch,time_log_mirror,time_logger,time_slot_planner,worklog_client,worklog_error,worklog_site_sync,worklog_target}.rb` | `ai-worker-jira-worklogs` |
+| `app/services/jira/{http_transport,rest_client,worklog_client,worklog_error}.rb` | `ai-worker-jira-rest-client` |
+| `app/jobs/jira_hours_sync_job.rb`, `app/services/jira/{hours_sync,time_log_batch,time_log_mirror,time_logger,time_slot_planner,worklog_site_sync,worklog_target}.rb` | `ai-worker-jira-worklogs` |
 | `app/jobs/slack_review_job.rb`, `app/services/slack/{fetch_error,mention_fetcher,mention_prompt,mention_rows,review_candidate,review_cycle_source,review_importer,review_sync}.rb` | `ai-worker-pr-review-workflows` |
 | `app/jobs/slack_ping_job.rb`, `app/services/slack/{notify_error,ping_collector,ping_run,review_message,review_notifier}.rb` | `ai-worker-slack-review-pings` |
 | `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` | `ai-worker-scheduling` |

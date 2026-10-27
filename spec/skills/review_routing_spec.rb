@@ -7,6 +7,10 @@ RSpec.describe "review skill routing" do
     app/services/ai_cli/provider/{claude,codex,cursor}.rb
     spec/services/ai_cli/provider/{claude,codex,cursor}_spec.rb
   ].freeze
+  JIRA_REST_CLIENT_TRIGGERS = %w[
+    app/services/jira/{http_transport,rest_client,worklog_client,worklog_error}.rb
+    spec/services/jira/{http_transport,rest_client,worklog_client,worklog_error}_spec.rb
+  ].freeze
 
   def review_skill_text
     File.read(REVIEW_SKILL_PATH)
@@ -62,6 +66,15 @@ RSpec.describe "review skill routing" do
     PROVIDER_ADAPTER_TRIGGERS.each do |path|
       expect(cli_selection_skill_text).to include(path)
     end
+  end
+
+  it "routes Jira REST client paths and mirrored specs before the worklog fallback" do
+    rest_client_row_index = routing_rows.index { |_, skill_name| skill_name == "ai-worker-jira-rest-client" }
+    worklogs_row_index = routing_rows.index { |_, skill_name| skill_name == "ai-worker-jira-worklogs" }
+    rest_client_row = routing_rows.fetch(rest_client_row_index).first
+
+    expect(rest_client_row_index).to be < worklogs_row_index
+    JIRA_REST_CLIENT_TRIGGERS.each { |path| expect(rest_client_row).to include(path) }
   end
 
   it "keeps the spec fallback as the last routing row" do
