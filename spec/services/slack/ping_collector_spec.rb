@@ -24,7 +24,9 @@ RSpec.describe Slack::PingCollector do
   end
 
   it "keeps running = true and leaves a fresh running dir alone" do
-    path = ping(log: "")
+    at = Time.zone.local(2026, 1, 2, 3, 4, 5)
+    path = ping(started_at: (at - 4.minutes).to_i, log: "")
+    collector = described_class.new(root: root, poller: poller, clock: -> { at })
     allow(poller).to receive(:call).with(42).and_return(:running)
     expect(workflow).not_to receive(:update!)
     expect(collector.collect(workflow)).to be(true)
@@ -32,7 +34,9 @@ RSpec.describe Slack::PingCollector do
   end
 
   it "treats a stale running dir as finished" do
-    path = ping(started_at: 10.minutes.ago.to_i, log: link)
+    at = Time.zone.local(2026, 1, 2, 3, 4, 5)
+    path = ping(started_at: (at - 6.minutes).to_i, log: link)
+    collector = described_class.new(root: root, poller: poller, clock: -> { at })
     allow(poller).to receive(:call).and_return(:running)
     expect(workflow).to receive(:update!).with(slack_review_thread_ts: link)
     expect(collector.collect(workflow)).to be(false)

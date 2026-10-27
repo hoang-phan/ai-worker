@@ -31,7 +31,7 @@ module Brainstorm
       env["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
     end
 
-    def initialize(project, clock: Time, root: ROOT, lifecycle: nil)
+    def initialize(project, clock: -> { Time.current }, root: ROOT, lifecycle: nil)
       @project = project
       @clock = clock
       @dir = Pathname(root).join(project.id.to_s)
@@ -55,7 +55,7 @@ module Brainstorm
 
     # Stamps the project's last-run time; callers invoke it after a successful `start`.
     def record_start!
-      project.update!(brainstorm_last_run_at: clock.current)
+      project.update!(brainstorm_last_run_at: clock.call)
     end
 
     def start

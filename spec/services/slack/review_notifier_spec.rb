@@ -81,11 +81,12 @@ RSpec.describe Slack::ReviewNotifier do
   end
 
   describe "#collect" do
-    def ping(pid:, log:)
-      path = dir.join(Time.current.to_i.to_s)
+    def ping(pid:, log:, started_at: Time.current)
+      path = dir.join(started_at.to_i.to_s)
       FileUtils.mkdir_p(path)
       path.join("pid").write(pid)
       path.join("agent.log").write(log)
+      path
     end
 
     it "saves the permalink as the thread once the run finished" do
@@ -101,6 +102,17 @@ RSpec.describe Slack::ReviewNotifier do
       allow(runner).to receive(:poll).and_return(:running)
       expect(workflow).not_to receive(:update!)
       expect(notifier.collect(workflow)).to be(true)
+    end
+
+    it "uses its clock when the default collector checks whether a ping is stale" do
+      started_at = Time.current
+      notifier = described_class.new(project, runner: runner, clock: -> { started_at + 6.minutes }, root: tmp_root)
+      path = ping(pid: 42, log: "", started_at: started_at)
+      allow(runner).to receive(:poll).with(42).and_return(:running)
+      allow(Rails.logger).to receive(:warn)
+
+      expect(notifier.collect(workflow)).to be(false)
+      expect(path).to exist
     end
 
     it "delegates to an injected collector" do

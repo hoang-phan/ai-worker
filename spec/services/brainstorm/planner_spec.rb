@@ -1,12 +1,13 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::Planner do
-  subject(:planner) { described_class.new(project, root: root, lifecycle: lifecycle) }
+  subject(:planner) { described_class.new(project, clock: clock, root: root, lifecycle: lifecycle) }
 
   let(:root) { Pathname.new(make_tmpdir("planner-spec")) }
   let(:project) { Project.new(id: 987_654, name: "Spec project", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
   let(:dir) { root.join("987654") }
   let(:lifecycle) { instance_double(Brainstorm::RunLifecycle, running?: false, last_started_at: nil, start: true, poll: nil, result_path: dir.join("result.json")) }
+  let(:clock) { -> { Time.current } }
 
   describe ".model" do
     it "defaults brainstorms to gpt-6-sol when BRAINSTORM_MODEL is unset" do
@@ -47,18 +48,10 @@ RSpec.describe Brainstorm::Planner do
     let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
 
     it "stamps brainstorm_last_run_at with the current time" do
-      freeze_time do
-        planner.record_start!
-
-        expect(project.reload.brainstorm_last_run_at).to eq(Time.current)
-      end
-    end
-
-    it "uses an injected clock" do
       at = Time.zone.local(2026, 1, 2, 3, 4, 5)
-      clock = double("clock", current: at)
+      planner = described_class.new(project, clock: -> { at }, root: root, lifecycle: lifecycle)
 
-      described_class.new(project, clock: clock, root: root, lifecycle: lifecycle).record_start!
+      planner.record_start!
 
       expect(project.reload.brainstorm_last_run_at).to eq(at)
     end

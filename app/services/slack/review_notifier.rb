@@ -18,7 +18,7 @@ module Slack
       @runner = runner
       @clock = clock
       @root = Pathname(root)
-      @collector = collector || PingCollector.new(root: @root, poller: runner.method(:poll))
+      @collector = collector || PingCollector.new(root: @root, poller: runner.method(:poll), clock: @clock)
     end
 
     def self.model(env: ENV) = env.fetch("SLACK_PING_MODEL", DEFAULT_MODEL)
