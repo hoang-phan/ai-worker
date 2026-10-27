@@ -2,8 +2,9 @@ module Workflows
   # The manual lifecycle transitions: start, resume after an error, roll back to review, and the runbook's
   # Run stage / Next guards. Each returns true when it applied and false when the workflow wasn't in a state for it.
   class Transitions
-    def initialize(workflow)
+    def initialize(workflow, resume_status: Workflows::ResumeStatus.new(workflow))
       @workflow = workflow
+      @resume_status = resume_status
     end
 
     # Pending -> implementing (a runbook starts at its first stage). False when it was already started.
@@ -26,7 +27,7 @@ module Workflows
     end
 
     def resume_status
-      Workflows::ResumeStatus.new(@workflow).call
+      @resume_status.call
     end
 
     def can_rollback_to_review?

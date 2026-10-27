@@ -90,7 +90,7 @@ RSpec.describe Workflows::Transitions do
     it "uses ResumeStatus and logs one 'resumed' StageRun on the resulting current stage" do
       workflow.update!(github_pr_url: pr_url)
       resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
-      allow(Workflows::ResumeStatus).to receive(:new).with(workflow).and_return(resume_status)
+      transitions = described_class.new(workflow, resume_status: resume_status)
 
       expect { expect(transitions.resume!).to be true }.to change(StageRun, :count).by(1)
       expect(workflow.reload).to be_reviewing
@@ -138,7 +138,7 @@ RSpec.describe Workflows::Transitions do
   describe "#resume_status" do
     it "forwards to ResumeStatus" do
       resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
-      allow(Workflows::ResumeStatus).to receive(:new).with(workflow).and_return(resume_status)
+      transitions = described_class.new(workflow, resume_status: resume_status)
 
       expect(transitions.resume_status).to eq(:reviewing)
     end

@@ -1,7 +1,8 @@
 module Workflows
   class ResumeStatus
-    def initialize(workflow)
+    def initialize(workflow, ci_loop_resume: Workflows::CiLoopResume.new(workflow))
       @workflow = workflow
+      @ci_loop_resume = ci_loop_resume
     end
 
     # The in-flight status an errored workflow goes back to: reviewing once a PR
@@ -9,7 +10,7 @@ module Workflows
     def call
       return :uat_testing if @workflow.uat_test_at.present?
 
-      ci_status = Workflows::CiLoopResume.new(@workflow).status
+      ci_status = @ci_loop_resume.status
       return ci_status if ci_status
       return :local_testing if local_test_unfinished?
 
