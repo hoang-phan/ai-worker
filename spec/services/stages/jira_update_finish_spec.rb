@@ -8,9 +8,11 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
     build_jira_workflow(project, jira_ticket: "JLF-1", branch_name: "jira-lifecycle", status: :implementing, **running_ai_run)
   end
   let(:stage) { build_stage(workflow, :jira_update) }
+  let(:now) { Time.zone.local(2026, 10, 20, 12, 0) }
+  let(:clock) { -> { now } }
 
   def finish(output)
-    described_class.new(workflow: workflow, stage: stage, project: project).call(output)
+    described_class.new(workflow: workflow, stage: stage, project: project, clock: clock).call(output)
   end
 
   def expect_ai_run_reset
@@ -31,15 +33,14 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
     let(:project_attributes) { uat_attributes }
 
     it "schedules the UAT test for a UAT outcome" do
-      freeze_time do
-        finish("JIRA_RESULT: UAT")
+      run_at = now + 30.minutes
+      finish("JIRA_RESULT: UAT")
 
-        expect(workflow.reload).to have_attributes(status: "uat_waiting", uat_test_at: 30.minutes.from_now)
-        expect_ai_run_reset
-        expect(stage_actions(stage)).to eq(%w[jira_updated uat_test_scheduled])
-        expect(stage.stage_runs.find_by(action: "uat_test_scheduled").output)
-          .to eq "UAT test scheduled for #{30.minutes.from_now.iso8601}"
-      end
+      expect(workflow.reload).to have_attributes(status: "uat_waiting", uat_test_at: run_at)
+      expect_ai_run_reset
+      expect(stage_actions(stage)).to eq(%w[jira_updated uat_test_scheduled])
+      expect(stage.stage_runs.find_by(action: "uat_test_scheduled").output)
+        .to eq "UAT test scheduled for #{run_at.iso8601}"
     end
 
     it "matches the UAT outcome case-insensitively" do

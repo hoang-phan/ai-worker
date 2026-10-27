@@ -3,13 +3,14 @@ module Stages
   # find it on subsequent ticks.
   class AiRunLauncher
     def initialize(workflow:, stage:, project:, runner: AiCli::Runner, logs: AiCli::RunLogs,
-                   run_provider: Stages::RunProvider.new(workflow: workflow))
+                   run_provider: Stages::RunProvider.new(workflow: workflow), clock: -> { Time.current })
       @workflow = workflow
       @stage = stage
       @project = project
       @runner = runner
       @logs = logs
       @run_provider = run_provider
+      @clock = clock
     end
 
     def call(prompt_text, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
@@ -29,7 +30,7 @@ module Stages
         processing: true,
         ai_pid: pid,
         ai_log_path: log_path,
-        ai_started_at: Time.current,
+        ai_started_at: clock.call,
         ai_log_offset: 0,
         ai_provider: provider
       )
@@ -38,6 +39,6 @@ module Stages
 
     private
 
-    attr_reader :workflow, :stage, :project, :runner, :logs, :run_provider
+    attr_reader :workflow, :stage, :project, :runner, :logs, :run_provider, :clock
   end
 end
