@@ -41,8 +41,8 @@ RSpec.describe "Project dashboard", type: :request do
 
       get project_path(project)
 
-      unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*>/)[0]
-      logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*>/)[0]
+      unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
+      logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
 
       expect(response.body).to include("1 h</span>", "Not logged", 'aria-label="Select all tickets without logged time"')
       expect(unlogged_checkbox).to include('data-select-all-target="row"')

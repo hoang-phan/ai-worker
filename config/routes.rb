@@ -17,6 +17,7 @@ Rails.application.routes.draw do
     end
     resources :workflows, except: :index do
       post :log_time, on: :collection, to: "workflow_time_logs#create"
+      delete :bulk_destroy, on: :collection, to: "workflow_bulk_deletes#destroy"
       member do
         post :start, to: "workflow_transitions#start"
         post :resume, to: "workflow_transitions#resume"

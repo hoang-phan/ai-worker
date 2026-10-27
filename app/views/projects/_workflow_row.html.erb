@@ -1,4 +1,5 @@
   <tr>
+    <td><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "bulk-delete-form", data: { range_select_target: "box", action: "click->range-select#click" }, aria: { label: "Select #{workflow.label} for deletion" } %></td>
     <% if project.jira? %>
       <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: time_log_checkbox_data(logged_seconds), aria: { label: "Select #{workflow.label}" } %><% end %></td>
     <% end %>
