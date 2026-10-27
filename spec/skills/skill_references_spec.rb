@@ -34,6 +34,34 @@ RSpec.describe "skill references" do
     Dir.glob(path).any?
   end
 
+  def skill_md_files
+    Dir.glob(".agents/skills/*/SKILL.md").sort
+  end
+
+  def parse_frontmatter!(path)
+    content = File.read(path)
+    match = content.match(/\A---\s*\n(.*?)\n---\s*\n/m)
+    expect(match).not_to be_nil, "#{path}: missing YAML frontmatter"
+
+    metadata = YAML.safe_load(match[1], permitted_classes: [], aliases: false)
+    expect(metadata).to be_a(Hash), "#{path}: frontmatter must parse as a YAML mapping"
+    metadata
+  rescue Psych::SyntaxError => e
+    raise RSpec::Expectations::ExpectationNotMetError, "#{path}: frontmatter YAML parse error: #{e.message}"
+  end
+
+  it "has SKILL.md frontmatter with name, description containing Use, and valid YAML" do
+    skill_md_files.each do |path|
+      metadata = parse_frontmatter!(path)
+      skill_name = File.basename(File.dirname(path))
+
+      expect(metadata["name"]).to eq(skill_name), "#{path}: frontmatter name must equal directory name #{skill_name}"
+      description = metadata["description"].to_s.strip
+      expect(description).not_to be_empty, "#{path}: frontmatter description must not be blank"
+      expect(description).to include("Use "), "#{path}: frontmatter description must contain \"Use \""
+    end
+  end
+
   it "has valid frontmatter and existing path references" do
     missing_paths = []
 

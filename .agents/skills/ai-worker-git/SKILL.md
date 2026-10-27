@@ -1,5 +1,5 @@
 ---
-name: ai-worker-git-github
+name: ai-worker-git
 description: Applies ai-worker's Git layer discipline. Use for any task touching app/services/git/** or matching specs (spec/services/git/**) — Git::Shell, BranchService, Pusher, MergeState, and Git::CommandError.
 ---
 

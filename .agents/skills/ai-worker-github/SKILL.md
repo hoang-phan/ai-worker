@@ -5,7 +5,7 @@ description: Applies ai-worker's GitHub layer discipline. Use for any task touch
 
 # ai-worker GitHub layer
 
-Every `gh` subprocess runs inside the project's clone (`project.local_directory`) through `Github::Runner`. Read the affected file before changing it; this is a map, not a substitute. Git service ownership is in `ai-worker-git-github`.
+Every `gh` subprocess runs inside the project's clone (`project.local_directory`) through `Github::Runner`. Read the affected file before changing it; this is a map, not a substitute. Git service ownership is in `ai-worker-git`.
 
 ## File map
 

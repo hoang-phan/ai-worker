@@ -1,6 +1,6 @@
 ---
 name: ai-worker-ui
-description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, and routes.
+description: Applies ai-worker's generic Rails CRUD-screen discipline for ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, and routes. Use for those screens when no narrower skill owns them.
 ---
 
 # ai-worker-ui

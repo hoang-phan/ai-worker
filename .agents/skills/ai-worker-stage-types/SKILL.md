@@ -43,7 +43,7 @@ ci_loop (`Project#flow` `ci_loop`, gated by `Project#ci_loop_ready?`: Jira proje
 - A finish handler leaves the workflow in a status the scheduler picks up (or terminal). Check the status appears in step 9's lists (`Scheduling::WorkflowQueries`).
 - Counting rounds/retries: cap them (`Stages::LocalTestPolicy::MAX_LOCAL_TEST_ROUNDS`) and log an `_exhausted` action rather than looping.
 - New result markers get an `AiCli::Output` method **and** a spec; never regex agent output inline in `StageExecutor` or a handler.
-- Handler-side effects that reach Git/GitHub/Slack follow `ai-worker-stage-pipeline`, `ai-worker-git-github`, and `ai-worker-github` (rescue expected errors only for best-effort follow-ups).
+- Handler-side effects that reach Git/GitHub/Slack follow `ai-worker-stage-pipeline`, `ai-worker-git`, and `ai-worker-github` (rescue expected errors only for best-effort follow-ups).
 
 ## Specs to add (see `ai-worker-testing`)
 

@@ -24,7 +24,7 @@ Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Ot
 | `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` | `ai-worker-scheduling` |
 | `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
 | `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` | `ai-worker-agent-cli` |
-| `app/services/git/**` | `ai-worker-git-github` |
+| `app/services/git/**` | `ai-worker-git` |
 | `app/services/github/**` | `ai-worker-github` |
 | `app/services/prompts/**` | `ai-worker-prompts` |
 | `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb` | `ai-worker-stage-pipeline` |
