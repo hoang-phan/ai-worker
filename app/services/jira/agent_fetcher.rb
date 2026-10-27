@@ -8,7 +8,7 @@ module Jira
   # State lives in tmp/jira_sync/<jira_sync_id>/: pid, started_at, tickets.json,
   # agent.log.
   class AgentFetcher
-    ROOT = Rails.root.join("tmp", "jira_sync")
+    ROOT = AgentRuns::StateRoot.join("jira_sync")
     STALE_AFTER = 15.minutes
 
     delegate :running?, :last_started_at, to: :run

@@ -24,6 +24,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `AgentRuns::ManualStart` + `ManualStartFlash` — "run now" buttons (`ai-worker-detached-agent-runs`, `ai-worker-ui`)
 - `AgentRuns::Cadence` — due-time logic (`ai-worker-detached-agent-runs`)
 - `AgentRuns::ImportResult` — Jira/Slack import result collections, summaries, and save outcome recording (`ai-worker-detached-agent-runs`)
+- `AgentRuns::StateRoot` — on-disk state dirs under `config.x.state_root` (`ai-worker-detached-agent-runs`)
 - `ProjectChildCrud` / `ProjectScoped` / `ProjectMemberScoped` / `WorkflowScoped` / `SettingsScreen` — controller concerns (`ai-worker-ui`; `WorkflowScoped` → `ai-worker-workflow-screens`)
 - `Projects::WorkflowDefaults` — new workflow attributes (`ai-worker-domain`)
 - `Workflows::SummaryKey` and `Workflows::ProposalNormalizer` — proposal dedupe and agent proposal rows (`ai-worker-proposal-imports`)

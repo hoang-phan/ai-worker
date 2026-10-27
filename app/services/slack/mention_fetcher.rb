@@ -7,7 +7,7 @@ module Slack
   # State lives in tmp/slack_reviews/<project_id>/: pid, started_at,
   # mentions.json, agent.log.
   class MentionFetcher
-    ROOT = Rails.root.join("tmp", "slack_reviews")
+    ROOT = AgentRuns::StateRoot.join("slack_reviews")
     STALE_AFTER = 15.minutes
     # Look back this far on the first run; later runs start at the previous
     # fetch (minus a margin — import is idempotent, so overlap is harmless).

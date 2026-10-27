@@ -3,7 +3,7 @@ module Workflows
   # Storage) so the agent CLI can read them straight from the path
   # substituted into the {IMAGES} placeholder.
   class ImageStore
-    DEFAULT_ROOT = Rails.root.join("tmp", "workflow_images")
+    DEFAULT_ROOT = AgentRuns::StateRoot.join("workflow_images")
     EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .bmp .svg].freeze
 
     def initialize(workflow_id:, root: DEFAULT_ROOT)

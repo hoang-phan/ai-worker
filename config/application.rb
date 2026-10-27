@@ -37,6 +37,10 @@ module AiWorker
     config.time_zone = "Asia/Ho_Chi_Minh"
     # config.eager_load_paths << Rails.root.join("extras")
 
+    # Detached-agent and related on-disk state (pid/result dirs, workflow images).
+    # Test overrides this to tmp/test_state so specs do not share development dirs.
+    config.x.state_root = Rails.root.join("tmp")
+
     # Don't generate system test files.
     config.generators.system_tests = nil
 

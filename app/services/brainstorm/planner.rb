@@ -11,7 +11,7 @@ module Brainstorm
   #
   # State lives in tmp/brainstorms/<project id>/: pid, started_at, result.json, history.md, agent.log.
   class Planner
-    ROOT = Rails.root.join("tmp", "brainstorms")
+    ROOT = AgentRuns::StateRoot.join("brainstorms")
     STALE_AFTER = 45.minutes
     DEFAULT_MODEL = "gpt-6-sol".freeze
     DEFAULT_EFFORT = "high".freeze

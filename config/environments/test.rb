@@ -50,4 +50,7 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Isolate agent-run / image on-disk state from development's tmp/<subdir> dirs.
+  config.x.state_root = Rails.root.join("tmp", "test_state")
 end

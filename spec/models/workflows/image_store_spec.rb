@@ -110,7 +110,7 @@ RSpec.describe Workflows::ImageStore do
 
   describe "default root" do
     it "is tmp/workflow_images under Rails.root" do
-      expect(described_class.new(workflow_id: 1).dir).to eq(Rails.root.join("tmp", "workflow_images", "1"))
+      expect(described_class.new(workflow_id: 1).dir).to eq(AgentRuns::StateRoot.join("workflow_images", "1"))
     end
   end
 end

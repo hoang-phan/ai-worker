@@ -4,7 +4,7 @@ module Slack
   # One ping run dir: tmp/slack_pings/<workflow_id>/<started_at>/{pid,agent.log}. Owns both halves of that
   # layout: `start!` (ReviewNotifier) creates it, `running?` / `permalink` (PingCollector) read it back.
   class PingRun
-    ROOT = Rails.root.join("tmp", "slack_pings")
+    ROOT = AgentRuns::StateRoot.join("slack_pings")
     STALE_AFTER = 5.minutes
 
     # The dir for a ping of `workflow_id` started at `started_at` (not created).

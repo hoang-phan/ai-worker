@@ -27,7 +27,7 @@ module AiCli
     KIND_SETTINGS = BrowserTestCredentials::KIND_SETTINGS
     KINDS = BrowserTestCredentials::KINDS
 
-    def initialize(project, workflow, kind:, root: Rails.root.join("tmp"), credentials: BrowserTestCredentials.new(project, kind: kind),
+    def initialize(project, workflow, kind:, root: AgentRuns::StateRoot.join, credentials: BrowserTestCredentials.new(project, kind: kind),
                    clock: -> { Time.current })
       @project = project
       @workflow = workflow

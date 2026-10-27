@@ -10,7 +10,7 @@ module Bugsnag
   # State lives in tmp/bugsnag_syncs/<id>/: pid, started_at, result.json,
   # agent.log.
   class Triager
-    ROOT = Rails.root.join("tmp", "bugsnag_syncs")
+    ROOT = AgentRuns::StateRoot.join("bugsnag_syncs")
     STALE_AFTER = 45.minutes
     # Headless (`claude -p`) can't prompt, so approve exactly what the run
     # needs. No Jira transition/assign/comment tools and no Bash/Edit, so the
