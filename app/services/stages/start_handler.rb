@@ -12,7 +12,34 @@ module Stages
     # development server on the PR's branch, after the PR exists and before review.
     BROWSER_TEST_KINDS = { "uat_test" => :uat, "local_test" => :local }.freeze
 
-    def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:, launcher:)
+    # Start-service factories keyed by dispatch arm. Each receives every collaborator as a keyword (browser_test also
+    # gets `kind:`) and builds its service with exactly the arguments that service takes.
+    STARTERS = {
+      pr_check: lambda { |workflow:, stage:, project:, github:, git:, handoff:, prompt:, launcher:, **|
+        Stages::PrCheckRun.new(
+          workflow: workflow, stage: stage, project: project, github: github, git: git,
+          handoff: handoff, prompt: prompt, launcher: launcher
+        )
+      },
+      pr_review: lambda { |workflow:, stage:, project:, github:, git:, prompt:, launcher:, **|
+        Stages::PrReviewStart.new(
+          workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher
+        )
+      },
+      ci_check: lambda { |stage:, project:, launcher:, **|
+        Stages::CiCheckStart.new(stage: stage, project: project, launcher: launcher)
+      },
+      browser_test: lambda { |workflow:, project:, kind:, prompt:, git:, launcher:, **|
+        Stages::BrowserTestStart.new(
+          workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
+        )
+      },
+      runbook_step: lambda { |workflow:, stage:, github:, prompt:, launcher:, **|
+        Stages::RunbookStepStart.new(workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher)
+      }
+    }.freeze
+
+    def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:, launcher:, starters: STARTERS)
       @workflow = workflow
       @stage = stage
       @project = project
@@ -21,6 +48,7 @@ module Stages
       @prompt = prompt
       @handoff = handoff
       @launcher = launcher
+      @starters = starters
     end
 
     def call
@@ -37,40 +65,28 @@ module Stages
 
     private
 
-    attr_reader :workflow, :stage, :project, :github, :git, :prompt, :handoff, :launcher
+    attr_reader :workflow, :stage, :project, :github, :git, :prompt, :handoff, :launcher, :starters
 
     def start_implementation
       git.create_branch!(project, workflow.branch_name)
       launcher.call(prompt.body)
     end
 
-    def start_pr_review
-      Stages::PrReviewStart.new(
-        workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher
-      ).call
-    end
+    def start_pr_review = build(:pr_review).call
 
-    def start_browser_test(kind)
-      Stages::BrowserTestStart.new(
-        workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
-      ).call
-    end
+    def start_browser_test(kind) = build(:browser_test, kind: kind).call
 
-    def start_ci_check
-      Stages::CiCheckStart.new(stage: stage, project: project, launcher: launcher).call
-    end
+    def start_ci_check = build(:ci_check).call
 
-    def start_runbook_step
-      Stages::RunbookStepStart.new(
-        workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher
-      ).call
-    end
+    def start_runbook_step = build(:runbook_step).call
 
-    def run_pr_check
-      Stages::PrCheckRun.new(
+    def run_pr_check = build(:pr_check).call
+
+    def build(name, **extra)
+      starters.fetch(name).call(
         workflow: workflow, stage: stage, project: project, github: github, git: git,
-        handoff: handoff, prompt: prompt, launcher: launcher
-      ).call
+        prompt: prompt, handoff: handoff, launcher: launcher, **extra
+      )
     end
   end
 end

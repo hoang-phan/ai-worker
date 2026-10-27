@@ -13,8 +13,20 @@ RSpec.describe Stages::StartHandler, type: :service do
   let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
 
+  let(:starter_names) { %i[pr_check pr_review ci_check browser_test runbook_step] }
+  let(:built) { Hash.new { |hash, name| hash[name] = [] } }
+  let(:fake_starters) do
+    starter_names.to_h do |name|
+      [ name, lambda { |**args|
+        built[name] << args
+        double("#{name} starter", call: name)
+      } ]
+    end
+  end
+
   def handler
-    described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, handoff: handoff, launcher: launcher)
+    described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt,
+                        handoff: handoff, launcher: launcher, starters: fake_starters)
   end
 
   def expect_run_started(prompt_text = "the prompt", **options)
@@ -53,14 +65,6 @@ RSpec.describe Stages::StartHandler, type: :service do
   end
 
   describe "dispatch over Stage::STAGE_TYPES" do
-    starter_classes = {
-      pr_check: Stages::PrCheckRun,
-      pr_review: Stages::PrReviewStart,
-      ci_check: Stages::CiCheckStart,
-      browser_test: Stages::BrowserTestStart,
-      runbook_step: Stages::RunbookStepStart
-    }.freeze
-
     Stage::STAGE_TYPES.each_key do |type|
       context "with #{type}" do
         let(:stage_type) { type }
@@ -68,11 +72,12 @@ RSpec.describe Stages::StartHandler, type: :service do
         it "dispatches exactly one start path" do
           started_paths = []
           allow(launcher).to receive(:call) { started_paths << :launcher }
-
-          starter_classes.each do |name, klass|
-            starter = instance_double(klass, call: nil)
-            allow(klass).to receive(:new).and_return(starter)
-            allow(starter).to receive(:call) { started_paths << name }
+          starter_names.each do |name|
+            fake_starters[name] = lambda { |**|
+              starter = double("#{name} starter")
+              allow(starter).to receive(:call) { started_paths << name }
+              starter
+            }
           end
 
           handler.call
@@ -99,12 +104,10 @@ RSpec.describe Stages::StartHandler, type: :service do
     let(:stage_type) { :ci_check }
 
     it "delegates to Stages::CiCheckStart" do
-      starter = instance_double(Stages::CiCheckStart, call: nil)
-      allow(Stages::CiCheckStart).to receive(:new).and_return(starter)
       handler.call
 
-      expect(Stages::CiCheckStart).to have_received(:new).with(stage: stage, project: project, launcher: launcher)
-      expect(starter).to have_received(:call)
+      expect(built[:ci_check]).to contain_exactly(hash_including(stage: stage, project: project, launcher: launcher))
+      expect(built.keys).to eq([ :ci_check ])
     end
   end
 
@@ -112,13 +115,12 @@ RSpec.describe Stages::StartHandler, type: :service do
     let(:stage_type) { :pr_review }
 
     it "delegates to Stages::PrReviewStart" do
-      starter = instance_double(Stages::PrReviewStart, call: nil)
-      allow(Stages::PrReviewStart).to receive(:new).and_return(starter)
       handler.call
 
-      expect(Stages::PrReviewStart).to have_received(:new)
-        .with(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher)
-      expect(starter).to have_received(:call)
+      expect(built[:pr_review]).to contain_exactly(
+        hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher)
+      )
+      expect(built.keys).to eq([ :pr_review ])
     end
   end
 
@@ -128,13 +130,12 @@ RSpec.describe Stages::StartHandler, type: :service do
         let(:stage_type) { type }
 
         it "delegates to BrowserTestStart for the #{kind} kind" do
-          starter = instance_double(Stages::BrowserTestStart, call: nil)
-          allow(Stages::BrowserTestStart).to receive(:new).and_return(starter)
           handler.call
 
-          expect(Stages::BrowserTestStart).to have_received(:new)
-            .with(workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher)
-          expect(starter).to have_received(:call)
+          expect(built[:browser_test]).to contain_exactly(
+            hash_including(workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher)
+          )
+          expect(built.keys).to eq([ :browser_test ])
         end
       end
     end
@@ -144,13 +145,12 @@ RSpec.describe Stages::StartHandler, type: :service do
     let(:stage_type) { :runbook_step }
 
     it "delegates to Stages::RunbookStepStart" do
-      starter = instance_double(Stages::RunbookStepStart, call: nil)
-      allow(Stages::RunbookStepStart).to receive(:new).and_return(starter)
       handler.call
 
-      expect(Stages::RunbookStepStart).to have_received(:new)
-        .with(workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher)
-      expect(starter).to have_received(:call)
+      expect(built[:runbook_step]).to contain_exactly(
+        hash_including(workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher)
+      )
+      expect(built.keys).to eq([ :runbook_step ])
     end
   end
 
@@ -158,25 +158,46 @@ RSpec.describe Stages::StartHandler, type: :service do
     let(:stage_type) { :pr_check }
 
     it "delegates to Stages::PrCheckRun, passing the launcher" do
-      run = instance_double(Stages::PrCheckRun, call: nil)
-      allow(Stages::PrCheckRun).to receive(:new).and_return(run)
       handler.call
 
-      expect(Stages::PrCheckRun).to have_received(:new).with(
+      expect(built[:pr_check]).to contain_exactly(
         hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git,
                        handoff: handoff, prompt: prompt, launcher: launcher)
       )
-      expect(run).to have_received(:call)
+      expect(built.keys).to eq([ :pr_check ])
     end
   end
 
   it "is a no-op returning nil for an unknown stage type" do
-    starter_classes = [ Stages::PrCheckRun, Stages::PrReviewStart, Stages::CiCheckStart, Stages::BrowserTestStart, Stages::RunbookStepStart ]
-    starter_classes.each { |klass| allow(klass).to receive(:new) }
     allow(stage).to receive(:stage_type).and_return("bogus")
 
     expect(handler.call).to be_nil
     expect(launcher).not_to have_received(:call)
-    starter_classes.each { |klass| expect(klass).not_to have_received(:new) }
+    expect(built).to be_empty
+  end
+
+  describe "default STARTERS" do
+    it "builds each start service with the right class and collaborators" do
+      args = { workflow: workflow, stage: stage, project: project, github: github, git: git,
+               prompt: prompt, handoff: handoff, launcher: launcher }
+      expectations = {
+        pr_check: [ Stages::PrCheckRun, args ],
+        pr_review: [ Stages::PrReviewStart, args.except(:handoff) ],
+        ci_check: [ Stages::CiCheckStart, args.slice(:stage, :project, :launcher) ],
+        browser_test: [ Stages::BrowserTestStart, args.slice(:workflow, :project, :prompt, :git, :launcher).merge(kind: :uat) ],
+        runbook_step: [ Stages::RunbookStepStart, args.slice(:workflow, :stage, :github, :prompt, :launcher) ]
+      }
+      expect(described_class::STARTERS.keys).to match_array(expectations.keys)
+
+      expectations.each do |name, (klass, expected)|
+        instance = instance_double(klass)
+        allow(klass).to receive(:new).and_return(instance)
+
+        built_instance = described_class::STARTERS.fetch(name).call(**args, kind: :uat)
+
+        expect(klass).to have_received(:new).with(expected)
+        expect(built_instance).to eq(instance)
+      end
+    end
   end
 end
