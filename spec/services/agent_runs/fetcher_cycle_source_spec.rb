@@ -4,8 +4,10 @@ RSpec.describe AgentRuns::FetcherCycleSource do
   let(:fetcher) { double("fetcher", poll: [ :row ], running?: false, last_started_at: started_at, start: :started) }
   let(:sync) { double("sync", import: result, blockers: [ "missing configuration" ]) }
   let(:result) { double("result", summary: "created=1") }
-  let(:started_at) { 2.hours.ago }
-  let(:source) { described_class.new(sync: sync, fetcher: fetcher) }
+  let(:now) { Time.zone.local(2026, 10, 20, 12, 0) }
+  let(:started_at) { now - 2.hours }
+  let(:clock) { -> { now } }
+  let(:source) { described_class.new(sync: sync, fetcher: fetcher, clock: clock) }
 
   it "delegates polling, importing, blockers, and starting" do
     expect(source.poll).to eq([ :row ])
@@ -21,8 +23,10 @@ RSpec.describe AgentRuns::FetcherCycleSource do
     expect(source.idle?).to be(false)
   end
 
-  it "keeps the fetcher's last start time protected for cadence subclasses" do
+  it "keeps the fetcher's last start time and clock protected for cadence subclasses" do
     expect(source.send(:last_started_at)).to eq(started_at)
+    expect(source.send(:now)).to eq(now)
     expect(source).not_to respond_to(:last_started_at)
+    expect(source).not_to respond_to(:now)
   end
 end

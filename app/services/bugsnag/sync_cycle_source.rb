@@ -4,14 +4,14 @@ module Bugsnag
     RUN_HOUR = 9
     RESCUE_ERRORS = [ Bugsnag::FetchError, AiCli::CommandError ].freeze
 
-    def initialize(bugsnag_sync, sync: nil)
+    def initialize(bugsnag_sync, sync: nil, clock: -> { Time.current })
       @bugsnag_sync = bugsnag_sync
       sync ||= Bugsnag::TriageSync.new(bugsnag_sync)
-      super(sync:, fetcher: sync.triager)
+      super(sync:, fetcher: sync.triager, clock:)
     end
 
     def persist!(_result, summary)
-      @bugsnag_sync.update(last_synced_at: Time.current, last_result: summary)
+      @bugsnag_sync.update(last_synced_at: now, last_result: summary)
     end
 
     def persist_failure!(message) = @bugsnag_sync.update(last_result: message)
@@ -19,7 +19,7 @@ module Bugsnag
     def eligible? = @bugsnag_sync.auto_sync?
 
     def due?
-      AgentRuns::Cadence.daily_on_weekdays(hour: RUN_HOUR, last_started_at: last_started_at)
+      AgentRuns::Cadence.daily_on_weekdays(hour: RUN_HOUR, last_started_at: last_started_at, now:)
     end
   end
 end

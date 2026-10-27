@@ -2,9 +2,10 @@
 # sources supply persistence, eligibility, cadence, and any hooks.
 module AgentRuns
   class FetcherCycleSource < CycleSource
-    def initialize(sync:, fetcher:)
+    def initialize(sync:, fetcher:, clock: -> { Time.current })
       @sync = sync
       @fetcher = fetcher
+      @clock = clock
     end
 
     def poll = @fetcher.poll
@@ -17,6 +18,7 @@ module AgentRuns
     protected
 
     def last_started_at = @fetcher.last_started_at
+    def now = @clock.call
 
     # Suffix for sources whose results carry a failed list: the rows joined by '; '.
     def failed_detail(result) = result.failed.join("; ")

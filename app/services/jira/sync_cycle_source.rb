@@ -4,16 +4,16 @@ module Jira
     FETCH_EVERY = 3.hours
     RESCUE_ERRORS = [ Jira::FetchError, AiCli::CommandError ].freeze
 
-    def initialize(jira_sync, sync: nil)
+    def initialize(jira_sync, sync: nil, clock: -> { Time.current })
       @jira_sync = jira_sync
       sync ||= Jira::TicketSync.new(jira_sync)
-      super(sync:, fetcher: sync.fetcher)
+      super(sync:, fetcher: sync.fetcher, clock:)
     end
 
     def log_detail(result) = failed_detail(result)
 
     def persist!(_result, summary)
-      @jira_sync.update(last_synced_at: Time.current, last_result: summary)
+      @jira_sync.update(last_synced_at: now, last_result: summary)
     end
 
     def persist_failure!(message) = @jira_sync.update(last_result: message)
@@ -21,7 +21,7 @@ module Jira
     def eligible? = @jira_sync.auto_sync?
 
     def due?
-      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: last_started_at)
+      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: last_started_at, now:)
     end
   end
 end

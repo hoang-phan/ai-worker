@@ -4,16 +4,16 @@ module Slack
     FETCH_EVERY = 30.minutes
     RESCUE_ERRORS = [ Slack::FetchError, AiCli::CommandError ].freeze
 
-    def initialize(project, sync: nil)
+    def initialize(project, sync: nil, clock: -> { Time.current })
       @project = project
       sync ||= Slack::ReviewSync.new(project)
-      super(sync:, fetcher: sync.fetcher)
+      super(sync:, fetcher: sync.fetcher, clock:)
     end
 
     def log_detail(result) = failed_detail(result)
 
     def persist!(_result, summary)
-      @project.update(slack_last_synced_at: Time.current, slack_last_result: summary)
+      @project.update(slack_last_synced_at: now, slack_last_result: summary)
     end
 
     def persist_failure!(message) = @project.update(slack_last_result: message)
@@ -25,7 +25,7 @@ module Slack
     end
 
     def due?
-      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: last_started_at)
+      AgentRuns::Cadence.every(FETCH_EVERY, last_started_at: last_started_at, now:)
     end
   end
 end

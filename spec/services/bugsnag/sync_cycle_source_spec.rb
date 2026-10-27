@@ -4,14 +4,14 @@ RSpec.describe Bugsnag::SyncCycleSource do
   let(:record) { double("bugsnag_sync", update: true, auto_sync?: true) }
   let(:triager) { instance_double(Bugsnag::Triager, poll: nil, running?: false, last_started_at: nil, start: nil) }
   let(:sync) { instance_double(Bugsnag::TriageSync, triager: triager, blockers: [ "no clone" ]) }
-  let(:source) { described_class.new(record, sync: sync) }
   let(:tuesday_10am) { Time.zone.local(2026, 10, 20, 10, 0) }
+  let(:fake_now) { { time: tuesday_10am } }
+  let(:clock) { -> { fake_now[:time] } }
+  let(:source) { described_class.new(record, sync: sync, clock: clock) }
 
   it "persists the summary with a timestamp, and failures as last_result only" do
-    freeze_time do
-      source.persist!(nil, "sum")
-      expect(record).to have_received(:update).with(last_synced_at: Time.current, last_result: "sum")
-    end
+    source.persist!(nil, "sum")
+    expect(record).to have_received(:update).with(last_synced_at: tuesday_10am, last_result: "sum")
     source.persist_failure!("failed: x")
     expect(record).to have_received(:update).with(last_result: "failed: x")
   end
@@ -28,7 +28,10 @@ RSpec.describe Bugsnag::SyncCycleSource do
   end
 
   describe "#due?" do
-    def due_at(time) = travel_to(time) { source.due? }
+    def due_at(time)
+      fake_now[:time] = time
+      source.due?
+    end
 
     it "is due on a weekday from RUN_HOUR when not started today" do
       expect(due_at(tuesday_10am)).to be(true)

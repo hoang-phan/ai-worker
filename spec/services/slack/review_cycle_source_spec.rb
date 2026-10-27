@@ -4,7 +4,9 @@ RSpec.describe Slack::ReviewCycleSource do
   let(:record) { double("project", update: true) }
   let(:fetcher) { instance_double(Slack::MentionFetcher, poll: nil, running?: false, last_started_at: nil, start: nil) }
   let(:sync) { instance_double(Slack::ReviewSync, fetcher: fetcher, blockers: [ "no token" ]) }
-  let(:source) { described_class.new(record, sync: sync) }
+  let(:now) { Time.zone.local(2026, 10, 20, 12, 0) }
+  let(:clock) { -> { now } }
+  let(:source) { described_class.new(record, sync: sync, clock: clock) }
 
   def result(created: [], failed: [])
     Slack::ReviewSync::Result.new(blockers: [], created: created, skipped: [], failed: failed, skipped_reasons: Hash.new(0))
@@ -18,10 +20,8 @@ RSpec.describe Slack::ReviewCycleSource do
   end
 
   it "persists to the slack_* columns" do
-    freeze_time do
-      source.persist!(result, "sum")
-      expect(record).to have_received(:update).with(slack_last_synced_at: Time.current, slack_last_result: "sum")
-    end
+    source.persist!(result, "sum")
+    expect(record).to have_received(:update).with(slack_last_synced_at: now, slack_last_result: "sum")
     source.persist_failure!("failed: x")
     expect(record).to have_received(:update).with(slack_last_result: "failed: x")
   end
@@ -44,9 +44,9 @@ RSpec.describe Slack::ReviewCycleSource do
 
   it "is due after FETCH_EVERY and not before" do
     expect(source.due?).to be(true)
-    allow(fetcher).to receive(:last_started_at).and_return((described_class::FETCH_EVERY + 1.minute).ago)
+    allow(fetcher).to receive(:last_started_at).and_return(now - (described_class::FETCH_EVERY + 1.minute))
     expect(source.due?).to be(true)
-    allow(fetcher).to receive(:last_started_at).and_return((described_class::FETCH_EVERY - 1.minute).ago)
+    allow(fetcher).to receive(:last_started_at).and_return(now - (described_class::FETCH_EVERY - 1.minute))
     expect(source.due?).to be(false)
   end
 end
