@@ -37,29 +37,22 @@ RSpec.describe Slack::MentionFetcher do
 
     it "looks back FIRST_LOOKBACK when it never ran" do
       now = Time.utc(2026, 5, 1, 12)
-      expected = nil
-      allow(Slack::MentionPrompt).to receive(:new).and_wrap_original do |m, **kw|
-        expected = kw[:since]
-        m.call(**kw)
-      end
+      expected = now - described_class::FIRST_LOOKBACK
+      fetcher = described_class.new(project, root: root, run: run, clock: -> { now })
 
-      travel_to(now) { fetcher.start }
+      fetcher.start
 
-      expect(expected).to eq(now - described_class::FIRST_LOOKBACK)
+      expect(run.started[:prompt]).to include("Only consider messages posted after #{expected.utc.iso8601}")
     end
 
     it "starts OVERLAP before the last start otherwise" do
       last = Time.utc(2026, 5, 1, 8)
       run.last_started_at = last
-      since = nil
-      allow(Slack::MentionPrompt).to receive(:new).and_wrap_original do |m, **kw|
-        since = kw[:since]
-        m.call(**kw)
-      end
+      expected = last - described_class::OVERLAP
 
       fetcher.start
 
-      expect(since).to eq(last - described_class::OVERLAP)
+      expect(run.started[:prompt]).to include("Only consider messages posted after #{expected.utc.iso8601}")
     end
   end
 

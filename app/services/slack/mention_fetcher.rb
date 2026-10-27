@@ -29,15 +29,16 @@ module Slack
 
     delegate :running?, :last_started_at, to: :run
 
-    def initialize(project, root: ROOT, run: nil)
+    def initialize(project, root: ROOT, run: nil, clock: -> { Time.current })
       @project = project
       @dir = Pathname(root).join(project.id.to_s)
       @run = run || AiCli::DetachedRun.new(dir: dir, result_name: "mentions.json", stale_after: STALE_AFTER, error_class: FetchError)
+      @clock = clock
     end
 
     # No-op (returns false) if a fetch process is still alive.
     def start
-      since = last_started_at ? last_started_at - OVERLAP : FIRST_LOOKBACK.ago
+      since = last_started_at ? last_started_at - OVERLAP : clock.call - FIRST_LOOKBACK
       run.start(cwd: dir, prompt: prompt(since), allowed_tools: ALLOWED_TOOLS)
     end
 
@@ -49,7 +50,7 @@ module Slack
 
     private
 
-    attr_reader :project, :dir, :run
+    attr_reader :project, :dir, :run, :clock
 
     def prompt(since)
       Slack::MentionPrompt.new(
