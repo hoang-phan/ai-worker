@@ -38,6 +38,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | `app/services/github/**`, or their specs | `ai-worker-github` |
    | `app/services/git/**`, or their specs | `ai-worker-git` |
    | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb`, `defaults/jira_update.md`, its listed section files, `prompt_template.rb`, prompt templates (CRUD controller/views/request spec), or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
+   | `app/services/stages/{pr_check_run,pr_check_decision,pr_check_finish,review_handoff,merge_check}.rb`, or their specs | `ai-worker-pr-check` |
    | `app/services/stage_executor.rb`, or remaining generic `app/services/stages/**` and their specs | `ai-worker-stage-pipeline` |
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |
    | remaining ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, or routes | `ai-worker-ui` |

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-stage-pipeline
-description: Applies ai-worker's stage execution discipline. Use for any task touching app/services/stage_executor.rb or generic stage machinery under app/services/stages/** (and their specs), except follow_up_importer.rb and its spec. Specialised stage files (ci_loop, browser tests, runbooks, PR-review, proposal imports, run_tooling, run_provider) belong to narrower skills; this skill remains the fallback owner for app/services/stages/**.
+description: Applies ai-worker's stage execution discipline. Use for any task touching app/services/stage_executor.rb or generic stage machinery under app/services/stages/** (and their specs), except files owned by narrower skills. This skill remains the fallback owner for app/services/stages/**.
 ---
 
 # ai-worker stage pipeline
@@ -19,11 +19,6 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 - `app/services/stages/ai_run_launcher.rb` — resolves the provider via `RunProvider`, starts the injected runner, persists the workflow's detached-run pid/log/start/offset/`ai_provider` state, and logs the supplied start action.
 - `app/services/stages/conflict_resolution_finish.rb` — verifies a conflict-resolution run committed its merge, aborts and raises if not, otherwise clears its run and immediately launches the review-fix prompt.
 - `app/services/stages/implementation_finish.rb` — delegates a successful implementation result to `PrOpenedFinish` with the implementation action.
-- `app/services/stages/pr_check_run.rb` — closes already-merged/approved PRs, logs pure decision actions, or launches a review-fix or conflict-resolution run when changes are requested.
-- `app/services/stages/pr_check_decision.rb` — pure decision logic that turns review state, local-test feedback, and lazy CI failure lookup into approved, changes-requested, or pending plus log actions.
-- `app/services/stages/pr_check_finish.rb` — requests review after a fix, chooses whether local testing must rerun, completes the run, best-effort records agent lessons, and notifies reviewers when no retest is needed.
-- `app/services/stages/review_handoff.rb` — best-effort reviewer notification and auto-merge work; catches notification/GitHub errors and logs them instead of failing a completed stage.
-- `app/services/stages/merge_check.rb` — on idle scheduler ticks, marks a merged tracked PR workflow as `merged`; logs GitHub lookup failures without raising.
 - `app/services/stages/task_finish.rb` — completes a task workflow into `done`, then best-effort queues agent-proposed follow-ups and pushes its commits, logging each outcome. Follow-up import policy belongs to `ai-worker-proposal-imports`.
 - `app/services/stages/jira_update_finish.rb` — parses `JIRA_RESULT` and completes `jira_update`, optionally scheduling delayed UAT.
 
@@ -33,6 +28,7 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 - `browser_test_start` / `local_test_finish` / `local_test_policy` / `uat_test_finish` → `ai-worker-browser-tests`
 - `runbook_step_start` / `runbook_step_finish` / `workflow_run_gate` → `ai-worker-runbooks`
 - `pr_review_start` / `pr_review_finish` → `ai-worker-pr-review-workflows`
+- `pr_check_run` / `pr_check_decision` / `pr_check_finish` / `review_handoff` / `merge_check` → `ai-worker-pr-check`
 - `run_tooling` / `run_provider` → `ai-worker-agent-cli` / `ai-worker-cli-selection`
 
 ## Conventions
@@ -46,10 +42,9 @@ Core scope: `app/services/stage_executor.rb` and the generic handlers listed bel
 
 ## Specs
 
-- Run core coverage with `RAILS_ENV=test bundle exec rspec spec/services/stage_executor_spec.rb spec/services/stages/{ai_run_launcher,start_handler,completion_handler,failure_handler,conflict_resolution_finish,implementation_finish,pr_check_run,pr_check_decision,pr_check_finish,review_handoff,merge_check,task_finish,jira_update_finish}_spec.rb`.
+- Run core coverage with `RAILS_ENV=test bundle exec rspec spec/services/stage_executor_spec.rb spec/services/stages/{ai_run_launcher,start_handler,completion_handler,failure_handler,conflict_resolution_finish,implementation_finish,task_finish,jira_update_finish}_spec.rb`.
 - `spec/services/stage_executor_spec.rb` covers the live-checkout guard, start/poll routing, completion dispatch, and single rescue path.
 - `spec/services/stages/ai_run_poll_spec.rb` covers poller construction, running/completed return values, and persisted log offsets.
 - `spec/services/stages/ai_run_launcher_spec.rb` and `start_handler_spec.rb` cover start-path state and injected launchers; `start_handler_spec.rb` dispatches every `Stage::STAGE_TYPES` entry and fails if one has no mapped start path.
-- `spec/services/stages/completion_handler_spec.rb`, `conflict_resolution_finish_spec.rb`, `failure_handler_spec.rb`, `implementation_finish_spec.rb`, `pr_check_finish_spec.rb`, `jira_update_finish_spec.rb`, and `task_finish_spec.rb` cover completion/failure transitions and logged actions; the completion-handler dispatch guard likewise fails when a stage type has no finisher.
-- `spec/services/stages/pr_check_decision_spec.rb`, `pr_check_run_spec.rb`, and `merge_check_spec.rb` cover decisions and non-launching checks; `review_handoff_spec.rb` covers swallowed follow-up failures. Follow-up importer coverage belongs to `ai-worker-proposal-imports`.
+- `spec/services/stages/completion_handler_spec.rb`, `conflict_resolution_finish_spec.rb`, `failure_handler_spec.rb`, `implementation_finish_spec.rb`, `jira_update_finish_spec.rb`, and `task_finish_spec.rb` cover completion/failure transitions and logged actions; the completion-handler dispatch guard likewise fails when a stage type has no finisher. Follow-up importer coverage belongs to `ai-worker-proposal-imports`.
 - Specs for specialised stage files: `ai-worker-ci-loop`, `ai-worker-browser-tests`, `ai-worker-runbooks`, `ai-worker-pr-review-workflows`, `ai-worker-agent-cli`, `ai-worker-cli-selection`.

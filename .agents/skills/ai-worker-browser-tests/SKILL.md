@@ -53,7 +53,7 @@ Its MCP JSON starts `npx -y @playwright/mcp@0.0.83 --headless --isolated --caps 
 
 ## Specs
 
-`spec/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/stage_sections/local_feedback_spec.rb`. When a change also touches a file owned elsewhere, run that skill's specs too (e.g. `output_spec.rb` for markers, `jira_update_finish_spec.rb` / `pr_check_finish_spec.rb` for handoffs, `transitions_spec.rb` for resume).
+`spec/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}_spec.rb`; `spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb`; `spec/services/scheduling/uat_phase_spec.rb`; `spec/services/prompts/stage_sections/local_feedback_spec.rb`. When a change also touches a file owned elsewhere, run that skill's specs too (e.g. `output_spec.rb` for markers, `jira_update_finish_spec.rb` / `pr_check_finish_spec.rb` from `ai-worker-pr-check` for handoffs, `transitions_spec.rb` for resume).
 
 Run:
 

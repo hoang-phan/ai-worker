@@ -27,7 +27,7 @@ Scope: the outbound "please review" message posted to the project's Slack channe
 
 ## Not owned here
 
-- `app/services/stages/review_handoff.rb` (`Stages::ReviewHandoff#notify_reviewers!`) — the caller; see `ai-worker-stage-pipeline`. It skips unless `enabled?` and reviewers exist, calls `collect` first (so a freshly collected permalink is the `thread_ts`), then `notify!`, and logs `slack_review_notified` / `slack_review_notify_failed` rescuing `Slack::NotifyError` and `Github::CommandError`.
+- `app/services/stages/review_handoff.rb` (`Stages::ReviewHandoff#notify_reviewers!`) — the caller; see `ai-worker-pr-check`. It skips unless `enabled?` and reviewers exist, calls `collect` first (so a freshly collected permalink is the `thread_ts`), then `notify!`, and logs `slack_review_notified` / `slack_review_notify_failed` rescuing `Slack::NotifyError` and `Github::CommandError`.
 - `Workflow#slack_review_thread_ts=` (`app/models/workflow.rb`) — accepts `1760000000.123456` or a `.../archives/C123/p1760000000123456` link and stores the `ts`; see `ai-worker-domain`. `Project#slack_review_channel` / `slack_user_map` are project columns.
 - The Slack mention fetch, `Slack::ReviewSync`, `Slack::ReviewImporter` and `SlackReviewJob` — `ai-worker-pr-review-workflows`.
 
