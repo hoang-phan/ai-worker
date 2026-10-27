@@ -28,10 +28,14 @@ RSpec.describe Bugsnag::TriageSync do
     end
 
     it "lists the missing preconditions" do
-      allow(Projects::RunBlockers).to receive(:new).with(project).and_return(instance_double(Projects::RunBlockers, messages: [ "no clone" ]))
+      missing_directory = File.join(Dir.tmpdir, "missing-triage-sync-#{SecureRandom.uuid}")
+      project.update_columns(kind: Project.kinds[:personal], jira_base_url: nil, local_directory: missing_directory)
 
-      expect(sync.blockers).to eq([ "no clone" ])
-      expect(Projects::RunBlockers.new(project)).to have_received(:messages).with(:jira_kind, :jira_site_url, :local_directory)
+      expect(sync.blockers).to eq([
+        "project kind is not jira",
+        "Jira site URL is not set",
+        "local directory does not exist"
+      ])
     end
   end
 

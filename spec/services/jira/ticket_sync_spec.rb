@@ -35,12 +35,10 @@ RSpec.describe Jira::TicketSync do
     end
 
     it "builds and memoizes an AgentFetcher when none is injected" do
-      built = double("agent fetcher")
-      allow(Jira::AgentFetcher).to receive(:new).with(jira_sync).and_return(built)
+      fetcher = sync.fetcher
 
-      expect(sync.fetcher).to be(built)
-      expect(sync.fetcher).to be(built)
-      expect(Jira::AgentFetcher).to have_received(:new).once
+      expect(fetcher).to a_kind_of(Jira::AgentFetcher)
+      expect(sync.fetcher).to be(fetcher)
     end
   end
 
