@@ -2,11 +2,12 @@ require "rails_helper"
 
 RSpec.describe Prompts::StagePrompt do
   subject(:stage_prompt) do
-    described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log)
+    described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, section_list: section_list)
   end
 
   let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: false) }
   let(:latest_log) { ->(_workflow_id) { nil } }
+  let(:section_list) { nil }
 
   let_tmpdir(:local_directory, "stage-prompt-spec")
   let(:project_attrs) { { kind: :personal } }
@@ -67,19 +68,19 @@ RSpec.describe Prompts::StagePrompt do
 
     it "appends sections in order after the rendered body" do
       stage.update!(prompt: "Do {TASK}")
-      section_classes = [
-        Prompts::StageSections::Retry, Prompts::StageSections::LocalFeedback,
-        Prompts::StageSections::FixedSummary, Prompts::StageSections::LessonsRequest,
-        Prompts::StageSections::FollowUps, Prompts::StageSections::Lessons,
-        Prompts::StageSections::CheckOutput
-      ]
-      outputs = section_classes.each_with_index.map do |klass, index|
-        output = " section-#{index}"
-        allow(klass).to receive(:new).and_return(instance_double(klass, to_s: output))
-        output
-      end
+      section_list = instance_double(Prompts::StageSectionList, to_s: " sections")
+      prompt = described_class.new(workflow, stage, notifier: notifier, latest_log: latest_log, section_list: section_list)
 
-      expect(stage_prompt.body).to eq("Do Do the thing#{outputs.join}")
+      expect(prompt.body).to eq("Do Do the thing sections")
+    end
+
+    it "uses the real section list when the injected list is nil" do
+      stage.update!(prompt: "Do {TASK}")
+
+      expect(stage_prompt.body).to include(
+        "Do Do the thing",
+        "If you discovered necessary work that is outside the scope of this task"
+      )
     end
   end
 

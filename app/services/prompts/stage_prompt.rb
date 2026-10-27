@@ -3,10 +3,15 @@ module Prompts
   class StagePrompt
     CONFLICT = Prompts::ConflictResolution::TEXT
 
-    def initialize(workflow, stage, notifier: nil, latest_log: Prompts::StageSectionList::DEFAULT_LATEST_LOG)
+    def initialize(workflow, stage, notifier: nil, latest_log: Prompts::StageSectionList::DEFAULT_LATEST_LOG, section_list: nil)
       @workflow = workflow
       @stage = stage
-      @section_list = Prompts::StageSectionList.new(workflow: workflow, stage: stage, notifier: notifier, latest_log: latest_log)
+      @section_list = section_list || Prompts::StageSectionList.new(
+        workflow: workflow,
+        stage: stage,
+        notifier: notifier,
+        latest_log: latest_log
+      )
     end
 
     def body
