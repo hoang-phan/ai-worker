@@ -117,15 +117,30 @@ RSpec.describe Scheduling::ActiveWorkflowRunner do
     expect(calls).to be_empty
   end
 
-  it "defaults the executor to the workflow's current stage" do
+  it "builds an injected stage executor for the workflow's current stage" do
     wf = workflow(project: project)
     stage = instance_double(Stage)
     allow(wf).to receive(:current_stage).and_return(stage)
-    stage_executor = instance_double(StageExecutor, call: nil)
-    allow(StageExecutor).to receive(:new).with(wf, stage).and_return(stage_executor)
+    executions = []
+    executor_class = Struct.new(:workflow, :stage) do
+      define_method(:call) { executions << [ workflow, stage ] }
+    end
 
-    described_class::DEFAULT_EXECUTOR.call(wf)
+    described_class.stage_executor(executor_class: executor_class).call(wf)
 
-    expect(stage_executor).to have_received(:call)
+    expect(executions).to eq([ [ wf, stage ] ])
+  end
+
+  it "does not build an injected stage executor without a current stage" do
+    wf = workflow(project: project)
+    allow(wf).to receive(:current_stage).and_return(nil)
+    executions = []
+    executor_class = Struct.new(:workflow, :stage) do
+      define_method(:call) { executions << [ workflow, stage ] }
+    end
+
+    described_class.stage_executor(executor_class: executor_class).call(wf)
+
+    expect(executions).to be_empty
   end
 end

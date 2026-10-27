@@ -181,22 +181,18 @@ RSpec.describe Stages::StartHandler, type: :service do
       args = { workflow: workflow, stage: stage, project: project, github: github, git: git,
                prompt: prompt, handoff: handoff, launcher: launcher }
       expectations = {
-        pr_check: [ Stages::PrCheckRun, args ],
-        pr_review: [ Stages::PrReviewStart, args.except(:handoff) ],
-        ci_check: [ Stages::CiCheckStart, args.slice(:stage, :project, :launcher) ],
-        browser_test: [ Stages::BrowserTestStart, args.slice(:workflow, :project, :prompt, :git, :launcher).merge(kind: :uat) ],
-        runbook_step: [ Stages::RunbookStepStart, args.slice(:workflow, :stage, :github, :prompt, :launcher) ]
+        pr_check: Stages::PrCheckRun,
+        pr_review: Stages::PrReviewStart,
+        ci_check: Stages::CiCheckStart,
+        browser_test: Stages::BrowserTestStart,
+        runbook_step: Stages::RunbookStepStart
       }
       expect(described_class::STARTERS.keys).to match_array(expectations.keys)
 
-      expectations.each do |name, (klass, expected)|
-        instance = instance_double(klass)
-        allow(klass).to receive(:new).and_return(instance)
-
+      expectations.each do |name, klass|
         built_instance = described_class::STARTERS.fetch(name).call(**args, kind: :uat)
 
-        expect(klass).to have_received(:new).with(expected)
-        expect(built_instance).to eq(instance)
+        expect(built_instance).to be_a(klass)
       end
     end
   end

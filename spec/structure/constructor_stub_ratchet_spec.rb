@@ -6,7 +6,7 @@ require "spec_helper"
 # entries when you remove stubs; do not raise the caps. Listed files may have
 # fewer or zero matches without failing — other tasks are clearing stubs.
 RSpec.describe "constructor stub ratchet" do
-  PATTERN = /(allow|expect)\((AiCli|Git|Github|Stages|Jira|Slack|Bugsnag|Brainstorm|Scheduling|Prompts|Ci|AgentRuns|Workflows|Projects)::[A-Za-z:]+\)\.(to|not_to) receive\(:new\)/
+  PATTERN = /(allow|expect)\((?:(?:AiCli|Git|Github|Stages|Jira|Slack|Bugsnag|Brainstorm|Scheduling|Prompts|Ci|AgentRuns|Workflows|Projects)::[A-Za-z:]+|StageExecutor)\)\.(to|not_to) receive\(:new\)/
 
   # path => maximum match count. Lower or delete an entry when stubs go away.
   ALLOWLIST = {

@@ -10,7 +10,7 @@ The delayed-UAT browser-test phase is specialised in `ai-worker-browser-tests`.
 Scope:
 
 - `app/jobs/workflow_scheduler_job.rb` enqueues on `stage_execution` and forwards each tick to `Scheduling::Tick` via `perform(run_workflow_id = nil, tick: nil)` (default tick built with `max_capacity: max_concurrent_agents`; specs pass `tick:`).
-- `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows.
+- `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows; `stage_executor(executor_class:)` supplies its injectable current-stage executor (with `DEFAULT_EXECUTOR` retained as the compatibility alias).
 - `app/services/scheduling/capacity.rb` tracks global slots and busy clones.
 - `app/services/scheduling/guarded_executor.rb` logs and isolates individual executor failures.
 - `app/services/scheduling/planner.rb` makes pure eligibility and `clone_key` decisions.
