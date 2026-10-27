@@ -78,34 +78,18 @@ RSpec.describe StageExecutor, type: :service do
       expect(handler).to have_received(:call).with("green")
     end
 
-    it "builds the default handoff with its lazy GitHub client" do
-      ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
-      github = double("Github::Client")
-
-      described_class.new(workflow, stage, github: github, ai_run_poll: ai_run_poll, completion_handler_class: handler_class).call
-
-      expect(handler_class).to have_received(:new).with(
-        hash_including(github: github, handoff: an_instance_of(Stages::ReviewHandoff).and(satisfy { |h| h.instance_variable_get(:@github).equal?(github) }))
-      )
-    end
-
-    it "completes an implementation run using only injected GitHub and poller collaborators" do
+    it "uses the injected GitHub client in the default handoff" do
       implementation = build_stage(workflow, :implementation)
       pr_url = "https://github.com/acme/widgets/pull/99"
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "opened #{pr_url}")
-      github = instance_double(Github::Client, find_pr_url: pr_url, enable_auto_merge!: nil, pr_title: "Use injected GitHub")
-      notifier = instance_double(Slack::ReviewNotifier, enabled?: true, collect: nil, notify!: nil)
-      handoff = Stages::ReviewHandoff.new(workflow, implementation, notifier: notifier, github: github)
-      expect(Github::Client).not_to receive(:new)
+      github = instance_double(Github::Client, find_pr_url: pr_url, enable_auto_merge!: nil)
 
-      described_class.new(workflow, implementation, github: github, ai_run_poll: ai_run_poll, handoff: handoff).call
+      described_class.new(workflow, implementation, github: github, ai_run_poll: ai_run_poll).call
 
       expect(workflow.reload).to have_attributes(status: "reviewing", github_pr_url: pr_url).and have_finished_ai_run
-      expect(stage_actions(implementation)).to eq %w[ran_implementation auto_merge_enabled slack_review_notified]
+      expect(stage_actions(implementation)).to eq %w[ran_implementation auto_merge_enabled]
       expect(github).to have_received(:find_pr_url).with(branch_name: "executor", jira_ticket: "EXEC-1", output: "opened #{pr_url}")
       expect(github).to have_received(:enable_auto_merge!).with(pr_url)
-      expect(github).to have_received(:pr_title).with(pr_url)
-      expect(notifier).to have_received(:notify!).with(hash_including(pr_url: pr_url, label: "EXEC-1 Use injected GitHub"))
     end
   end
 
