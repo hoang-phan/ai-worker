@@ -27,12 +27,14 @@ module AiCli
     KIND_SETTINGS = BrowserTestCredentials::KIND_SETTINGS
     KINDS = BrowserTestCredentials::KINDS
 
-    def initialize(project, workflow, kind:, root: Rails.root.join("tmp"), credentials: BrowserTestCredentials.new(project, kind: kind))
+    def initialize(project, workflow, kind:, root: Rails.root.join("tmp"), credentials: BrowserTestCredentials.new(project, kind: kind),
+                   clock: -> { Time.current })
       @project = project
       @workflow = workflow
       @kind = kind
       @root = Pathname(root)
       @credentials = credentials
+      @clock = clock
     end
 
     def validate!
@@ -42,7 +44,7 @@ module AiCli
 
     # Not created until something needs it (mcp_config_path).
     def output_dir
-      @output_dir ||= @root.join(dir_name, @workflow.id.to_s, Time.current.to_i.to_s)
+      @output_dir ||= @root.join(dir_name, @workflow.id.to_s, @clock.call.to_i.to_s)
     end
 
     # The Playwright MCP config for this run. Pure: touches neither the filesystem nor credentials.

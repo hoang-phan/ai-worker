@@ -9,13 +9,14 @@ RSpec.describe AiCli::BrowserTestRun do
                 jira_base_url: "https://acme.atlassian.net")
   end
   let(:workflow) { Workflow.new.tap { |w| w.id = 42 } }
+  let(:clock) { -> { Time.zone.at(1_760_000_000) } }
 
-  def run_for(kind) = described_class.new(project, workflow, kind: kind, root: root)
+  def run_for(kind) = described_class.new(project, workflow, kind: kind, root: root, clock: clock)
 
   describe "#validate!" do
     it "delegates to the credentials" do
       credentials = instance_double(AiCli::BrowserTestCredentials, validate!: nil)
-      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials)
+      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials, clock: clock)
 
       expect(run.validate!).to equal(run)
       expect(credentials).to have_received(:validate!)
@@ -24,8 +25,8 @@ RSpec.describe AiCli::BrowserTestRun do
 
   describe "#output_dir" do
     it "is timestamped under the kind's runs directory" do
-      expect(run_for(:uat).output_dir.to_s).to match(%r{\A#{root}/uat_runs/42/\d+\z})
-      expect(run_for(:local).output_dir.to_s).to match(%r{\A#{root}/local_test_runs/42/\d+\z})
+      expect(run_for(:uat).output_dir.to_s).to eq("#{root}/uat_runs/42/1760000000")
+      expect(run_for(:local).output_dir.to_s).to eq("#{root}/local_test_runs/42/1760000000")
     end
 
     it "is stable for one run" do
@@ -37,13 +38,13 @@ RSpec.describe AiCli::BrowserTestRun do
   describe "#env" do
     it "merges credentials with each kind's run environment" do
       credentials = instance_double(AiCli::BrowserTestCredentials, env: { "UAT_USERNAME" => "u", "UAT_PASSWORD" => "p" })
-      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials)
+      run = described_class.new(project, workflow, kind: :uat, root: root, credentials: credentials, clock: clock)
 
       expect(run.env).to eq("UAT_USERNAME" => "u", "UAT_PASSWORD" => "p", "UAT_OUTPUT_DIR" => run.output_dir.to_s,
                             "JIRA_BASE_URL" => "https://acme.atlassian.net")
 
       local_credentials = instance_double(AiCli::BrowserTestCredentials, env: { "LOCAL_USERNAME" => "lu", "LOCAL_PASSWORD" => "lp" }, url: "http://localhost:3000")
-      local_run = described_class.new(project, workflow, kind: :local, root: root, credentials: local_credentials)
+      local_run = described_class.new(project, workflow, kind: :local, root: root, credentials: local_credentials, clock: clock)
       expect(local_run.env).to eq("LOCAL_USERNAME" => "lu", "LOCAL_PASSWORD" => "lp", "LOCAL_URL" => "http://localhost:3000",
                                   "LOCAL_OUTPUT_DIR" => local_run.output_dir.to_s)
     end
