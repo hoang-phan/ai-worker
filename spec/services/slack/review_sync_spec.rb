@@ -41,30 +41,34 @@ RSpec.describe Slack::ReviewSync do
 
     it "does not build a client when blocked" do
       project.update_columns(slack_mention: nil)
-      allow(Github::Client).to receive(:new)
+      github_factory = -> { github }
+      allow(github_factory).to receive(:call).and_call_original
 
-      described_class.new(project).import([ mention ])
+      described_class.new(project, github_factory: github_factory).import([ mention ])
 
-      expect(Github::Client).not_to have_received(:new)
+      expect(github_factory).not_to have_received(:call)
     end
 
     it "builds the client lazily when none is injected" do
-      allow(Github::Client).to receive(:new).with(project).and_return(github)
+      github_factory = -> { github }
+      allow(github_factory).to receive(:call).and_call_original
       stub_pr(pr_url)
 
-      result = described_class.new(project).import([ mention ])
+      result = described_class.new(project, github_factory: github_factory).import([ mention ])
 
       expect(result.created).to eq([ pr_url ])
-      expect(Github::Client).to have_received(:new).once
+      expect(github_factory).to have_received(:call).once
     end
 
     it "delegates to ReviewImporter with a fresh result and the GitHub client" do
       importer = instance_double(Slack::ReviewImporter)
-      allow(Slack::ReviewImporter).to receive(:new).with(project, github: github).and_return(importer)
+      importer_factory = ->(client) { importer if client == github }
+      allow(importer_factory).to receive(:call).and_call_original
       allow(importer).to receive(:import) { |_mentions, result| result }
 
-      result = sync.import([ mention ])
+      result = described_class.new(project, github: github, importer: importer_factory).import([ mention ])
 
+      expect(importer_factory).to have_received(:call).with(github)
       expect(importer).to have_received(:import).with([ mention ], result)
       expect(result).to have_attributes(blockers: [], created: [], skipped: [], failed: [], skipped_reasons: {})
     end

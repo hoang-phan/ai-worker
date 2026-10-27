@@ -11,10 +11,14 @@ module Slack
     # skipped_reasons: { "merged" => 2, ... } — why PRs in `skipped` were not imported.
     Result = AgentRuns::ImportResult
 
-    def initialize(project, github: nil, fetcher: nil)
+    def initialize(project, github: nil, fetcher: nil,
+                   github_factory: -> { Github::Client.new(project) },
+                   importer: ->(github) { ReviewImporter.new(project, github: github) })
       @project = project
       @github = github
       @fetcher = fetcher
+      @github_factory = github_factory
+      @importer = importer
     end
 
     # Everything that would stop reviews from being created automatically.
@@ -32,15 +36,17 @@ module Slack
       return Result.empty(found) if found.any?
 
       result = Result.empty
-      ReviewImporter.new(project, github: github).import(mentions, result)
+      importer.call(github).import(mentions, result)
     end
 
     private
 
-    attr_reader :project
+    attr_reader :project, :github_factory, :importer
 
     def github
-      @github ||= Github::Client.new(project)
+      return @github unless @github.nil?
+
+      @github = github_factory.call
     end
   end
 end
