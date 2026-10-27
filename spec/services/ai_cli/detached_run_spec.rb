@@ -5,8 +5,12 @@ RSpec.describe AiCli::DetachedRun do
   let_tmpdir(:tmp, "detached_run")
   let(:dir) { Pathname(tmp).join("run") }
   let(:runner) { instance_double(AiCli::Runner.singleton_class, start: 4242, poll: :running) }
+  let(:started_at) { Time.zone.local(2026, 1, 2, 3, 4, 5) }
+  let(:fake_now) { { time: started_at } }
+  let(:clock) { -> { fake_now[:time] } }
   let(:run) do
-    described_class.new(dir: dir, result_name: "result.json", stale_after: 15.minutes, error_class: error_class, runner: runner)
+    described_class.new(dir: dir, result_name: "result.json", stale_after: 15.minutes, error_class: error_class,
+                        runner: runner, clock: clock)
   end
 
   def start_run
@@ -55,7 +59,9 @@ RSpec.describe AiCli::DetachedRun do
 
       expect(run.start(cwd: tmp, prompt: "go", allowed_tools: [ "Write" ])).to be(true)
       expect(dir.join("pid").read).to eq("4242")
-      expect(run.last_started_at).to be_within(5.seconds).of(Time.current)
+      expect(dir.join("started_at").read).to eq(started_at.to_f.to_s)
+      expect(run.last_started_at).to eq(started_at)
+      expect(run.last_started_at.time_zone).to eq(Time.zone)
       expect(dir.join("result.json")).not_to exist
     end
 
@@ -94,13 +100,39 @@ RSpec.describe AiCli::DetachedRun do
       expect(dir.join("pid")).to exist
     end
 
-    it "raises and clears the pid when stale" do
-      start_run
-      dir.join("started_at").write(1.hour.ago.to_f)
-      allow(runner).to receive(:poll).with(4242).and_return(:running)
+    describe "staleness while running" do
+      before do
+        start_run
+        allow(runner).to receive(:poll).with(4242).and_return(:running)
+      end
 
-      expect { run.poll }.to raise_error(error_class, /did not finish/)
-      expect(dir.join("pid")).not_to exist
+      it "returns nil just before the timeout" do
+        fake_now[:time] = started_at + 15.minutes - 1.second
+
+        expect(run.poll).to be_nil
+        expect(dir.join("pid")).to exist
+      end
+
+      it "returns nil exactly at the timeout" do
+        fake_now[:time] = started_at + 15.minutes
+
+        expect(run.poll).to be_nil
+        expect(dir.join("pid")).to exist
+      end
+
+      it "raises and clears the pid just after the timeout" do
+        fake_now[:time] = started_at + 15.minutes + 1.second
+
+        expect { run.poll }.to raise_error(error_class, "agent did not finish within 15 minutes")
+        expect(dir.join("pid")).not_to exist
+      end
+
+      it "treats a running pid with no timestamp as stale" do
+        FileUtils.rm_f(dir.join("started_at"))
+
+        expect { run.poll }.to raise_error(error_class, /did not finish/)
+        expect(dir.join("pid")).not_to exist
+      end
     end
 
     context "when the process finished" do
@@ -113,6 +145,14 @@ RSpec.describe AiCli::DetachedRun do
         dir.join("result.json").write('[{"a":1}]')
 
         expect(run.poll).to eq([ { "a" => 1 } ])
+        expect(dir.join("pid")).not_to exist
+      end
+
+      it "still collects the result of an old completed run" do
+        fake_now[:time] = started_at + 1.day
+        dir.join("result.json").write("[1]")
+
+        expect(run.poll).to eq([ 1 ])
         expect(dir.join("pid")).not_to exist
       end
 

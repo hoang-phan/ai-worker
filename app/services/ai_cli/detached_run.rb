@@ -7,16 +7,19 @@ module AiCli
   # Slack::MentionFetcher, Bugsnag::Triager).
   #
   # `runner` is anything responding to start(cwd, prompt, log_path:,
-  # allowed_tools:, **opts) and poll(pid); specs pass a fake.
+  # allowed_tools:, **opts) and poll(pid); specs pass a fake. `clock` is a
+  # callable returning the current time; it stamps started_at and decides
+  # staleness (specs pass a mutable fake).
   #
   # State lives in `dir`: pid, started_at, agent.log and <result_name>.
   class DetachedRun
-    def initialize(dir:, result_name:, stale_after:, error_class:, runner: AiCli::Runner)
+    def initialize(dir:, result_name:, stale_after:, error_class:, runner: AiCli::Runner, clock: -> { Time.current })
       @dir = Pathname(dir)
       @result_name = result_name
       @stale_after = stale_after
       @error_class = error_class
       @runner = runner
+      @clock = clock
     end
 
     # True only while the agent process is actually alive. A leftover pid
@@ -51,7 +54,7 @@ module AiCli
       options = { model: model, effort: effort }.compact
       pid = runner.start(cwd.to_s, prompt, log_path: log_file.to_s, allowed_tools: allowed_tools, **options)
       pid_file.write(pid)
-      started_file.write(Time.current.to_f)
+      started_file.write(clock.call.to_f)
       true
     end
 
@@ -88,10 +91,11 @@ module AiCli
 
     private
 
-    attr_reader :dir, :result_name, :stale_after, :error_class, :runner
+    attr_reader :dir, :result_name, :stale_after, :error_class, :runner, :clock
 
     def stale?
-      last_started_at.nil? || last_started_at < stale_after.ago
+      started_at = last_started_at
+      started_at.nil? || started_at < clock.call - stale_after
     end
 
     def clear
