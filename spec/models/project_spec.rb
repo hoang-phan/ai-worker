@@ -44,27 +44,10 @@ RSpec.describe Project, type: :model do
     end
   end
 
-  describe "local_directory validation" do
-    context "with a separate clone" do
-      it { is_expected.to be_valid }
-    end
-
-    context "when local_directory is blank" do
-      let(:local_directory) { "" }
-
-      it "is invalid" do
-        expect(project).not_to be_valid
-        expect(project.errors[:local_directory]).to include("can't be blank")
-      end
-    end
-
-    context "when local_directory is the running app's live checkout" do
-      let(:local_directory) { Rails.root.to_s }
-
-      it "is invalid with a message pointing at a separate clone" do
-        expect(project).not_to be_valid
-        expect(project.errors[:local_directory].join).to include("live checkout")
-      end
+  describe "validations" do
+    it "delegates feature and format rules to Projects::Validator" do
+      expect(project).to be_valid
+      expect(described_class.validators).to include(an_instance_of(Projects::Validator))
     end
   end
 

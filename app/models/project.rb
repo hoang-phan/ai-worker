@@ -24,30 +24,8 @@ class Project < ApplicationRecord
   # Login for the local (development server) test that runs before review; stored encrypted too.
   encrypts :local_password
 
-  HTTP_URL = %r{\Ahttps?://[^/\s]+\S*\z}
-
   validates :name, presence: true
-  validates :local_directory, presence: true
-  validate :local_directory_is_not_the_running_app
-  validates :repo_full_name, presence: true, format: { with: %r{\A[^/\s]+/[^/\s]+\z}, message: "must be in the form org/repo" }, if: :jira?
-
-  validates :jira_base_url, format: { with: %r{\Ahttps://[^/\s]+\z}, message: "must look like https://your-site.atlassian.net" }, allow_blank: true
-
-  validates :slack_review_channel, format: { with: /\A[CG][A-Z0-9]{8,}\z/, message: "must be a Slack channel ID like C0B5XFY2F0T" }, allow_blank: true
-
-  validates :uat_url, format: { with: HTTP_URL, message: "must be a full URL like https://uat.example.com" }, allow_blank: true
-  validates :uat_test_delay_minutes, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
-  validates :uat_url, presence: true, if: :uat_test_enabled?
-
-  validates :local_url, format: { with: HTTP_URL, message: "must be a full URL like http://localhost:3000" }, allow_blank: true
-  validates :local_url, presence: true, if: :local_test_enabled?
-
-  validates :ci_command, presence: { message: "is required for the ci_loop flow" }, if: :flow_ci_loop?
-  validates :flow, inclusion: { in: %w[standard], message: "ci_loop needs a Jira project" }, unless: :jira?
-  validates :ci_max_rounds, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }
-
-  validates :brainstorm_goal, presence: true, if: :brainstorm_enabled?
-  validates :brainstorm_max_workflows, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 20 }
+  validates_with Projects::Validator
 
   # True when `local_directory` is the checkout this app is running from. Agents
   # branch/pull/merge and may migrate in the project's clone, which would swap
@@ -91,13 +69,5 @@ class Project < ApplicationRecord
 
   def uat_test_ready?
     uat_test_enabled? && uat_url.present?
-  end
-
-  private
-
-  def local_directory_is_not_the_running_app
-    return unless runs_from_live_checkout?
-
-    errors.add(:local_directory, "is this app's own live checkout; use a separate clone (see docs/ADDING_A_PROJECT.md)")
   end
 end
