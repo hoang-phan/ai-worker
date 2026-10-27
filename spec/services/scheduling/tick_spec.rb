@@ -28,23 +28,39 @@ RSpec.describe Scheduling::Tick do
     end
 
     it "builds defaults with max_capacity in phase order" do
-      allow(Scheduling::ActiveWorkflowRunner).to receive(:new).with(max_capacity: max_capacity) do
+      active_runner_new_kwargs = nil
+      post_merge_phase_new_kwargs = nil
+      uat_phase_new_kwargs = nil
+
+      active_runner_class = class_double(Scheduling::ActiveWorkflowRunner)
+      allow(active_runner_class).to receive(:new) do |**kwargs|
         events << :active_runner_initialized
+        active_runner_new_kwargs = kwargs
         active_runner
       end
-      allow(Scheduling::PostMergePhase).to receive(:new) do
+      post_merge_phase_class = class_double(Scheduling::PostMergePhase)
+      allow(post_merge_phase_class).to receive(:new) do |**kwargs|
         events << :post_merge_phase_initialized
+        post_merge_phase_new_kwargs = kwargs
         post_merge_phase
       end
-      allow(Scheduling::UatPhase).to receive(:new).with(max_capacity: max_capacity) do
+      uat_phase_class = class_double(Scheduling::UatPhase)
+      allow(uat_phase_class).to receive(:new) do |**kwargs|
         events << :uat_phase_initialized
+        uat_phase_new_kwargs = kwargs
         uat_phase
       end
+
       allow(active_runner).to receive(:call) { events << :active_runner_called }
       allow(post_merge_phase).to receive(:call) { events << :post_merge_phase_called }
       allow(uat_phase).to receive(:call) { events << :uat_phase_called }
 
-      described_class.new(max_capacity: max_capacity).call
+      described_class.new(
+        max_capacity: max_capacity,
+        active_runner_class: active_runner_class,
+        post_merge_phase_class: post_merge_phase_class,
+        uat_phase_class: uat_phase_class
+      ).call
 
       expect(events).to eq([
         :active_runner_initialized,
@@ -54,6 +70,9 @@ RSpec.describe Scheduling::Tick do
         :uat_phase_initialized,
         :uat_phase_called
       ])
+      expect(active_runner_new_kwargs).to eq(max_capacity: max_capacity)
+      expect(post_merge_phase_new_kwargs).to eq({})
+      expect(uat_phase_new_kwargs).to eq(max_capacity: max_capacity)
     end
   end
 end

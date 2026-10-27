@@ -15,11 +15,20 @@ module Scheduling
   # workflows are started by the cron tick only while `auto_run` is set (by Run / Next, kept
   # through stages with `auto_advance`, cleared at a pause or failure); otherwise only by being named here.
   class Tick
-    def initialize(max_capacity:, active_runner: nil, post_merge_phase: nil, uat_phase: nil)
+    # Instance overrides (`active_runner:`, `post_merge_phase:`, `uat_phase:`) skip
+    # construction; `*_class:` factories (defaults below) build each phase lazily
+    # in call order when no instance was injected — specs pass doubles.
+    def initialize(max_capacity:, active_runner: nil, post_merge_phase: nil, uat_phase: nil,
+                   active_runner_class: ActiveWorkflowRunner,
+                   post_merge_phase_class: PostMergePhase,
+                   uat_phase_class: UatPhase)
       @max_capacity = max_capacity
       @active_runner = active_runner
       @post_merge_phase = post_merge_phase
       @uat_phase = uat_phase
+      @active_runner_class = active_runner_class
+      @post_merge_phase_class = post_merge_phase_class
+      @uat_phase_class = uat_phase_class
     end
 
     def call(run_workflow_id = nil)
@@ -30,16 +39,18 @@ module Scheduling
 
     private
 
+    attr_reader :active_runner_class, :post_merge_phase_class, :uat_phase_class
+
     def active_runner
-      @active_runner ||= ActiveWorkflowRunner.new(max_capacity: @max_capacity)
+      @active_runner ||= active_runner_class.new(max_capacity: @max_capacity)
     end
 
     def post_merge_phase
-      @post_merge_phase ||= PostMergePhase.new
+      @post_merge_phase ||= post_merge_phase_class.new
     end
 
     def uat_phase
-      @uat_phase ||= UatPhase.new(max_capacity: @max_capacity)
+      @uat_phase ||= uat_phase_class.new(max_capacity: @max_capacity)
     end
   end
 end

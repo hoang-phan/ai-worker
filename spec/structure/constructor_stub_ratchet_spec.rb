@@ -22,7 +22,6 @@ RSpec.describe "constructor stub ratchet" do
     "spec/services/bugsnag/triage_sync_spec.rb" => 1,
     "spec/services/github/reader_spec.rb" => 1,
     "spec/services/jira/ticket_sync_spec.rb" => 1,
-    "spec/services/scheduling/tick_spec.rb" => 3,
     "spec/services/slack/review_sync_spec.rb" => 0,
     "spec/services/stage_executor_spec.rb" => 1
   }.freeze
