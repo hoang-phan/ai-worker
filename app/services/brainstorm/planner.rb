@@ -23,12 +23,12 @@ module Brainstorm
 
     delegate :running?, :last_started_at, to: :lifecycle
 
-    def self.model
-      ENV["BRAINSTORM_MODEL"].presence || DEFAULT_MODEL
+    def self.model(env: ENV)
+      env["BRAINSTORM_MODEL"].presence || DEFAULT_MODEL
     end
 
-    def self.effort
-      ENV["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
+    def self.effort(env: ENV)
+      env["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
     end
 
     def initialize(project, clock: Time, root: ROOT, lifecycle: nil)

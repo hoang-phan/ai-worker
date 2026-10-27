@@ -21,7 +21,7 @@ module Slack
       @collector = collector || PingCollector.new(root: @root, poller: runner.method(:poll))
     end
 
-    def self.model = ENV.fetch("SLACK_PING_MODEL", DEFAULT_MODEL)
+    def self.model(env: ENV) = env.fetch("SLACK_PING_MODEL", DEFAULT_MODEL)
 
     def enabled?
       project.slack_review_channel.present?

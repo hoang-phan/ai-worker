@@ -39,12 +39,11 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
     ])
   end
 
-  it "uses MAX_CONCURRENT_AGENTS with a default of 3" do
+  it "forwards max_concurrent_agents to Scheduling::Capacity.default_max" do
     allow(described_class).to receive(:max_concurrent_agents).and_call_original
-    allow(ENV).to receive(:fetch).with("MAX_CONCURRENT_AGENTS", 3).and_return("5", 3)
+    allow(Scheduling::Capacity).to receive(:default_max).and_return(5)
 
     expect(described_class.max_concurrent_agents).to eq(5)
-    expect(described_class.max_concurrent_agents).to eq(3)
   end
 
   it "runs on the stage_execution queue" do

@@ -8,25 +8,18 @@ RSpec.describe AiCli::AgentSetting do
   describe ".current" do
     it "returns a valid cached value" do
       store.write("ai_cli/agent", "codex")
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with("AGENT").and_return("cursor")
 
-      expect(described_class.current).to eq("codex")
+      expect(described_class.current(env: { "AGENT" => "cursor" })).to eq("codex")
     end
 
     it "falls back to ENV[AGENT] when the cached value is unknown" do
       store.write("ai_cli/agent", "bogus")
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with("AGENT").and_return("cursor")
 
-      expect(described_class.current).to eq("cursor")
+      expect(described_class.current(env: { "AGENT" => "cursor" })).to eq("cursor")
     end
 
     it "falls back to claude without a cached value or ENV[AGENT]" do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with("AGENT").and_return(nil)
-
-      expect(described_class.current).to eq("claude")
+      expect(described_class.current(env: {})).to eq("claude")
     end
   end
 

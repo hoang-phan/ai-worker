@@ -3,8 +3,9 @@ module Scheduling
   # Stages `git checkout`/`pull`/`merge` in `project.local_directory`, which would
   # corrupt a run in progress on the same clone.
   class Capacity
-    def self.default_max
-      WorkflowSchedulerJob.max_concurrent_agents
+    # Max agent CLI runs (`claude -p` / `agent -p`) in flight at once, across all projects.
+    def self.default_max(env: ENV)
+      env.fetch("MAX_CONCURRENT_AGENTS", 3).to_i
     end
 
     def initialize(busy_clones:, max:)

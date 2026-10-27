@@ -28,7 +28,7 @@ What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-
 
 1. **Active workflows** — `Scheduling::ActiveWorkflowRunner` handles `implementing`/`reviewing`/`local_testing`, plus `merged`/`uat_testing` ones that are `processing`. Running ones are executed (polled) first so finished runs free their slot and clone; then eligible waiting ones are started while `Capacity#can_start?` holds, calling `started!` only if the workflow is `processing` after `execute`.
 2. **Post-merge** — `Scheduling::PostMergePhase` is skipped while any workflow is `implementing`/`local_testing` or any is `processing`. Otherwise `confirm_merges` runs `Stages::MergeCheck` for `done` development workflows with a PR URL that `tracks_jira_after_merge?`, then one non-processing `merged` workflow (lowest position) is executed.
-3. **UAT** — `Scheduling::UatPhase` uses free slots = `max_concurrent_agents` minus all `processing` workflows (no idle wait, no clone check). Due = `uat_waiting` with `uat_test_at` passed (moved to `uat_testing` first) or `uat_testing` and not processing (a failed attempt retried); ordered by `uat_test_at`, limited to the free slots.
+3. **UAT** — `Scheduling::UatPhase` uses free slots = `max_concurrent_agents` (i.e. `Capacity.default_max`) minus all `processing` workflows (no idle wait, no clone check). Due = `uat_waiting` with `uat_test_at` passed (moved to `uat_testing` first) or `uat_testing` and not processing (a failed attempt retried); ordered by `uat_test_at`, limited to the free slots.
 
 `execute` rescues `StandardError` per workflow and logs `[scheduler]`, so one failure never stops the tick.
 
@@ -40,7 +40,7 @@ What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-
 
 ## Capacity and clone key
 
-- `Capacity.new(busy_clones:, max:)`: can start iff `active_count < max` and the workflow's `clone_key` isn't busy. `busy_clones` is built from all `processing` workflows (all statuses, so a running `merged`/UAT run counts) and the initial list is copied, not mutated. `max` is `WorkflowSchedulerJob.max_concurrent_agents` (`MAX_CONCURRENT_AGENTS`, default 3).
+- `Capacity.new(busy_clones:, max:)`: can start iff `active_count < max` and the workflow's `clone_key` isn't busy. `busy_clones` is built from all `processing` workflows (all statuses, so a running `merged`/UAT run counts) and the initial list is copied, not mutated. `max` defaults to `Capacity.default_max(env: ENV)`, which owns the `MAX_CONCURRENT_AGENTS` read (default 3); `WorkflowSchedulerJob.max_concurrent_agents` is a one-line forwarder to it. Specs pass `env:` a hash.
 - `Planner.clone_key(project)` = `realpath` of the expanded `local_directory` if it exists, else the expanded path. Always go through it; never compare raw `local_directory` strings.
 
 ## Concurrency-1 contract

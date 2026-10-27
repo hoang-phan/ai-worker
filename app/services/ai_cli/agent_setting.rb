@@ -8,11 +8,11 @@ module AiCli
 
     module_function
 
-    def current
+    def current(env: ENV)
       cached = Rails.cache.read(CACHE_KEY)
       return cached if Providers.find(cached)
 
-      ENV["AGENT"].presence || "claude"
+      env["AGENT"].presence || "claude"
     end
 
     def current=(name)

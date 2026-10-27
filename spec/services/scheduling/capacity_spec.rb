@@ -8,6 +8,16 @@ RSpec.describe Scheduling::Capacity do
     Workflow.new(project: Project.new(local_directory: dir))
   end
 
+  describe ".default_max" do
+    it "defaults to 3" do
+      expect(described_class.default_max(env: {})).to eq(3)
+    end
+
+    it "parses MAX_CONCURRENT_AGENTS as an integer" do
+      expect(described_class.default_max(env: { "MAX_CONCURRENT_AGENTS" => "5" })).to eq(5)
+    end
+  end
+
   it "cannot start once all agent slots are occupied" do
     busy_clones = [ Scheduling::Planner.clone_key(Project.new(local_directory: dirs[0])) ]
     capacity = described_class.new(busy_clones: busy_clones, max: 1)

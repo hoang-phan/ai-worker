@@ -13,7 +13,7 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 - `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: `workflow.rotation_provider!`, then `AiCli::AgentSetting.current`. `Stages::RunProvider.new(workflow:)` exposes only `override`: the rotation provider, or nil meaning `AiCli::Runner` falls back to the app-wide setting. Do not re-create this chain elsewhere.
 - `AiCli::Rotation` holds per-provider nonnegative weights and a counter in `Rails.cache`; setting weights resets the counter. Default/all-zero is off; `next_provider` returns nil when off or advances through weighted slots. `Workflow#rotation_provider!` pins its one chosen provider; brainstorm and sync runs do not rotate.
-- `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AgentSetting.current` reads a valid cached setting, otherwise `AGENT`, otherwise `claude`; its writer rejects unknown providers.
+- `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AgentSetting.current(env: ENV)` reads a valid cached setting, otherwise `env["AGENT"]`, otherwise `claude` (specs pass `env:` a hash); its writer rejects unknown providers.
 
 ## Provider adapters
 

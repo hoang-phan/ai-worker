@@ -10,17 +10,11 @@ RSpec.describe Brainstorm::Planner do
 
   describe ".model" do
     it "defaults brainstorms to gpt-6-sol when BRAINSTORM_MODEL is unset" do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with("BRAINSTORM_MODEL").and_return(nil)
-
-      expect(described_class.model).to eq("gpt-6-sol")
+      expect(described_class.model(env: {})).to eq("gpt-6-sol")
     end
 
     it "uses BRAINSTORM_MODEL when set" do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with("BRAINSTORM_MODEL").and_return("claude-opus-5-5")
-
-      expect(described_class.model).to eq("claude-opus-5-5")
+      expect(described_class.model(env: { "BRAINSTORM_MODEL" => "claude-opus-5-5" })).to eq("claude-opus-5-5")
     end
   end
 

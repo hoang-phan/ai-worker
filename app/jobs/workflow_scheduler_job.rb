@@ -1,10 +1,7 @@
 class WorkflowSchedulerJob < ApplicationJob
   queue_as :stage_execution
 
-  # Max agent CLI runs (`claude -p` / `agent -p`) in flight at once, across all projects.
-  def self.max_concurrent_agents
-    ENV.fetch("MAX_CONCURRENT_AGENTS", 3).to_i
-  end
+  def self.max_concurrent_agents = Scheduling::Capacity.default_max
 
   # Always returns quickly: StageExecutor never blocks on the agent CLI itself
   # (it starts the run in the background and returns, or polls a
