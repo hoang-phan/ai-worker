@@ -103,10 +103,17 @@ RSpec.describe Github::Reader do
   end
 
   it "delegates PR location to PrLocator with its runner" do
-    locator = instance_double(Github::PrLocator)
-    expect(Github::PrLocator).to receive(:new).with(project, runner: runner).and_return(locator)
-    expect(locator).to receive(:call).with(branch_name: "feat/x", jira_ticket: "ENG-1", output: "opened #{pr_url}").and_return(pr_url)
+    allow(runner).to receive(:run!)
 
     expect(reader.find_pr_url(branch_name: "feat/x", jira_ticket: "ENG-1", output: "opened #{pr_url}")).to eq(pr_url)
+    expect(runner).not_to have_received(:run!)
+  end
+
+  it "uses its runner when PrLocator falls back to the branch" do
+    command = [ "gh", "pr", "view", "feat/x", "--json", "url" ]
+    stub_run(command, JSON.generate("url" => pr_url))
+
+    expect(reader.find_pr_url(branch_name: "feat/x", jira_ticket: "ENG-1", output: "no PR URL")).to eq(pr_url)
+    expect(runner).to have_received(:run!).with(command)
   end
 end
