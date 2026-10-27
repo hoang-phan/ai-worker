@@ -9,16 +9,18 @@ The delayed-UAT browser-test phase is specialised in `ai-worker-browser-tests`.
 
 Scope:
 
-- `app/jobs/workflow_scheduler_job.rb` wires the three scheduler phases onto the `stage_execution` queue.
+- `app/jobs/workflow_scheduler_job.rb` enqueues on `stage_execution` and forwards each tick to `Scheduling::Tick`.
 - `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows.
 - `app/services/scheduling/capacity.rb` tracks global slots and busy clones.
 - `app/services/scheduling/guarded_executor.rb` logs and isolates individual executor failures.
 - `app/services/scheduling/planner.rb` makes pure eligibility and `clone_key` decisions.
 - `app/services/scheduling/post_merge_phase.rb` confirms tracked merges and starts one merged workflow when idle.
+- `app/services/scheduling/tick.rb` runs ActiveWorkflowRunner, PostMergePhase, then UatPhase for one scheduler tick.
 - `app/services/scheduling/uat_phase.rb` schedules due or retried UAT tests within free slots.
 - `app/services/scheduling/workflow_queries.rb` provides the AR selections, ordering, due-UAT relation, and free-slot count.
 - `config/sidekiq.yml` serializes scheduler ticks.
 - `config/schedule.yml` defines the cron cadence.
+- `spec/services/scheduling/tick_spec.rb` covers phase order, named-workflow forwarding, and max_capacity defaults.
 
 What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-type wiring: `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
 
