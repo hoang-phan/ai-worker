@@ -35,5 +35,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Seams over global stubs
 
 - Inject collaborators by keyword (see `ai-worker-refactoring`) instead of `allow(X).to receive(:new)`.
+- Thin cron jobs take a perform-keyword seam with a production default (`sync:`, `collector:`, `tick:`) so specs call `perform_now(sync: double)` (etc.) instead of stubbing `.new`.
 - Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).
 - `spec/structure/constructor_stub_ratchet_spec.rb` caps remaining `receive(:new)` stubs per file; lower or delete ALLOWLIST entries when you remove stubs (never raise caps).
+

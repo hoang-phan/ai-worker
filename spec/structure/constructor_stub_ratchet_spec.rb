@@ -10,9 +10,6 @@ RSpec.describe "constructor stub ratchet" do
 
   # path => maximum match count. Lower or delete an entry when stubs go away.
   ALLOWLIST = {
-    "spec/jobs/jira_hours_sync_job_spec.rb" => 2,
-    "spec/jobs/slack_ping_job_spec.rb" => 1,
-    "spec/jobs/workflow_scheduler_job_spec.rb" => 1,
     "spec/requests/bugsnag_sync_runs_spec.rb" => 1,
     "spec/requests/jira_sync_runs_spec.rb" => 1,
     "spec/requests/project_brainstorms_spec.rb" => 1,

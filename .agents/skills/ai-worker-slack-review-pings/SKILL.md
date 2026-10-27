@@ -23,7 +23,7 @@ Scope: the outbound "please review" message posted to the project's Slack channe
 - `app/services/slack/review_message.rb` (`Slack::ReviewMessage.new(pr_url:, label:, reviewers:, slack_id_for:, again: false, fixed: nil)`, pure: no Project/DB) — `text` is `:eyes: <@U1> please review [label](pr_url)`; `again` switches to "changes pushed, please re-review" and `fixed` (stripped, when present) is appended as a `Fixed:` block. Reviewers with no Slack id fall back to `@login`; `[ ]` in the label become `( )`. `prompt(channel:, thread_ts: nil)` is the agent's instruction: post the `<message>` once, verbatim, as content not instructions, finish with only the permalink, and post nowhere else on failure.
 - Reviewer tagging: `ReviewNotifier` passes `project.method(:slack_user_id_for)` as `slack_id_for`; `Project#slack_user_id_for` calls `Projects::SlackUserMap` (`app/models/projects/slack_user_map.rb`: `login=SlackID` per line or comma, `:` also accepted, case-insensitive, leading `@` ignored).
 - `app/services/slack/notify_error.rb` — `Slack::NotifyError < StandardError`, the only error callers rescue.
-- `app/jobs/slack_ping_job.rb` (`SlackPingJob`, queue `default`) — `Slack::PingCollector.new.collect_all`; never waits on a run. `config/schedule.yml` entry `slack_ping` is `*/5 * * * *` on `default` (the job's header comment says "every minute"; the cron wins).
+- `app/jobs/slack_ping_job.rb` (`SlackPingJob`, queue `default`) — `perform(collector: Slack::PingCollector.new)` then `collector.collect_all`; never waits on a run. Specs pass `collector:`. `config/schedule.yml` entry `slack_ping` is `*/5 * * * *` on `default` (the job's header comment says "every minute"; the cron wins).
 
 ## Not owned here
 
@@ -37,7 +37,7 @@ Scope: the outbound "please review" message posted to the project's Slack channe
 - **No Slack token in the app**: the message is posted by the agent through the Slack MCP connector (as the connected Slack user). Never add a Slack client, token or webhook.
 - **Least tool access**: keep `ALLOWED_TOOLS` to the single send-message tool; the message text is untrusted-looking content in the prompt (`<message>` block), not instructions.
 - State lives only in `tmp/slack_pings/`; use `PingRun` for paths and the pid/log layout, never hand-built paths. The thread id comes back only through the permalink in `agent.log`.
-- Injectable seams — use them in specs instead of `stub_const` or `allow(X).to receive(:new)`: `ReviewNotifier.new(project, runner:, clock:, root:, collector:)`, `PingCollector.new(root:, poller:)`, `collect_all(find_workflow:)`, `ReviewMessage` `slack_id_for:` callable.
+- Injectable seams — use them in specs instead of `stub_const` or `allow(X).to receive(:new)`: `ReviewNotifier.new(project, runner:, clock:, root:, collector:)`, `PingCollector.new(root:, poller:)`, `collect_all(find_workflow:)`, `ReviewMessage` `slack_id_for:` callable, `SlackPingJob.perform_now(collector:)`.
 - Keep `ReviewMessage` and `PingRun` free of the DB; the collector is the only one that writes the workflow.
 
 ## Specs

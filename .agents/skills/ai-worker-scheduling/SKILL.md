@@ -9,7 +9,7 @@ The delayed-UAT browser-test phase is specialised in `ai-worker-browser-tests`.
 
 Scope:
 
-- `app/jobs/workflow_scheduler_job.rb` enqueues on `stage_execution` and forwards each tick to `Scheduling::Tick`.
+- `app/jobs/workflow_scheduler_job.rb` enqueues on `stage_execution` and forwards each tick to `Scheduling::Tick` via `perform(run_workflow_id = nil, tick: nil)` (default tick built with `max_capacity: max_concurrent_agents`; specs pass `tick:`).
 - `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows.
 - `app/services/scheduling/capacity.rb` tracks global slots and busy clones.
 - `app/services/scheduling/guarded_executor.rb` logs and isolates individual executor failures.
@@ -26,7 +26,7 @@ What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-
 
 ## Tick
 
-`WorkflowSchedulerJob#perform(run_workflow_id = nil)` is cron-driven on the `stage_execution` queue (`schedule.yml`: every 3 minutes, in two entries for working hours 05–14 and off-hours, Asia/Ho_Chi_Minh). It walks every in-flight workflow in `position` order and never blocks on an agent. Three phases, in order:
+`WorkflowSchedulerJob#perform(run_workflow_id = nil, tick: nil)` is cron-driven on the `stage_execution` queue (`schedule.yml`: every 3 minutes, in two entries for working hours 05–14 and off-hours, Asia/Ho_Chi_Minh). Cron and `perform_later` pass no keywords; the default builds `Scheduling::Tick` with `max_capacity: max_concurrent_agents`. It walks every in-flight workflow in `position` order and never blocks on an agent. Three phases, in order:
 
 1. **Active workflows** — `Scheduling::ActiveWorkflowRunner` handles `implementing`/`reviewing`/`local_testing`, plus `merged`/`uat_testing` ones that are `processing`. Running ones are executed (polled) first so finished runs free their slot and clone; then eligible waiting ones are started while `Capacity#can_start?` holds, calling `started!` only if the workflow is `processing` after `execute`.
 2. **Post-merge** — `Scheduling::PostMergePhase` is skipped while any workflow is `implementing`/`local_testing` or any is `processing`. Otherwise `confirm_merges` runs `Stages::MergeCheck` for `done` development workflows with a PR URL that `tracks_jira_after_merge?`, then one non-processing `merged` workflow (lowest position) is executed.

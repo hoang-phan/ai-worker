@@ -14,10 +14,17 @@ RSpec.describe SlackPingJob, type: :job do
 
   it "delegates to the ping collector" do
     collector = instance_double(Slack::PingCollector, collect_all: nil)
-    allow(Slack::PingCollector).to receive(:new).and_return(collector)
 
-    described_class.perform_now
+    described_class.perform_now(collector: collector)
 
     expect(collector).to have_received(:collect_all)
+  end
+
+  it "defaults to a real PingCollector" do
+    Dir.mktmpdir do |dir|
+      stub_const("Slack::PingRun::ROOT", Pathname(dir))
+
+      expect { described_class.perform_now }.not_to raise_error
+    end
   end
 end

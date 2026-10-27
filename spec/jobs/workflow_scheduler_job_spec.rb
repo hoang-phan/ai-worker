@@ -8,11 +8,10 @@ RSpec.describe WorkflowSchedulerJob, type: :job do
     allow(described_class).to receive(:max_concurrent_agents).and_return(max_agents)
   end
 
-  it "forwards the named workflow id and max_concurrent_agents to Scheduling::Tick" do
-    allow(Scheduling::Tick).to receive(:new).with(max_capacity: max_agents).and_return(tick)
+  it "forwards the named workflow id to the injected tick" do
     expect(tick).to receive(:call).with(42)
 
-    described_class.perform_now(42)
+    described_class.perform_now(42, tick: tick)
   end
 
   it "forwards max_concurrent_agents to Scheduling::Capacity.default_max" do

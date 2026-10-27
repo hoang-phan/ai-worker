@@ -3,7 +3,7 @@
 class SlackPingJob < ApplicationJob
   queue_as :default
 
-  def perform
-    Slack::PingCollector.new.collect_all
+  def perform(collector: Slack::PingCollector.new)
+    collector.collect_all
   end
 end

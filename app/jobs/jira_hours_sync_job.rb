@@ -2,8 +2,8 @@
 class JiraHoursSyncJob < ApplicationJob
   queue_as :default
 
-  def perform
-    result = Jira::HoursSync.new.call
+  def perform(sync: Jira::HoursSync.new)
+    result = sync.call
     Rails.logger.warn("[JiraHoursSyncJob] #{result.failed.join('; ')}") if result.failed.any?
   rescue Jira::WorklogError => e
     Rails.logger.warn("[JiraHoursSyncJob] #{e.message}")
