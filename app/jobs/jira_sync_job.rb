@@ -4,14 +4,14 @@
 class JiraSyncJob < ApplicationJob
   queue_as :default
 
-  def perform
+  def perform(source_factory: Jira::SyncCycleSource.method(:new))
     JiraSync.includes(:project).find_each do |jira_sync|
       project = jira_sync.project
       next unless project.jira_site?
 
       log_prefix = "[JiraSyncJob] jira_sync=#{jira_sync.id}"
       AgentRuns::SyncCycle.call(
-        source: Jira::SyncCycleSource.new(jira_sync),
+        source: source_factory.call(jira_sync),
         log_prefix: log_prefix
       )
     end
