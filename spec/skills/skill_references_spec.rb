@@ -62,6 +62,30 @@ RSpec.describe "skill references" do
     end
   end
 
+  it "uses unquoted single-line plain-scalar description frontmatter" do
+    skill_md_files.each do |path|
+      content = File.read(path)
+      match = content.match(/\A---\s*\n(.*?)\n---\s*\n/m)
+      expect(match).not_to be_nil, "#{path}: missing YAML frontmatter"
+
+      raw = match[1]
+      description_lines = raw.lines.select { |line| line.start_with?("description:") }
+      expect(description_lines.size).to eq(1),
+        "#{path}: expected exactly one description: line in frontmatter, got #{description_lines.size}"
+
+      line = description_lines.first.chomp
+      value = line.delete_prefix("description:").sub(/\A /, "")
+      expect(value).not_to match(/\A["']/),
+        "#{path}: description must be an unquoted plain scalar (no leading quote)"
+      expect(value).not_to match(/\A[>|]/),
+        "#{path}: description must be a single-line plain scalar (no > or | block indicator)"
+      expect(value).not_to include(": "),
+        "#{path}: description must not contain ': ' so simple frontmatter parsers treat it as a plain scalar"
+      expect(value).not_to include(" #"),
+        "#{path}: description must not contain ' #' so simple frontmatter parsers do not treat a trailing comment"
+    end
+  end
+
   it "has valid frontmatter and existing path references" do
     missing_paths = []
 
