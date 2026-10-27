@@ -29,6 +29,18 @@ RSpec.describe StageExecutor, type: :service do
     expect(handler).to have_received(:call).with("all done")
   end
 
+  it "aborts a conflicted merge through the injected git when the run fails" do
+    stage.stage_runs.create!(action: "conflict_resolution_started")
+    git = class_double(Git::BranchService, abort_merge!: nil)
+    ai_run_poll = instance_double(Stages::AiRunPoll)
+    allow(ai_run_poll).to receive(:call).and_raise(AiCli::CommandError, "boom")
+
+    described_class.new(workflow, stage, git: git, ai_run_poll: ai_run_poll).call
+
+    expect(git).to have_received(:abort_merge!).with(project)
+    expect(stage.stage_runs.find_by(action: "failed").error).to eq("boom")
+  end
+
   it "does not complete while the run is still going" do
     ai_run_poll = instance_double(Stages::AiRunPoll, call: nil)
     allow(Stages::CompletionHandler).to receive(:new)

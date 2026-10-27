@@ -10,10 +10,10 @@ RSpec.describe Stages::FailureHandler, type: :service do
   let(:threshold) { 3 }
 
   def handle
-    described_class.new(workflow: workflow, stage: stage, project: project, error: error, threshold: threshold).call
+    described_class.new(workflow: workflow, stage: stage, project: project, error: error, threshold: threshold, git: git).call
   end
 
-  before { allow(Git::BranchService).to receive(:abort_merge!) }
+  let(:git) { class_double(Git::BranchService, abort_merge!: nil) }
 
   it "clears the AI-run fields, stops auto-run and logs the failure" do
     handle
@@ -21,7 +21,7 @@ RSpec.describe Stages::FailureHandler, type: :service do
     workflow.reload
     expect(workflow).to have_attributes(auto_run: false, status: "implementing").and have_finished_ai_run
     expect(stage.stage_runs.where(action: "failed").sole).to have_attributes(error: "boom")
-    expect(Git::BranchService).not_to have_received(:abort_merge!)
+    expect(git).not_to have_received(:abort_merge!)
   end
 
   it "aborts an in-progress merge when the stage was resolving conflicts" do
@@ -29,7 +29,7 @@ RSpec.describe Stages::FailureHandler, type: :service do
 
     handle
 
-    expect(Git::BranchService).to have_received(:abort_merge!).with(project)
+    expect(git).to have_received(:abort_merge!).with(project)
     expect(stage.stage_runs.pluck(:action)).to include("failed")
   end
 

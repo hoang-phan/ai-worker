@@ -8,13 +8,15 @@ RSpec.describe Jira::AgentFetcher do
 
   it "keeps only rows whose key matches KEY" do
     tmp = make_tmpdir("jira-fetcher-spec")
-    fetcher = described_class.new(jira_sync, root: Pathname(tmp))
+    runner = double("AiCli::Runner", poll: [ :completed, nil ])
+    run = AiCli::DetachedRun.new(dir: Pathname(tmp).join("1"), result_name: "tickets.json", stale_after: described_class::STALE_AFTER,
+                                 error_class: Jira::FetchError, runner: runner)
+    fetcher = described_class.new(jira_sync, root: Pathname(tmp), run: run)
     FileUtils.mkdir_p(Pathname(tmp).join("1"))
     Pathname(tmp).join("1", "pid").write("1")
     Pathname(tmp).join("1", "tickets.json").write([
       { key: "UNS-1", summary: "ok" }, { key: "bad key", summary: "x" }, { key: "uns-2" }, "junk"
     ].to_json)
-    allow(AiCli::Runner).to receive(:poll).and_return([ :completed, nil ])
 
     expect(fetcher.poll).to eq([ { "key" => "UNS-1", "summary" => "ok" } ])
   end

@@ -11,7 +11,10 @@ RSpec.describe Bugsnag::Triager do
 
   it "needs a valid bugsnag id and jira key" do
     tmp = make_tmpdir("bugsnag-triager-spec")
-    triager = described_class.new(sync, root: Pathname(tmp))
+    runner = double("AiCli::Runner", poll: [ :completed, nil ])
+    run = AiCli::DetachedRun.new(dir: Pathname(tmp).join("1"), result_name: "result.json", stale_after: described_class::STALE_AFTER,
+                                 error_class: Bugsnag::FetchError, runner: runner)
+    triager = described_class.new(sync, root: Pathname(tmp), run: run)
     FileUtils.mkdir_p(Pathname(tmp).join("1"))
     Pathname(tmp).join("1", "pid").write("1")
     Pathname(tmp).join("1", "result.json").write([
@@ -20,7 +23,6 @@ RSpec.describe Bugsnag::Triager do
       { bugsnag_id: "abc123def456", jira_key: "bad" },
       "junk"
     ].to_json)
-    allow(AiCli::Runner).to receive(:poll).and_return([ :completed, nil ])
 
     expect(triager.poll).to eq([ { "bugsnag_id" => "abc123def456", "jira_key" => "UNS-12" } ])
   end

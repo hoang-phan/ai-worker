@@ -73,7 +73,7 @@ class StageExecutor
 
   def fail_stage(error)
     Stages::FailureHandler.new(
-      workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES
+      workflow: workflow, stage: stage, project: project, error: error, threshold: MAX_CONSECUTIVE_FAILURES, git: git
     ).call
   end
 
