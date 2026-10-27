@@ -6,19 +6,28 @@ RSpec.describe Workflows::ProposalWorkflow do
   let(:proposal) { { "summary" => "Alpha", "task" => "Do it" } }
   let(:builder) { described_class.new(project) }
 
-  def build(proposal, status: :pending, merge_skills: true)
-    builder.build(proposal, status: status, merge_skills: merge_skills)
+  def build(proposal, merge_skills: true)
+    builder.build(proposal, merge_skills: merge_skills)
   end
 
   it "returns an unsaved development workflow with the proposal's summary and task" do
-    workflow = build(proposal, status: :implementing)
+    workflow = build(proposal)
 
     expect(workflow).to be_new_record
     expect(workflow.project).to eq(project)
     expect(workflow).to be_development
     expect(workflow.summary).to eq("Alpha")
     expect(workflow.task_description).to eq("Do it")
-    expect(workflow.status).to eq("implementing")
+  end
+
+  it "sets pending status by default" do
+    expect(build(proposal).status).to eq("pending")
+  end
+
+  it "sets implementing status when the project auto-starts brainstorm workflows" do
+    project.update!(brainstorm_auto_start: true)
+
+    expect(build(proposal).status).to eq("implementing")
   end
 
   it "takes the project's next workflow position" do
