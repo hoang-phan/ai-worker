@@ -4,43 +4,19 @@ module Stages
   # error rescue; the AiCli::CommandErrors raised here for missing result markers propagate to its rescue.
   class CompletionHandler
     FINISHERS = {
-      "implementation" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::ImplementationFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff)
-      },
-      "pr_check" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::PrCheckFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff)
-      },
-      "task" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::TaskFinish.new(workflow: workflow, stage: stage, project: project, git: git)
-      },
-      "pr_review" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::PrReviewFinish.new(workflow: workflow, stage: stage)
-      },
-      "jira_update" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::JiraUpdateFinish.new(workflow: workflow, stage: stage, project: project)
-      },
-      "uat_test" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::UatTestFinish.new(workflow: workflow, stage: stage)
-      },
-      "local_test" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::LocalTestFinish.new(workflow: workflow, stage: stage, handoff: handoff)
-      },
-      "ci_check" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::CiCheckFinish.new(workflow: workflow, stage: stage)
-      },
-      "simple_implementation" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::SimpleImplementationFinish.new(workflow: workflow, stage: stage)
-      },
-      "ci_verify" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::CiVerifyFinish.new(workflow: workflow, stage: stage, project: project, handoff: handoff)
-      },
-      "pr_create" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::PrCreateFinish.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff)
-      },
-      "runbook_step" => lambda { |workflow:, stage:, project:, github:, git:, handoff:|
-        Stages::RunbookStepFinish.new(workflow: workflow, stage: stage)
-      }
-    }.freeze
+      "implementation" => [ Stages::ImplementationFinish, %i[workflow stage project github handoff] ],
+      "pr_check" => [ Stages::PrCheckFinish, %i[workflow stage project github handoff] ],
+      "task" => [ Stages::TaskFinish, %i[workflow stage project git] ],
+      "pr_review" => [ Stages::PrReviewFinish, %i[workflow stage] ],
+      "jira_update" => [ Stages::JiraUpdateFinish, %i[workflow stage project] ],
+      "uat_test" => [ Stages::UatTestFinish, %i[workflow stage] ],
+      "local_test" => [ Stages::LocalTestFinish, %i[workflow stage handoff] ],
+      "ci_check" => [ Stages::CiCheckFinish, %i[workflow stage] ],
+      "simple_implementation" => [ Stages::SimpleImplementationFinish, %i[workflow stage] ],
+      "ci_verify" => [ Stages::CiVerifyFinish, %i[workflow stage project handoff] ],
+      "pr_create" => [ Stages::PrCreateFinish, %i[workflow stage project github handoff] ],
+      "runbook_step" => [ Stages::RunbookStepFinish, %i[workflow stage] ]
+    }.transform_values(&:freeze).freeze
 
     def initialize(workflow:, stage:, project:, github:, git:, handoff:, finishers: FINISHERS)
       @workflow = workflow
@@ -59,7 +35,20 @@ module Stages
     private
 
     def finisher
-      finishers[stage.stage_type]&.call(workflow: workflow, stage: stage, project: project, github: github, git: git, handoff: handoff)
+      factory = finishers[stage.stage_type]
+      return unless factory
+
+      return factory.call(**collaborators) if factory.respond_to?(:call)
+
+      build_finisher(*factory)
+    end
+
+    def build_finisher(klass, keys)
+      klass.new(**collaborators.slice(*keys))
+    end
+
+    def collaborators
+      { workflow: workflow, stage: stage, project: project, github: github, git: git, handoff: handoff }
     end
 
     attr_reader :workflow, :stage, :project, :github, :git, :handoff, :finishers

@@ -43,29 +43,37 @@ RSpec.describe Stages::CompletionHandler, type: :service do
 
     it "covers every stage type" do
       expect(described_class::FINISHERS.keys).to match_array(Stage::STAGE_TYPES.keys.map(&:to_s) - types_without_finishers)
+      expect(described_class::FINISHERS).to eq(finishers)
+
+      fake_finisher = Class.new do
+        attr_reader :kwargs
+
+        def initialize(**kwargs)
+          @kwargs = kwargs
+        end
+      end
+      handler = described_class.new(
+        workflow: workflow,
+        stage: stage,
+        project: project,
+        github: github,
+        git: git,
+        handoff: handoff
+      )
+
+      expect(handler.send(:build_finisher, fake_finisher, %i[workflow stage handoff]).kwargs).to eq(
+        workflow: workflow,
+        stage: stage,
+        handoff: handoff
+      )
     end
 
     Stage::STAGE_TYPES.each_key do |type|
       context "with #{type}" do
         let(:stage_type) { type }
 
-        it "builds the matching default finisher and dispatches to an injected finisher" do
-          klass, collaborators = finishers.fetch(type.to_s)
-          default_finisher = described_class::FINISHERS.fetch(type.to_s).call(
-            workflow: workflow,
-            stage: stage,
-            project: project,
-            github: github,
-            git: git,
-            handoff: handoff
-          )
-
-          expect(default_finisher).to be_a(klass)
-          initialized_finisher = default_finisher.instance_variable_get(:@pr_opened_finish) || default_finisher
-          collaborators.each do |name|
-            expect(initialized_finisher.instance_variable_get(:"@#{name}")).to equal(public_send(name))
-          end
-
+        it "dispatches to an injected finisher" do
+          klass, = finishers.fetch(type.to_s)
           finisher = instance_double(klass, call: nil)
           received = nil
           injected_finishers = {
