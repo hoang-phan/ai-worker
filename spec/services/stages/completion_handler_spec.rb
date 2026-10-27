@@ -12,8 +12,16 @@ RSpec.describe Stages::CompletionHandler, type: :service do
   let(:handoff) { double("Stages::ReviewHandoff") }
   let(:output) { "agent output" }
 
-  def handle(out = output)
-    described_class.new(workflow: workflow, stage: stage, project: project, github: github, git: git, handoff: handoff).call(out)
+  def handle(out = output, finishers: described_class::FINISHERS)
+    described_class.new(
+      workflow: workflow,
+      stage: stage,
+      project: project,
+      github: github,
+      git: git,
+      handoff: handoff,
+      finishers: finishers
+    ).call(out)
   end
 
   describe "dispatch over Stage::STAGE_TYPES" do
@@ -31,23 +39,41 @@ RSpec.describe Stages::CompletionHandler, type: :service do
       "pr_create" => [ Stages::PrCreateFinish, %i[workflow stage project github handoff] ],
       "runbook_step" => [ Stages::RunbookStepFinish, %i[workflow stage] ]
     }
+    types_without_finishers = [].freeze
 
     it "covers every stage type" do
-      expect(finishers.keys).to match_array(Stage::STAGE_TYPES.keys.map(&:to_s))
+      expect(described_class::FINISHERS.keys).to match_array(Stage::STAGE_TYPES.keys.map(&:to_s) - types_without_finishers)
     end
 
     Stage::STAGE_TYPES.each_key do |type|
       context "with #{type}" do
         let(:stage_type) { type }
 
-        it "builds the matching finisher and calls it with the output" do
+        it "builds the matching default finisher and dispatches to an injected finisher" do
           klass, collaborators = finishers.fetch(type.to_s)
-          finisher = instance_double(klass, call: nil)
-          allow(klass).to receive(:new).and_return(finisher)
-          handle
+          default_finisher = described_class::FINISHERS.fetch(type.to_s).call(
+            workflow: workflow,
+            stage: stage,
+            project: project,
+            github: github,
+            git: git,
+            handoff: handoff
+          )
 
-          expected = collaborators.to_h { |name| [ name, public_send(name) ] }
-          expect(klass).to have_received(:new).with(**expected)
+          expect(default_finisher).to be_a(klass)
+          initialized_finisher = default_finisher.instance_variable_get(:@pr_opened_finish) || default_finisher
+          collaborators.each do |name|
+            expect(initialized_finisher.instance_variable_get(:"@#{name}")).to equal(public_send(name))
+          end
+
+          finisher = instance_double(klass, call: nil)
+          received = nil
+          injected_finishers = {
+            type.to_s => ->(**kwargs) { received = kwargs; finisher }
+          }
+          handle(finishers: injected_finishers)
+
+          expect(received).to eq(workflow: workflow, stage: stage, project: project, github: github, git: git, handoff: handoff)
           expect(finisher).to have_received(:call).with(output)
         end
       end
