@@ -31,3 +31,9 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Design
 
 - Prefer extracting pure logic into small POROs (e.g. `AiCli::Output`, `Prompts::StagePrompt`) and unit-testing them directly, over testing through jobs or subprocesses. For behaviour-preserving extractions, splits, slimming, or moves, follow `ai-worker-refactoring`.
+
+## Seams over global stubs
+
+- Inject collaborators by keyword (see `ai-worker-refactoring`) instead of `allow(X).to receive(:new)`.
+- Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).
+- `spec/structure/constructor_stub_ratchet_spec.rb` caps remaining `receive(:new)` stubs per file; lower or delete ALLOWLIST entries when you remove stubs (never raise caps).
