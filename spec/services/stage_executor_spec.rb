@@ -7,25 +7,26 @@ RSpec.describe StageExecutor, type: :service do
   end
   let(:stage) { workflow.stages.create!(stage_type: :task) }
   let(:handler) { instance_double(Stages::CompletionHandler, call: nil) }
+  let(:handler_class) { class_double(Stages::CompletionHandler, new: handler) }
 
   it "fails without polling or starting when the project uses the live checkout" do
     allow(project).to receive(:runs_from_live_checkout?).and_return(true)
     ai_run_poll = instance_double(Stages::AiRunPoll)
     expect(ai_run_poll).not_to receive(:call)
-    expect(Stages::StartHandler).not_to receive(:new)
+    start_handler_class = class_double(Stages::StartHandler)
+    expect(start_handler_class).not_to receive(:new)
 
-    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll, start_handler_class: start_handler_class).call
 
     expect(stage.stage_runs.find_by(action: "failed").error).to include("live ai-worker checkout")
   end
 
   it "hands a finished run's output to the completion handler" do
     ai_run_poll = instance_double(Stages::AiRunPoll, call: "all done")
-    allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll, completion_handler_class: handler_class).call
 
-    expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project))
+    expect(handler_class).to have_received(:new).with(hash_including(workflow: workflow, stage: stage, project: project))
     expect(handler).to have_received(:call).with("all done")
   end
 
@@ -43,19 +44,18 @@ RSpec.describe StageExecutor, type: :service do
 
   it "does not complete while the run is still going" do
     ai_run_poll = instance_double(Stages::AiRunPoll, call: nil)
-    allow(Stages::CompletionHandler).to receive(:new)
+    handler_class = class_double(Stages::CompletionHandler, new: nil)
 
-    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll, completion_handler_class: handler_class).call
 
-    expect(Stages::CompletionHandler).not_to have_received(:new)
+    expect(handler_class).not_to have_received(:new)
   end
 
   it "fails the stage when the handler raises a command error" do
     ai_run_poll = instance_double(Stages::AiRunPoll, call: "x")
-    allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
     allow(handler).to receive(:call).and_raise(AiCli::CommandError, "boom")
 
-    described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+    described_class.new(workflow, stage, ai_run_poll: ai_run_poll, completion_handler_class: handler_class).call
 
     expect(stage.stage_runs.find_by(action: "failed").error).to eq "boom"
   end
@@ -68,25 +68,25 @@ RSpec.describe StageExecutor, type: :service do
       github = double("Github::Client")
       git = double("Git::BranchService")
       handoff = double("Stages::ReviewHandoff")
-      allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-      described_class.new(workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll, handoff: handoff).call
+      described_class.new(
+        workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll, handoff: handoff,
+        completion_handler_class: handler_class
+      ).call
 
-      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, git: git, handoff: handoff))
+      expect(handler_class).to have_received(:new).with(hash_including(github: github, git: git, handoff: handoff))
       expect(handler).to have_received(:call).with("green")
     end
 
     it "builds the default handoff with its lazy GitHub client" do
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
       github = double("Github::Client")
-      handoff = instance_double(Stages::ReviewHandoff)
-      allow(Github::Client).to receive(:new).with(project).and_return(github)
-      allow(Stages::ReviewHandoff).to receive(:new).with(workflow, stage, github: github).and_return(handoff)
-      allow(Stages::CompletionHandler).to receive(:new).and_return(handler)
 
-      described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+      described_class.new(workflow, stage, github: github, ai_run_poll: ai_run_poll, completion_handler_class: handler_class).call
 
-      expect(Stages::CompletionHandler).to have_received(:new).with(hash_including(github: github, handoff: handoff))
+      expect(handler_class).to have_received(:new).with(
+        hash_including(github: github, handoff: an_instance_of(Stages::ReviewHandoff).and(satisfy { |h| h.instance_variable_get(:@github).equal?(github) }))
+      )
     end
 
     it "completes an implementation run using only injected GitHub and poller collaborators" do
@@ -120,13 +120,13 @@ RSpec.describe StageExecutor, type: :service do
       launcher = instance_double(Stages::AiRunLauncher)
       start_handler = instance_double(Stages::StartHandler, call: nil)
       handoff = instance_double(Stages::ReviewHandoff)
-      allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
-      allow(Stages::StartHandler).to receive(:new).and_return(start_handler)
+      launcher_class = class_double(Stages::AiRunLauncher, new: launcher)
+      start_handler_class = class_double(Stages::StartHandler, new: start_handler)
 
-      described_class.new(workflow, stage, handoff: handoff).call
+      described_class.new(workflow, stage, handoff: handoff, launcher_class: launcher_class, start_handler_class: start_handler_class).call
 
-      expect(Stages::AiRunLauncher).to have_received(:new).with(workflow: workflow, stage: stage, project: project, runner: AiCli::Runner)
-      expect(Stages::StartHandler).to have_received(:new).with(
+      expect(launcher_class).to have_received(:new).with(workflow: workflow, stage: stage, project: project, runner: AiCli::Runner)
+      expect(start_handler_class).to have_received(:new).with(
         hash_including(workflow: workflow, stage: stage, project: project, handoff: handoff, launcher: launcher)
       )
       expect(start_handler).to have_received(:call)
@@ -139,12 +139,14 @@ RSpec.describe StageExecutor, type: :service do
       finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "merged")
       allow(stage).to receive(:resolving_conflicts?).and_return(true)
-      allow(Stages::AiRunLauncher).to receive(:new).and_return(launcher)
-      allow(Stages::ConflictResolutionFinish).to receive(:new).and_return(finish)
+      launcher_class = class_double(Stages::AiRunLauncher, new: launcher)
+      finish_class = class_double(Stages::ConflictResolutionFinish, new: finish)
 
-      described_class.new(workflow, stage, ai_run_poll: ai_run_poll).call
+      described_class.new(
+        workflow, stage, ai_run_poll: ai_run_poll, launcher_class: launcher_class, conflict_resolution_finish_class: finish_class
+      ).call
 
-      expect(Stages::ConflictResolutionFinish).to have_received(:new).with(
+      expect(finish_class).to have_received(:new).with(
         hash_including(workflow: workflow, stage: stage, project: project, launcher: launcher)
       )
       expect(finish).to have_received(:call).with("merged")

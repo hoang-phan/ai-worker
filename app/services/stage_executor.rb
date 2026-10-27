@@ -9,8 +9,12 @@ class StageExecutor
   # moves on to the next workflow until someone resumes it — see docs/RUNBOOK.md.
   MAX_CONSECUTIVE_FAILURES = 3
 
-  # `github:`, `git:`, `tooling:`, `ai_run_poll:` and `handoff:` default to production collaborators; specs pass doubles.
-  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil, ai_run_poll: nil, handoff: nil)
+  # `github:`, `git:`, `tooling:`, `ai_run_poll:` and `handoff:` default to production collaborators, as do the
+  # `*_class:` factories for the start/completion/conflict-finish handlers and the launcher; specs pass doubles.
+  def initialize(workflow, stage, github: nil, git: Git::BranchService, tooling: nil, ai_run_poll: nil, handoff: nil,
+                 start_handler_class: Stages::StartHandler, completion_handler_class: Stages::CompletionHandler,
+                 conflict_resolution_finish_class: Stages::ConflictResolutionFinish,
+                 launcher_class: Stages::AiRunLauncher)
     @workflow = workflow
     @stage = stage
     @project = workflow.project
@@ -21,6 +25,10 @@ class StageExecutor
       workflow: workflow, stage: stage, poller_class: @tooling.poller_class, stale_after: STALE_AFTER
     )
     @handoff = handoff
+    @start_handler_class = start_handler_class
+    @completion_handler_class = completion_handler_class
+    @conflict_resolution_finish_class = conflict_resolution_finish_class
+    @launcher_class = launcher_class
   end
 
   def call
@@ -37,14 +45,15 @@ class StageExecutor
 
   private
 
-  attr_reader :workflow, :stage, :project, :git, :tooling, :ai_run_poll
+  attr_reader :workflow, :stage, :project, :git, :tooling, :ai_run_poll,
+              :start_handler_class, :completion_handler_class, :conflict_resolution_finish_class, :launcher_class
 
   def github
     @github ||= Github::Client.new(project)
   end
 
   def start_handler
-    @start_handler ||= Stages::StartHandler.new(
+    @start_handler ||= start_handler_class.new(
       workflow: workflow, stage: stage, project: project,
       github: github, git: git, prompt: prompt, handoff: handoff, launcher: launcher
     )
@@ -58,14 +67,14 @@ class StageExecutor
   def finalize_success(output)
     return conflict_resolution_finish.call(output) if stage.resolving_conflicts?
 
-    Stages::CompletionHandler.new(
+    completion_handler_class.new(
       workflow: workflow, stage: stage, project: project,
       github: github, git: git, handoff: handoff
     ).call(output)
   end
 
   def conflict_resolution_finish
-    Stages::ConflictResolutionFinish.new(
+    conflict_resolution_finish_class.new(
       workflow: workflow, stage: stage, project: project,
       git: git, prompt: prompt, launcher: launcher
     )
@@ -86,7 +95,7 @@ class StageExecutor
   end
 
   def launcher
-    @launcher ||= Stages::AiRunLauncher.new(
+    @launcher ||= launcher_class.new(
       workflow: workflow, stage: stage, project: project, runner: tooling.runner
     )
   end
