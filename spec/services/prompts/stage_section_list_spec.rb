@@ -2,122 +2,100 @@ require "rails_helper"
 
 RSpec.describe Prompts::StageSectionList do
   subject(:section_list) do
-    described_class.new(workflow: workflow, stage: stage, notifier: notifier, latest_log: latest_log)
+    described_class.new(workflow: workflow, stage: stage, latest_log: latest_log)
   end
 
-  let(:notifier) { instance_double(Slack::ReviewNotifier, enabled?: false) }
-  let(:latest_log) { ->(_workflow_id) { nil } }
+  # Raises if called so examples that must not look up a log fail loudly when wiring regresses.
+  let(:latest_log_calls) { [] }
+  let(:latest_log) do
+    ->(workflow_id) do
+      latest_log_calls << workflow_id
+      raise "latest_log should not be called"
+    end
+  end
 
   let_tmpdir(:local_directory, "stage-section-list-spec")
-  let(:project) { build_personal_project(local_directory: local_directory, kind: :personal) }
-  let(:workflow) do
-    build_task_workflow(project, kind: :development, task_description: "Do the thing")
-  end
-  let(:stage_type) { :task }
-  let(:stage) { workflow.stages.create!(stage_type: stage_type) }
+  # Jira project so local_test_ready? can be true via real attrs (needs jira? + local_test_enabled + local_url).
+  let(:project) { build_jira_project(local_directory: local_directory) }
+  let(:workflow) { build_jira_workflow(project, kind: :development) }
+  let(:stage) { workflow.stages.create!(stage_type: :task) }
 
   describe "#sections" do
-    it "passes retry a log only for a failed implementation run from this workflow" do
+    it "includes retry text with the previous log for a failed implementation run" do
       stage.update!(stage_type: :implementation, prompt: "Implement")
       stage.stage_runs.create!(action: "failed")
       previous_log = "/tmp/runs/workflow-#{workflow.id}.log"
-      latest_log = instance_double(Proc)
-      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
+      latest_log = ->(id) {
+        latest_log_calls << id
+        previous_log
+      }
 
-      expect(latest_log).to receive(:call).with(workflow.id).and_return(previous_log)
-      expect(Prompts::StageSections::Retry).to receive(:new).with(
-        stage_type: "implementation", last_action: "failed", previous_log: previous_log
-      ).and_return(retry_section)
+      text = described_class.new(workflow: workflow, stage: stage, latest_log: latest_log).to_s
 
-      described_class.new(workflow: workflow, stage: stage, notifier: notifier, latest_log: latest_log).sections
+      expect(latest_log_calls).to eq([ workflow.id ])
+      expect(text).to include("A previous attempt at this stage ended without finishing", previous_log)
     end
 
     it "does not look up a retry log unless a simple implementation's last action failed" do
       stage.update!(stage_type: :simple_implementation, prompt: "Implement")
       stage.stage_runs.create!(action: "started")
-      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
 
-      expect(latest_log).not_to receive(:call)
-      expect(Prompts::StageSections::Retry).to receive(:new).with(
-        stage_type: "simple_implementation", last_action: "started", previous_log: nil
-      ).and_return(retry_section)
-
-      section_list.sections
+      expect(section_list.to_s).not_to include("A previous attempt at this stage ended without finishing")
+      expect(latest_log_calls).to be_empty
     end
 
     it "does not look up a retry log for failed non-implementation stages" do
       stage.update!(prompt: "Do it")
       stage.stage_runs.create!(action: "failed")
-      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
 
-      expect(latest_log).not_to receive(:call)
-      expect(Prompts::StageSections::Retry).to receive(:new).with(
-        stage_type: "task", last_action: "failed", previous_log: nil
-      ).and_return(retry_section)
-
-      section_list.sections
+      expect(section_list.to_s).not_to include("A previous attempt at this stage ended without finishing")
+      expect(latest_log_calls).to be_empty
     end
 
-    it "passes local-test readiness and this workflow's feedback to local feedback" do
+    it "includes this workflow's local-test feedback for a pr_check on a ready project" do
       stage.update!(stage_type: :pr_check, prompt: "Fix")
-      allow(project).to receive(:local_test_ready?).and_return(true)
-      allow(workflow).to receive(:local_test_feedback).and_return("Login button is broken")
-      local_feedback = instance_double(Prompts::StageSections::LocalFeedback, to_s: "")
+      project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+      workflow.update!(local_test_feedback: "Login button is broken")
 
-      expect(Prompts::StageSections::LocalFeedback).to receive(:new).with(
-        stage_type: "pr_check", local_test_ready: true, feedback: "Login button is broken"
-      ).and_return(local_feedback)
-
-      section_list.sections
+      expect(section_list.to_s).to include(
+        "<local_test_feedback>",
+        "Login button is broken",
+        "LOCAL_RETEST:"
+      )
     end
 
-    it "does not mark a non-pr-check stage as local-test ready" do
+    it "does not include local-test feedback outside pr_check even when the project is ready" do
       stage.update!(prompt: "Do it")
-      allow(project).to receive(:local_test_ready?).and_return(true)
-      local_feedback = instance_double(Prompts::StageSections::LocalFeedback, to_s: "")
+      project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+      workflow.update!(local_test_feedback: "Login button is broken")
 
-      expect(Prompts::StageSections::LocalFeedback).to receive(:new).with(
-        stage_type: "task", local_test_ready: false, feedback: workflow.local_test_feedback
-      ).and_return(local_feedback)
-
-      section_list.sections
+      expect(section_list.to_s).not_to include("Login button is broken", "LOCAL_RETEST:", "<local_test_feedback>")
     end
 
-    it "only enables fixed summaries for pr checks when the notifier is enabled" do
+    it "includes a fixed summary for pr_check when the Slack notifier is enabled" do
       stage.update!(stage_type: :pr_check, prompt: "Fix")
-      allow(notifier).to receive(:enabled?).and_return(true)
-      fixed_summary = instance_double(Prompts::StageSections::FixedSummary, to_s: "")
+      project.update!(slack_review_channel: "C0B5XFY2F0T")
 
-      expect(Prompts::StageSections::FixedSummary).to receive(:new).with(
-        stage_type: "pr_check", notify_enabled: true
-      ).and_return(fixed_summary)
-
-      section_list.sections
+      expect(section_list.to_s).to include("FIXED_SUMMARY_BEGIN", "FIXED_SUMMARY_END")
     end
 
-    it "does not enable fixed summaries outside pr checks" do
+    it "does not include a fixed summary outside pr_check even when the notifier is enabled" do
       stage.update!(prompt: "Do it")
-      allow(notifier).to receive(:enabled?).and_return(true)
-      fixed_summary = instance_double(Prompts::StageSections::FixedSummary, to_s: "")
+      project.update!(slack_review_channel: "C0B5XFY2F0T")
 
-      expect(Prompts::StageSections::FixedSummary).to receive(:new).with(
-        stage_type: "task", notify_enabled: false
-      ).and_return(fixed_summary)
-
-      section_list.sections
+      expect(section_list.to_s).not_to include("FIXED_SUMMARY_BEGIN")
     end
 
-    it "passes project lessons to the lessons section" do
+    it "includes project agent lessons in the output" do
       stage.update!(prompt: "Do it")
       project.update!(agent_lessons: "Use the shared error_summary partial on forms")
-      lessons = instance_double(Prompts::StageSections::Lessons, to_s: "")
 
-      expect(Prompts::StageSections::Lessons).to receive(:new).with(
-        stage_type: "task", lessons: "Use the shared error_summary partial on forms"
-      ).and_return(lessons)
-
-      section_list.sections
+      expect(section_list.to_s).to include(
+        "Lessons from earlier reviews of this project",
+        "Use the shared error_summary partial on forms"
+      )
     end
+
     it "returns the sections in order" do
       stage.update!(prompt: "Do it")
 
@@ -134,7 +112,7 @@ RSpec.describe Prompts::StageSectionList do
 
   describe "#to_s" do
     it "joins the section texts in order" do
-      outputs = described_class.new(workflow: workflow, stage: stage, notifier: notifier, latest_log: latest_log)
+      outputs = described_class.new(workflow: workflow, stage: stage, latest_log: latest_log)
                                .sections.map(&:to_s)
 
       expect(section_list.to_s).to eq(outputs.join)
@@ -144,28 +122,29 @@ RSpec.describe Prompts::StageSectionList do
   describe "defaults" do
     it "builds a Slack::ReviewNotifier for the project lazily, only for pr_check" do
       stage.update!(stage_type: :pr_check)
-      default_notifier = instance_double(Slack::ReviewNotifier, enabled?: true)
-      allow(Slack::ReviewNotifier).to receive(:new).with(project).and_return(default_notifier)
-      fixed_summary = instance_double(Prompts::StageSections::FixedSummary, to_s: "")
+      project.update!(slack_review_channel: "C0B5XFY2F0T")
 
-      expect(Prompts::StageSections::FixedSummary).to receive(:new).with(
-        stage_type: "pr_check", notify_enabled: true
-      ).and_return(fixed_summary)
-
-      described_class.new(workflow: workflow, stage: stage).sections
+      # Real notifier: enabled? is channel presence only (no network). Omit notifier: to exercise the default.
+      expect(described_class.new(workflow: workflow, stage: stage, latest_log: latest_log).to_s)
+        .to include("FIXED_SUMMARY_BEGIN")
     end
 
     it "looks up the previous log through AiCli::RunLogs.latest" do
-      stage.update!(stage_type: :implementation)
+      stage.update!(stage_type: :implementation, prompt: "Implement")
       stage.stage_runs.create!(action: "failed")
-      allow(AiCli::RunLogs).to receive(:latest).with(workflow.id).and_return("/tmp/runs/x.log")
-      retry_section = instance_double(Prompts::StageSections::Retry, to_s: "")
+      # StageSectionList's default calls RunLogs.latest(id) without dir:; write under DIR rather than
+      # adding a production seam to forward a tmp dir.
+      FileUtils.mkdir_p(AiCli::RunLogs::DIR)
+      log_path = AiCli::RunLogs.new_path(workflow.id)
+      File.write(log_path, "previous attempt")
 
-      expect(Prompts::StageSections::Retry).to receive(:new).with(
-        stage_type: "implementation", last_action: "failed", previous_log: "/tmp/runs/x.log"
-      ).and_return(retry_section)
+      begin
+        text = described_class.new(workflow: workflow, stage: stage).to_s
 
-      described_class.new(workflow: workflow, stage: stage, notifier: notifier).sections
+        expect(text).to include("A previous attempt at this stage ended without finishing", log_path)
+      ensure
+        FileUtils.rm_f(log_path)
+      end
     end
   end
 end
