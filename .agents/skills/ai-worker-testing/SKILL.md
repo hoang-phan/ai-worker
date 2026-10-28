@@ -8,7 +8,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Layout and running
 
 - Specs live in `spec/{models,services,jobs,requests}`, mirroring `app/`. Helpers: `spec/rails_helper.rb`, `spec/spec_helper.rb`.
-- New classes under `app/{models,services,jobs,helpers}` need a mirrored `spec/<same path>_spec.rb`; `spec/structure/spec_mirror_spec.rb` enforces this (controllers out of scope; only add to its EXEMPT list when a focused unit spec is not useful — error-only / Rails base / abstract base covered elsewhere).
+- New classes under `app/{models,services,jobs,helpers}` need a mirrored `spec/<same path>_spec.rb`; `spec/structure/spec_mirror_spec.rb` enforces this (controllers out of scope; only add to its EXEMPT list when a focused unit spec is not useful — error-only / Rails base / abstract base covered elsewhere). Every `app/controllers/**/*_controller.rb` also needs a mirrored `spec/requests/<same path without _controller>_spec.rb`; `spec/structure/request_spec_mirror_spec.rb` enforces this, skipping controller concerns and exempting only actionless Rails bases.
 - Always run with the environment set explicitly: `RAILS_ENV=test bundle exec rspec` (or a single file/line). Never rely on the default environment — it is development, which is real data. Test DB is `storage/test.sqlite3`; prepare with `RAILS_ENV=test bin/rails db:test:prepare`.
 - Transactional fixtures are on (`use_transactional_fixtures = true`); records created in an example roll back automatically.
 - Test cache is `:memory_store` (`config/environments/test.rb`), cleared before every example (`spec/support/rails_cache.rb`). Exercise `AiCli::AgentSetting` and `AiCli::Rotation` through their public API — do not stub `Rails.cache` or those singletons.
