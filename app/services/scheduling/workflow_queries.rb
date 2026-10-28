@@ -47,7 +47,7 @@ module Scheduling
     end
 
     # `uat_waiting` once its delay has passed, or `uat_testing` but idle (a failed attempt being retried).
-    def due_uat_tests(limit:, now: Time.current)
+    def due_uat_tests(limit:, now:)
       due = Workflow.where(status: :uat_waiting).where(uat_test_at: ..now)
                     .or(Workflow.where(status: :uat_testing, processing: false))
       due.includes(:project).order(:uat_test_at).limit(limit)
