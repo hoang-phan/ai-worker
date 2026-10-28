@@ -32,12 +32,13 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `AiCli::Output` — result markers (`ai-worker-agent-output`)
 - `Prompts::Renderer` + `Prompts::StageSections` — prompt text (`ai-worker-prompts`)
 - `Github::Runner` — `gh` subprocesses (`ai-worker-github`); `Git::Shell` — `git` subprocesses (`ai-worker-git`)
-- `spec/support` helpers (`RecordHelper`, `let_tmpdir`, `FakeDetachedRun`, `GitRepoHelper`, `StageRunHelper`, `active_job_test_adapter`) and `spec/structure/constructor_stub_ratchet_spec.rb` — shared spec setup / constructor-stub guard (`ai-worker-testing`)
+- `spec/support` helpers (`RecordHelper`, `let_tmpdir`, `FakeDetachedRun`, `GitRepoHelper`, `StageRunHelper`, `active_job_test_adapter`) — shared spec setup (`ai-worker-testing`)
+- Structural spec guards are owned by `ai-worker-spec-guards`.
 
 ## Specs and file maps
 
 - When a refactor adds or moves files, update the owning skill's file map and follow `ai-worker-skills`.
-- `spec/structure/constructor_stub_ratchet_spec.rb` caps `allow`/`expect(...).to receive(:new)` stubs of app-namespace constructors, `spec/structure/global_stub_ratchet_spec.rb` caps app-global method/constant/any-instance stubs, and `spec/structure/private_state_peek_ratchet_spec.rb` caps private-state peeks; lower or delete their ALLOWLIST entries when stubs or peeks are removed (`ai-worker-testing`).
+- Structural ratchets and their ALLOWLIST rules are owned by `ai-worker-spec-guards`.
 - Move examples with the extracted code: add one spec file per new class and slim the original spec to orchestration/public-delegation coverage. Preserve all coverage; compare `rspec --dry-run` example counts before and after the move.
 
 ## Guardrails

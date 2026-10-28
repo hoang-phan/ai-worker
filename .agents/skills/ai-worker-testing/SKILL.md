@@ -8,7 +8,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Layout and running
 
 - Specs live in `spec/{models,services,jobs,requests}`, mirroring `app/`. Helpers: `spec/rails_helper.rb`, `spec/spec_helper.rb`.
-- New classes under `app/{models,services,jobs,helpers}` need a mirrored `spec/<same path>_spec.rb`; `spec/structure/spec_mirror_spec.rb` enforces this (controllers out of scope; only add to its EXEMPT list when a focused unit spec is not useful — error-only / Rails base / abstract base covered elsewhere). Every `app/controllers/**/*_controller.rb` also needs a mirrored `spec/requests/<same path without _controller>_spec.rb`; `spec/structure/request_spec_mirror_spec.rb` enforces this, skipping controller concerns and exempting only actionless Rails bases.
+- Mirrored-spec requirements and structural guard exemptions are owned by `ai-worker-spec-guards`.
 - Always run with the environment set explicitly: `RAILS_ENV=test bundle exec rspec` (or a single file/line). Never rely on the default environment — it is development, which is real data. Test DB is `storage/test.sqlite3`; prepare with `RAILS_ENV=test bin/rails db:test:prepare`.
 - Transactional fixtures are on (`use_transactional_fixtures = true`); records created in an example roll back automatically.
 - Test cache is `:memory_store` (`config/environments/test.rb`), cleared before every example (`spec/support/rails_cache.rb`). Exercise `AiCli::AgentSetting` and `AiCli::Rotation` through their public API — do not stub `Rails.cache` or those singletons.
@@ -40,8 +40,5 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 - Thin cron jobs take a perform-keyword seam with a production default (`sync:`, `collector:`, `tick:`, `cycle:`) so specs call `perform_now(sync: double)` (etc.) instead of stubbing `.new` or `AgentRuns::SyncCycle.call`.
 - Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Brainstorm::Planner`, `Slack::PingCollector`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).
 - Inject a `logger:` keyword (default `Rails.logger`) instead of stubbing `Rails.logger` — used by `AiCli::LogTail`, `Slack::PingCollector`, `JiraHoursSyncJob`, and the sync-cycle jobs (`JiraSyncJob`, `SlackReviewJob`, `BugsnagSyncJob`, `BrainstormJob`) which forward it to `AgentRuns::SyncCycle`. Assert on `ActiveSupport::Logger.new(io = StringIO.new)` via `io.string`.
-- `spec/structure/time_travel_ratchet_spec.rb` caps wall-clock `travel_to`, `freeze_time`, and `travel` usage per spec file; use a `clock:` or `now:` seam and lower or delete ALLOWLIST entries when removing time travel (never raise caps).
-- `spec/structure/constructor_stub_ratchet_spec.rb` caps remaining `receive(:new)` stubs per file; lower or delete ALLOWLIST entries when you remove stubs (never raise caps).
-- `spec/structure/private_state_peek_ratchet_spec.rb` caps `instance_variable_get` and private `send` calls per file; assert public behaviour or use a small spec-local subclass for protected hooks, then lower or delete ALLOWLIST entries (never raise caps).
-- `spec/structure/global_stub_ratchet_spec.rb` caps app-global class/singleton method stubs, constant stubs, and any-instance stubs per file; inject collaborators or assert real behaviour, then lower or delete ALLOWLIST entries (never raise caps). Its only subprocess-boundary exception is `AiCli::Runner.start` / `.poll`.
+- Structural ratchets and their ALLOWLIST rules are owned by `ai-worker-spec-guards`.
 
