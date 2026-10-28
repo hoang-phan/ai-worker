@@ -39,6 +39,43 @@ RSpec.describe Workflows::Transitions do
     end
   end
 
+  describe "#skip_stage!" do
+    let(:ci_project) { build_ci_project(name: "skip-stage-spec", repo_full_name: "org/repo") }
+    let(:ci_workflow) { build_ci_workflow(ci_project, status: :ci_checking, ci_output_path: "/tmp/old.log", ci_exit_status: 1) }
+
+    it "moves the check on to verify, clearing the stale check output" do
+      stage = ci_workflow.current_stage
+      expect(transitions_for(ci_workflow).skip_stage!).to be true
+
+      ci_workflow.reload
+      expect(ci_workflow).to be_ci_verifying
+      expect(ci_workflow.ci_output_path).to be_nil
+      expect(ci_workflow.ci_exit_status).to be_nil
+      expect(stage.stage_runs.pluck(:action)).to eq(%w[stage_skipped])
+    end
+
+    it "moves verify on to review" do
+      ci_workflow.update!(status: :ci_verifying)
+      expect(transitions_for(ci_workflow).skip_stage!).to be true
+      expect(ci_workflow.reload).to be_reviewing
+    end
+
+    it "refuses while an agent run is in flight" do
+      ci_workflow.update!(processing: true)
+      expect(transitions_for(ci_workflow).skip_stage!).to be false
+      expect(ci_workflow.reload).to be_ci_checking
+    end
+
+    it "refuses outside the check and verify stages" do
+      ci_workflow.update!(status: :reviewing)
+      expect(transitions_for(ci_workflow).skip_stage!).to be false
+    end
+
+    it "refuses on a project without the ci_loop flow" do
+      expect(transitions_for(workflow.tap { |w| w.update!(status: :ci_checking) }).skip_stage!).to be false
+    end
+  end
+
   describe "#request_stage_run!" do
     let(:runbook) { build_runbook_workflow(project, status: :implementing) }
 

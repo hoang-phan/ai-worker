@@ -31,4 +31,13 @@ class WorkflowTransitionsController < ApplicationController
       redirect_to project_workflow_path(@project, @workflow), alert: "Only done workflows with a pull request can be rolled back."
     end
   end
+
+  # Moves a ci_loop workflow past its check or verify stage without running it (the checks may already have been run by hand).
+  def skip_stage
+    if @workflow.skip_stage!
+      redirect_to project_workflow_path(@project, @workflow), notice: "Stage skipped."
+    else
+      redirect_to project_workflow_path(@project, @workflow), alert: "Only an idle CI check or CI verify stage can be skipped."
+    end
+  end
 end

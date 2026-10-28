@@ -45,6 +45,34 @@ module Workflows
       true
     end
 
+    # A ci_loop workflow idle in the check or verify stage can skip it, e.g. when bin/ci already ran separately.
+    def can_skip_stage?
+      @workflow.development? && @workflow.project.ci_loop_ready? && !@workflow.processing? &&
+        (@workflow.ci_checking? || @workflow.ci_verifying?)
+    end
+
+    # The status skipping the current ci_loop stage leads to: check -> verify, verify -> local testing or review.
+    def skip_status
+      @workflow.ci_checking? ? :ci_verifying : @workflow.post_pr_status
+    end
+
+    # Moves on from the current ci_loop stage without running it, logging a 'stage_skipped' StageRun. Skipping the
+    # check clears its stale output so the verify stage doesn't act on an earlier round's log. Skipping the verify
+    # hands the PR to reviewers as a passing verify would (unless local testing comes first).
+    def skip_stage!
+      return false unless can_skip_stage?
+
+      stage = @workflow.current_stage
+      testing_locally = @workflow.local_test_before_review?
+      verifying = @workflow.ci_verifying?
+      @workflow.transaction do
+        @workflow.update!(status: skip_status, **(verifying ? {} : { ci_output_path: nil, ci_exit_status: nil }))
+        stage&.log_run!("stage_skipped")
+      end
+      Stages::ReviewHandoff.new(@workflow, stage).notify_reviewers! if verifying && !testing_locally && stage
+      true
+    end
+
     # The runbook's "Run stage" button is only valid on an implementing runbook that isn't mid-run.
     def can_run_stage?
       @workflow.runbook? && @workflow.implementing? && !@workflow.processing?

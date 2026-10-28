@@ -49,6 +49,26 @@ RSpec.describe "WorkflowTransitions", type: :request, active_job_test_adapter: t
     end
   end
 
+  describe "POST skip_stage" do
+    let(:ci_project) { build_ci_project(name: "skip-stage-request-spec", repo_full_name: "org/repo") }
+    let(:ci_workflow) { build_ci_workflow(ci_project, status: :ci_checking) }
+
+    it "skips an idle check stage" do
+      post skip_stage_project_workflow_path(ci_project, ci_workflow)
+
+      expect(flash[:notice]).to eq("Stage skipped.")
+      expect(ci_workflow.reload).to be_ci_verifying
+    end
+
+    it "refuses a workflow that is not in the check or verify stage" do
+      ci_workflow.update!(status: :implementing)
+      post skip_stage_project_workflow_path(ci_project, ci_workflow)
+
+      expect(flash[:alert]).to eq("Only an idle CI check or CI verify stage can be skipped.")
+      expect(ci_workflow.reload).to be_implementing
+    end
+  end
+
   describe "POST start" do
     it "starts a pending workflow" do
       workflow.update!(status: :pending)

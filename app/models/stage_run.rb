@@ -44,6 +44,7 @@ class StageRun < ApplicationRecord
     ci_verify_failed
     ci_rounds_exhausted
     pr_created
+    stage_skipped
   ].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }

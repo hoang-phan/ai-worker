@@ -68,7 +68,7 @@ class Workflow < ApplicationRecord
 
   # The manual lifecycle transitions live in Workflows::Transitions.
   delegate :start!, :resume!, :resume_status, :can_rollback_to_review?, :rollback_to_review!, :can_run_stage?,
-           :request_stage_run!, :can_advance?, to: :transitions
+           :can_skip_stage?, :skip_stage!, :request_stage_run!, :can_advance?, to: :transitions
 
   # The runbook state machine lives in Workflows::RunbookNavigator.
   delegate :start_runbook!, :advance!, :next_runbook_stage, :previous_runbook_stage, to: :runbook_actions

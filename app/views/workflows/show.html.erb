@@ -17,6 +17,9 @@
     <% if @workflow.can_rollback_to_review? %>
       <%= button_to "Roll back to review", rollback_to_review_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary", form: { data: { turbo_confirm: "Move this workflow back to the review stage?" } } %>
     <% end %>
+    <% if @workflow.can_skip_stage? %>
+      <%= button_to "Skip stage", skip_stage_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary", form: { data: { turbo_confirm: "Skip this stage and move on to the next one?" } } %>
+    <% end %>
     <% if @workflow.runbook? %>
       <%= inline_button_to "Clone", clone_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary" %>
     <% end %>
