@@ -7,36 +7,19 @@ description: Owns cross-cutting service and job conventions outside another subs
 
 Use this skill only for work without a specialised owner, the Rails job base / Sidekiq initializer, or conventions shared across service layers. The overall design is in `docs/ARCHITECTURE.md` and `docs/RUNBOOK.md`; where they and the code disagree, the code wins.
 
+Path ownership is resolved by the first-match routing table in `ai-worker-review`; each owning skill's file map is authoritative for its paths.
+
 ## File map
 
-Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Other narrowly scoped skills can still apply where their descriptions say so.
-
-| Path glob | Owning skill |
-| --- | --- |
-| `app/jobs/application_job.rb` | `ai-worker-orchestration` |
-| `app/jobs/brainstorm_job.rb`, `app/services/brainstorm/**` | `ai-worker-brainstorm` |
-| `app/jobs/bugsnag_sync_job.rb`, `app/services/bugsnag/**` | `ai-worker-bugsnag-triage` |
-| `app/jobs/jira_sync_job.rb`, `app/services/jira/{agent_fetcher,fetch_error,fetch_prompt,sync_cycle_source,ticket_importer,ticket_ref,ticket_rows,ticket_sync}.rb` | `ai-worker-jira-ticket-sync` |
-| `app/services/jira/{http_transport,rest_client,worklog_client,worklog_error}.rb` | `ai-worker-jira-rest-client` |
-| `app/jobs/jira_hours_sync_job.rb`, `app/services/jira/{hours_sync,time_log_batch,time_log_mirror,time_logger,time_slot_planner,worklog_site_sync,worklog_target}.rb` | `ai-worker-jira-worklogs` |
-| `app/jobs/slack_review_job.rb`, `app/services/slack/{fetch_error,mention_fetcher,mention_prompt,mention_rows,review_candidate,review_cycle_source,review_importer,review_sync}.rb` | `ai-worker-pr-review-workflows` |
-| `app/jobs/slack_ping_job.rb`, `app/services/slack/{notify_error,ping_collector,ping_run,review_message,review_notifier}.rb` | `ai-worker-slack-review-pings` |
-| `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` | `ai-worker-scheduling` |
-| `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
-| `app/services/ai_cli/{output,claude_result,run_verdict}.rb` | `ai-worker-agent-output` |
-| `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` | `ai-worker-agent-cli` |
-| `app/services/git/**` | `ai-worker-git` |
-| `app/services/github/**` | `ai-worker-github` |
-| `app/services/prompts/stage_section_list.rb`, `app/services/prompts/stage_sections.rb`, `app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb` | `ai-worker-stage-sections` |
-| remaining `app/services/prompts/**` | `ai-worker-prompts` |
-| `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb` | `ai-worker-stage-pipeline` |
+- `app/jobs/application_job.rb` — Rails job base class shared by all Sidekiq jobs.
+- `config/initializers/sidekiq.rb` — Sidekiq initializer wiring shared by the job runtime.
 
 ## Adding a new service/job
 
 1. Pick the existing owning skill before creating files. If none fits, create the focused owning skill first; this skill then covers only the shared conventions and `ApplicationJob` / Sidekiq wiring.
 2. Inject external collaborators as keyword arguments with production defaults, so specs can provide doubles.
 3. Put its RSpec coverage under the matching `spec/services/<namespace>/` or `spec/jobs/` path and follow `ai-worker-testing`.
-4. Update this file map with the new namespace/job and its owning skill. For behaviour-preserving extraction or moves, follow `ai-worker-refactoring`; for detached agent fetch/sync work, follow `ai-worker-detached-agent-runs`.
+4. Add a routing row in `ai-worker-review` for the new namespace/job and its owning skill. For behaviour-preserving extraction or moves, follow `ai-worker-refactoring`; for detached agent fetch/sync work, follow `ai-worker-detached-agent-runs`.
 
 ## Conventions
 

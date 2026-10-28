@@ -35,7 +35,6 @@ Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesh
 - `app/views/pwa/manifest.json.erb` — PWA manifest.
 - `app/views/pwa/service-worker.js` — PWA service worker.
 - `app/javascript/controllers/skill_insert_controller.js` — inserts a selected skill into its textarea.
-- `app/javascript/controllers/select_all_controller.js` — project-table checkbox selection.
 
 ## Owned elsewhere
 
