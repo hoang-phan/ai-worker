@@ -2,6 +2,8 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Scheduling::WorkflowQueries do
+  let(:now) { Time.zone.parse("2026-10-28 10:00:00") }
+
   def project
     directory = make_tmpdir("workflow-queries-spec")
     build_personal_project(local_directory: directory)
@@ -115,32 +117,39 @@ RSpec.describe Scheduling::WorkflowQueries do
   end
 
   describe ".due_uat_tests" do
-    it "includes due uat_waiting and idle uat_testing, ordered by uat_test_at" do
-      retry_run = workflow(status: :uat_testing, position: 1, uat_test_at: 3.hours.ago)
-      due = workflow(status: :uat_waiting, position: 2, uat_test_at: 2.hours.ago)
-      oldest = workflow(status: :uat_waiting, position: 3, uat_test_at: 4.hours.ago)
+    it "includes a workflow exactly at now, but not one second before its due time" do
+      due_now = workflow(status: :uat_waiting, uat_test_at: now)
 
-      expect(described_class.due_uat_tests(limit: 5).to_a).to eq([ oldest, retry_run, due ])
+      expect(described_class.due_uat_tests(limit: 5, now: now - 1.second)).to be_empty
+      expect(described_class.due_uat_tests(limit: 5, now: now).to_a).to eq([ due_now ])
+    end
+
+    it "includes due uat_waiting and idle uat_testing, ordered by uat_test_at" do
+      retry_run = workflow(status: :uat_testing, position: 1, uat_test_at: now - 3.hours)
+      due = workflow(status: :uat_waiting, position: 2, uat_test_at: now - 2.hours)
+      oldest = workflow(status: :uat_waiting, position: 3, uat_test_at: now - 4.hours)
+
+      expect(described_class.due_uat_tests(limit: 5, now: now).to_a).to eq([ oldest, retry_run, due ])
     end
 
     it "excludes uat_waiting not yet due and processing uat_testing" do
-      workflow(status: :uat_waiting, position: 1, uat_test_at: 1.hour.from_now)
-      workflow(status: :uat_testing, position: 2, processing: true, uat_test_at: 1.hour.ago)
+      workflow(status: :uat_waiting, position: 1, uat_test_at: now + 1.hour)
+      workflow(status: :uat_testing, position: 2, processing: true, uat_test_at: now - 1.hour)
 
-      expect(described_class.due_uat_tests(limit: 5)).to be_empty
+      expect(described_class.due_uat_tests(limit: 5, now: now)).to be_empty
     end
 
     it "includes uat_testing that is not processing" do
-      idle = workflow(status: :uat_testing, uat_test_at: 1.hour.ago)
+      idle = workflow(status: :uat_testing, uat_test_at: now - 1.hour)
 
-      expect(described_class.due_uat_tests(limit: 5).to_a).to eq([ idle ])
+      expect(described_class.due_uat_tests(limit: 5, now: now).to_a).to eq([ idle ])
     end
 
     it "respects the limit" do
-      workflow(status: :uat_waiting, position: 1, uat_test_at: 3.hours.ago)
-      workflow(status: :uat_waiting, position: 2, uat_test_at: 2.hours.ago)
+      workflow(status: :uat_waiting, position: 1, uat_test_at: now - 3.hours)
+      workflow(status: :uat_waiting, position: 2, uat_test_at: now - 2.hours)
 
-      expect(described_class.due_uat_tests(limit: 1).size).to eq(1)
+      expect(described_class.due_uat_tests(limit: 1, now: now).size).to eq(1)
     end
   end
 end

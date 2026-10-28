@@ -5,17 +5,18 @@ module Scheduling
   # slot (`max_capacity`). A `uat_testing` workflow that isn't running is a failed attempt being retried.
   class UatPhase
     def initialize(queries: WorkflowQueries, execute: ActiveWorkflowRunner::DEFAULT_EXECUTOR,
-                   logger: Rails.logger, max_capacity: nil)
+                   logger: Rails.logger, max_capacity: nil, clock: -> { Time.current })
       @queries = queries
       @guarded_executor = GuardedExecutor.new(executor: execute, logger: logger)
       @max_capacity = max_capacity
+      @clock = clock
     end
 
     def call
       slots = @queries.free_agent_slots(max: @max_capacity || Capacity.default_max)
       return if slots <= 0
 
-      @queries.due_uat_tests(limit: slots).each do |workflow|
+      @queries.due_uat_tests(limit: slots, now: @clock.call).each do |workflow|
         workflow.update!(status: :uat_testing) if workflow.uat_waiting?
         @guarded_executor.call(workflow)
       end
