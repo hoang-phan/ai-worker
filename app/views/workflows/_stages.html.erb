@@ -27,7 +27,7 @@
             <%= stage_row_name(workflow, stage) %>
             <%= stage_row_badges(workflow, stage) %>
           </td>
-          <td><%= content_tag(:span, stage_badge, class: "badge badge-info") if stage_badge %></td>
+          <td><%= badge(stage_badge, :info) if stage_badge %></td>
           <td><%= stage_row_detail(workflow, stage) %></td>
           <td>
             <% if stage_runnable?(workflow, stage, current_stage) %>

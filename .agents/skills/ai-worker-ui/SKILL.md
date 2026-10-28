@@ -15,6 +15,7 @@ Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesh
 - `app/controllers/concerns/project_member_scoped.rb` — project loading for `/projects/:id` member actions.
 - `app/controllers/concerns/manual_start_flash.rb` — `start_source_manually` runs `AgentRuns::ManualStart.for(source)` and maps the result to redirect + flash.
 - `app/helpers/action_links_helper.rb` — reusable destructive links and inline button forms; spec: `spec/helpers/action_links_helper_spec.rb`.
+- `app/helpers/badges_helper.rb` — reusable validated status badges; spec: `spec/helpers/badges_helper_spec.rb`.
 - `app/views/layouts/application.html.erb` — navigation and flashes; spec: `spec/requests/layout_spec.rb`.
 - `app/views/layouts/mailer.html.erb` — mailer HTML layout.
 - `app/views/layouts/mailer.text.erb` — mailer text layout.

@@ -2,7 +2,7 @@
   <div>
     <h1><%= @prompt_template.name %></h1>
     <p class="page-header__meta">
-      <span class="badge badge-info"><%= @prompt_template.stage_type %></span>
+      <%= badge(@prompt_template.stage_type, :info) %>
     </p>
   </div>
   <div class="page-header__actions">

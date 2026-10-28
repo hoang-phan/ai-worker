@@ -22,14 +22,14 @@ module WorkflowsHelper
   end
 
   def workflow_status_badge(workflow)
-    content_tag(:span, workflow.status, class: "badge #{workflow_status_badge_class(workflow)}")
+    badge(workflow.status, workflow_status_badge_class(workflow).delete_prefix("badge-"))
   end
 
   # "review" / "runbook" badges shown beside a workflow's label.
   def workflow_kind_badges(workflow)
     safe_join([
-      (content_tag(:span, "review", class: "badge badge-neutral") if workflow.pr_review?),
-      (content_tag(:span, "runbook", class: "badge badge-neutral") if workflow.runbook?)
+      (badge("review") if workflow.pr_review?),
+      (badge("runbook") if workflow.runbook?)
     ].compact)
   end
 end

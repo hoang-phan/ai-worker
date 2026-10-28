@@ -32,9 +32,9 @@ module StagesHelper
   def stage_row_badges(workflow, stage)
     runbook = workflow.runbook?
     safe_join([
-      (content_tag(:span, stage.run_mode, class: "badge badge-neutral") if runbook),
-      (content_tag(:span, "waits for #{stage.wait_for_workflow}", class: "badge badge-neutral") if stage.wait_for_workflow.present?),
-      (content_tag(:span, stage.auto_advance? ? "→ auto" : "⏸ then Next", class: "badge badge-neutral") if runbook)
+      (badge(stage.run_mode) if runbook),
+      (badge("waits for #{stage.wait_for_workflow}") if stage.wait_for_workflow.present?),
+      (badge(stage.auto_advance? ? "→ auto" : "⏸ then Next") if runbook)
     ].compact, " ")
   end
 

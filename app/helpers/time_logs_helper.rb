@@ -15,9 +15,9 @@ module TimeLogsHelper
 
     if seconds.to_i.positive?
       title = [ "Hours you have logged in Jira", jira_synced_phrase(workflow) ].compact.join(", ")
-      content_tag(:span, "#{logged_hours(seconds)} h", class: "badge badge-success", title: title)
+      badge("#{logged_hours(seconds)} h", :success, title: title)
     else
-      content_tag(:span, "Not logged", class: "badge badge-neutral")
+      badge("Not logged")
     end
   end
 
