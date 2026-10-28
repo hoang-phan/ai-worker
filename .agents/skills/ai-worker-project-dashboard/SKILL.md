@@ -16,7 +16,10 @@ Scope: project index/show, workflow list/reordering, bulk delete, and status/kin
 - `app/models/projects/workflow_reorder.rb` — swaps an in-project workflow with its neighbour and renumbers the complete priority list 1..n.
 - `app/views/projects/index.html.erb` — name-ordered project table, new/edit/delete links, and the empty state.
 - `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, sync (Jira then Bugsnag in one `jira?` block), brainstorm, and Slack-review sections; the sync lists render from their owning feature directories.
-- `app/views/projects/_workflows.html.erb` — GET status filter, Jira time-log batch form, bulk-delete bar, range-select workflow table, rows, and empty state.
+- `app/views/projects/_workflows.html.erb` — short composer for the workflow status filter, Jira time-log bar, and workflow table partials.
+- `app/views/projects/workflows/_status_filter.html.erb` — GET status filter form.
+- `app/views/projects/workflows/_time_log_bar.html.erb` — Jira-only batch time-log form and preset-hour buttons.
+- `app/views/projects/workflows/_table.html.erb` — bulk-delete bar and its scoped range-select workflow table, rows, and empty state.
 - `app/views/projects/_workflow_row.html.erb` — position arrows, checkbox, labels/kind/status/time badges, PR/edit actions, and pending Start action.
 - `app/helpers/projects_helper.rb` — `project_header_meta` (escaped directory + repo name), `workflow_status_filter_options`, `workflow_list_empty_message`, static-path `icon_svg`, and the `show_brainstorm_section?` / `show_slack_reviews_section?` visibility rules used by `show`.
 - `app/helpers/workflows_helper.rb` — `WORKFLOW_STATUS_BADGE_CLASSES`, `workflow_status_badge_class`, `workflow_status_badge`, and `workflow_kind_badges` used by dashboard rows.

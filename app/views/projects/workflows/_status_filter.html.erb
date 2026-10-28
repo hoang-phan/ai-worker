@@ -1,0 +1,5 @@
+<%= form_with url: project_path(project), method: :get, class: "batch-bar" do %>
+  <label for="status" class="text-muted">Status:</label>
+  <%= select_tag :status, options_for_select(workflow_status_filter_options, workflow_list.status_filter), onchange: "this.form.requestSubmit()" %>
+  <noscript><button type="submit" class="btn btn-secondary">Filter</button></noscript>
+<% end %>

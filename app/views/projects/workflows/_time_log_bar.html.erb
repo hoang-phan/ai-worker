@@ -1,0 +1,8 @@
+<% if project.jira? %>
+  <%= form_with url: log_time_project_workflows_path(project), method: :post, id: "time-log-form", class: "batch-bar" do %>
+    <span class="text-muted">Log time on selected:</span>
+    <% Jira::TimeLogger::PRESET_HOURS.each do |hours| %>
+      <button type="submit" name="hours" value="<%= hours %>" class="btn btn-secondary" data-turbo-confirm="Log <%= hours %> h on each selected workflow's Jira ticket?"><%= hours %> h</button>
+    <% end %>
+  <% end %>
+<% end %>

@@ -44,7 +44,7 @@ RSpec.describe "Project dashboard", type: :request do
       unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
       logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
 
-      expect(response.body).to include("1 h</span>", "Not logged", 'aria-label="Select all tickets without logged time"')
+      expect(response.body).to include("1 h</span>", "Not logged", 'id="time-log-form"', 'aria-label="Select all tickets without logged time"')
       expect(unlogged_checkbox).to include('data-select-all-target="row"')
       expect(logged_checkbox).not_to include("data-select-all-target")
     end
@@ -64,7 +64,14 @@ RSpec.describe "Project dashboard", type: :request do
       get project_path(personal)
 
       expect(Nokogiri::HTML(response.body).text).to include("Brainstorm", "3 days ago · created 2 · 0 pending")
-      expect(response.body).not_to include("Jira syncs")
+      expect(response.body).not_to include("Jira syncs", 'id="time-log-form"')
+    end
+
+    it "renders the workflow empty state" do
+      get project_path(project)
+
+      expect(response.body).to include('class="empty-state">No workflows yet. <a href="/projects/')
+      expect(response.body).to include('">Create one</a>.</div>')
     end
 
     it "renders the Slack review last-run summary" do
