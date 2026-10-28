@@ -1,6 +1,6 @@
 ---
 name: ai-worker-project-settings
-description: Add or change a per-project setting. Use for app/models/project.rb settings columns, app/models/projects/validator.rb validations, ProjectsController#project_params/create/update, app/views/projects/{_form,new,edit}.html.erb and app/views/projects/form/*, app/services/prompts/project_placeholders.rb tokens, spec/models/project_spec.rb, spec/models/projects/validator_spec.rb, spec/requests/projects_spec.rb, and docs/ADDING_A_PROJECT.md.
+description: Owns per-project settings, validation, forms, parameters, and placeholder tokens. Use for app/models/{project.rb,projects/validator.rb}, ProjectsController settings actions, app/views/projects/form/**, or Prompts::ProjectPlaceholders.
 ---
 
 # ai-worker-project-settings

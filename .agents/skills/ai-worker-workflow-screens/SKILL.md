@@ -1,6 +1,6 @@
 ---
 name: ai-worker-workflow-screens
-description: Applies ai-worker's workflow and stage screen discipline. Use for any task touching app/controllers/{workflows,workflow_runbooks,workflow_images,workflow_time_logs,stages}_controller.rb, app/controllers/concerns/workflow_scoped.rb, app/helpers/{stages_helper,workflow_pages_helper}.rb, app/views/workflows/**, app/views/stages/**, app/javascript/controllers/template_fill_controller.js, or their request/helper specs.
+description: Owns workflow and stage screens, scoped controllers, helpers, templates, and image/time-log UI. Use for app/controllers/{workflows,workflow_*,stages}_controller.rb, app/helpers/{stages_helper,workflow_pages_helper}.rb, app/views/{workflows,stages}/**, or template_fill_controller.js.
 ---
 
 # ai-worker-workflow-screens

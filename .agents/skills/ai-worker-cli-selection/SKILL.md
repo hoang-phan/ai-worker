@@ -1,6 +1,6 @@
 ---
 name: ai-worker-cli-selection
-description: Selects the agent CLI and provider for a run — rotation (AiCli::Rotation, Workflow#rotation_provider!), the app-wide AgentSetting fallback and the AiCli::Providers registry, resolved by Stages::RunProvider. Use for app/services/stages/run_provider.rb; app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb; app/services/ai_cli/provider/{claude,codex,cursor}.rb; app/controllers/{settings_controller,settings/rotations_controller}.rb; app/controllers/concerns/settings_screen.rb; app/views/settings/show.html.erb; and their listed specs, including spec/services/ai_cli/provider/{claude,codex,cursor}_spec.rb.
+description: Owns agent CLI and provider selection through Stages::RunProvider and AiCli::Rotation. Use for app/services/stages/run_provider.rb, app/services/ai_cli/{rotation,providers,provider,agent_setting}.rb, app/services/ai_cli/provider/**, or settings rotation UI.
 ---
 
 # ai-worker CLI selection

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-ci-loop
-description: Applies ai-worker's ci_loop flow discipline. Use for any task touching app/services/stages/{ci_check_start,simple_implementation_finish,pr_create_finish,pr_opened_finish,ci_check_finish,ci_verify_finish}.rb, app/models/workflows/ci_loop_resume.rb, ci rounds in app/models/stages/run_history.rb, app/services/prompts/defaults/{ci_verify,pr_create,simple_implementation}.md, app/views/projects/form/_ci_loop.html.erb, spec/support/ci_loop_helper.rb, or any change to the ci_loop flow (simple_implementation, pr_create, ci_check, ci_verify, opening_pr/ci_checking/ci_verifying).
+description: Owns the ci_loop stage flow, resumption, prompts, and CI status transitions. Use for app/services/stages/{ci_*,simple_implementation_finish,pr_create_finish,pr_opened_finish}.rb, app/models/workflows/ci_loop_resume.rb, or ci_loop defaults and settings UI.
 ---
 
 # ai-worker-ci-loop

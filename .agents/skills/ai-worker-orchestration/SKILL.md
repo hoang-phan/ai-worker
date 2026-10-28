@@ -1,6 +1,6 @@
 ---
 name: ai-worker-orchestration
-description: Applies ai-worker's cross-cutting service/job conventions. Use when adding a new service namespace or job no existing skill owns, touching app/jobs/application_job.rb or config/initializers/sidekiq.rb, or changing shared subprocess/error conventions. Existing subsystem paths belong to their specialised skills.
+description: Owns cross-cutting service and job conventions outside another subsystem. Use when adding an unowned service namespace or job, touching app/jobs/application_job.rb or config/initializers/sidekiq.rb, or changing shared subprocess and error rules.
 ---
 
 # ai-worker-orchestration

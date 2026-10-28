@@ -1,6 +1,6 @@
 ---
 name: ai-worker-agent-cli
-description: Applies ai-worker's agent-run process, polling, logs, detached-run, CI-command, and run-tooling discipline. Use for app/services/ai_cli/{runner,process_status,run_poller,stale_run,log_tail,run_logs,detached_run,command_error}.rb, app/services/ci/**, app/services/stages/run_tooling.rb, or their mirrored specs; command builders use ai-worker-cli-commands. Log parsers use ai-worker-agent-output.
+description: Owns agent process execution, polling, logs, detached runs, and CI commands. Use for app/services/ai_cli/{runner,process_status,run_*,stale_run,log_*,detached_run,command_error}.rb, app/services/ci/**, or app/services/stages/run_tooling.rb.
 ---
 
 # ai-worker agent CLI layer

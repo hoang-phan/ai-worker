@@ -1,6 +1,6 @@
 ---
 name: ai-worker-brainstorm
-description: Applies ai-worker's Brainstorm subsystem discipline. Use for any task touching app/services/brainstorm/** except proposal_importer.rb, app/jobs/brainstorm_job.rb, app/controllers/project_brainstorms_controller.rb, spec/services/brainstorm/** except proposal_importer_spec.rb or spec/jobs/brainstorm_job_spec.rb — Brainstorm::Planner, RunLifecycle, RunOutcome, LaunchContext, Prompt, BrainstormJob and the "Brainstorm now" button.
+description: Owns the Brainstorm planning and detached-run subsystem. Use for app/services/brainstorm/** except proposal_importer.rb, app/jobs/brainstorm_job.rb, app/controllers/project_brainstorms_controller.rb, or the Brainstorm now UI.
 ---
 
 # ai-worker-brainstorm

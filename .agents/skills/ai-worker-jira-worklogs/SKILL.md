@@ -1,6 +1,6 @@
 ---
 name: ai-worker-jira-worklogs
-description: Applies ai-worker's Jira worklog / time-logging discipline. Use for any task touching app/services/jira/{worklog_target,time_logger,time_log_batch,time_log_mirror,time_slot_planner,hours_sync,worklog_site_sync}.rb, app/jobs/jira_hours_sync_job.rb, app/models/time_log.rb, WorkflowTimeLogsController, or the log-time buttons in the project/workflow views.
+description: Owns Jira worklog and time-log syncing through Jira::HoursSync and Jira::TimeLogger. Use for app/services/jira/{worklog_*,time_log_*,hours_sync}.rb, app/jobs/jira_hours_sync_job.rb, app/models/time_log.rb, or WorkflowTimeLogsController.
 ---
 
 # ai-worker Jira worklogs

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-prompts
-description: Applies ai-worker's prompt discipline. Use for app/services/prompts/{slack_post,conflict_resolution,stage_prompt,stage_section_list,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb, app/services/prompts/defaults/jira_update.md, app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb, app/models/prompt_template.rb, app/controllers/prompt_templates_controller.rb, app/views/prompt_templates/{_form,index,show,new,edit}.html.erb, spec/requests/prompt_templates_spec.rb, or docs/PROMPT_TEMPLATES.md. This skill remains the authority for placeholder and section rules everywhere.
+description: Owns prompt rendering, placeholders, sections, defaults, Slack posting, and prompt templates. Use for app/services/prompts/**, app/models/prompt_template.rb, app/controllers/prompt_templates_controller.rb, or app/views/prompt_templates/**.
 ---
 
 # ai-worker-prompts
@@ -19,6 +19,7 @@ Browser-test prompts (`defaults/{uat_test,local_test}.md`, `StageSections::Local
 - `app/services/prompts/workflow_placeholders.rb` — `Prompts::WorkflowPlaceholders`: the workflow-derived tokens (`TOKENS`, `.for(workflow)`, `#to_h`). `{PREV_OUTPUT}` is the last `PREV_OUTPUT_LIMIT` (3000) chars of the previous runbook stage's output (empty for non-runbooks); `{STARTED_ON}` is dd/mm/yyyy in `STARTED_ON_TIME_ZONE` (Brisbane).
 - `app/services/prompts/project_placeholders.rb` — `Prompts::ProjectPlaceholders`: the project-derived tokens (`TOKENS`, `.for(project)`), takes only a project. Renderer spreads it into its built-ins and includes `TOKENS` in `BUILT_IN_TOKENS`.
 - `app/services/prompts/defaults.rb` + `app/services/prompts/defaults/<stage_type>.md` — `Prompts::Defaults.for(stage_type)`: built-in bodies used when no stage prompt or template exists. One `.md` file holding exactly the prompt, plus an entry in `Prompts::Defaults::DESCRIPTIONS` (stage type string => short description); the keys of `DESCRIPTIONS` are the explicit list of stage types with a default, and bodies are read from those names. Currently: pr_review, jira_update, uat_test, local_test, simple_implementation, ci_verify, pr_create.
+- `app/services/prompts/defaults/jira_update.md` — default prompt for the Jira update stage.
 - `app/services/prompts/stage_sections.rb` + `app/services/prompts/stage_sections/<snake_name>.rb` — `Prompts::StageSections` is just the module declaration and its doc comment; each section is its own class in its own file (Zeitwerk), taking only keyword values and rendering `""` when it doesn't apply. Which sections apply is decided in `Prompts::StageSectionList#sections`.
   - `CheckOutput` (`check_output.rb`): implementation and pr_check (compact check output advice).
   - `Retry` (`retry.rb`): implementation/simple_implementation after a `failed` run, points at the previous log.

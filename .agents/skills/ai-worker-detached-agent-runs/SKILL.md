@@ -1,6 +1,6 @@
 ---
 name: ai-worker-detached-agent-runs
-description: Checklist for adding or changing an agent-backed fetch/sync/triage service and its job — Jira::AgentFetcher, Slack::MentionFetcher, Bugsnag::Triager on AiCli::DetachedRun. Use when a task adds a new detached-agent service, changes its result file, prompt, tool allowlist, blockers, import, sync job or schedule.yml entry, or touches AiCli::DetachedRun or app/services/agent_runs/**.
+description: Owns detached agent fetch, sync, and triage services on AiCli::DetachedRun. Use when adding or changing app/services/agent_runs/**, a fetcher, result-file contract, prompt, tool allowlist, sync job, or schedule entry.
 ---
 
 # ai-worker-detached-agent-runs

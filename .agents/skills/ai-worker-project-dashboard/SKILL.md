@@ -1,6 +1,6 @@
 ---
 name: ai-worker-project-dashboard
-description: Applies ai-worker's project-dashboard discipline. Use for app/controllers/projects_controller.rb (index/show), app/controllers/workflow_positions_controller.rb, app/controllers/workflow_bulk_deletes_controller.rb, app/models/projects/{workflow_list,workflow_reorder}.rb, app/views/projects/{index,show,_workflows,_workflow_row}.html.erb, app/helpers/{workflows,projects}_helper.rb, app/javascript/controllers/{bulk_delete,range_select}_controller.js, and their listed specs.
+description: Owns project dashboard lists, workflow ordering, bulk deletion, and selection UI. Use for ProjectsController index/show, app/controllers/workflow_{positions,bulk_deletes}_controller.rb, app/models/projects/workflow_*.rb, or dashboard views and controllers.
 ---
 
 # ai-worker project dashboard

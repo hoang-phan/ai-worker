@@ -1,6 +1,6 @@
 ---
 name: ai-worker-stage-types
-description: Checklist for adding, renaming or changing an ai-worker stage type, a Workflow status, or an agent result marker line (e.g. LOCAL_TEST_RESULT). Use when a change spans Stage, StageRun::ACTIONS, Workflow, StageExecutor, prompts, AiCli::Output and the scheduler together — uat_test and local_test are the worked examples.
+description: Owns cross-cutting changes to stage types, Workflow statuses, and agent result markers. Use when a change spans Stage, StageRun::ACTIONS, Workflow, StageExecutor, prompts, AiCli::Output, and scheduling.
 ---
 
 # ai-worker-stage-types

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-bugsnag-triage
-description: Applies ai-worker's Bugsnag → Jira triage discipline. Use for any task touching app/models/bugsnag_sync.rb, app/services/bugsnag/**, app/jobs/bugsnag_sync_job.rb, the bugsnag_sync entries in config/schedule.yml, app/controllers/bugsnag_syncs_controller.rb, app/controllers/bugsnag_sync_runs_controller.rb, app/views/bugsnag_syncs/**, or spec/services/bugsnag/**, spec/jobs/bugsnag_sync_job_spec.rb, spec/models/bugsnag_sync_spec.rb, spec/requests/bugsnag_syncs_spec.rb, spec/requests/bugsnag_sync_runs_spec.rb — BugsnagSync, Bugsnag::Triager, TriageSync, TriageRows, LedgerMerge, TriagePrompt, SyncCycleSource and BugsnagSyncJob.
+description: Owns Bugsnag to Jira detached-agent triage and sync. Use for app/models/bugsnag_sync.rb, app/services/bugsnag/**, app/jobs/bugsnag_sync_job.rb, Bugsnag sync controllers and views, or bugsnag_sync scheduling.
 ---
 
 # ai-worker-bugsnag-triage

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-browser-tests
-description: Applies ai-worker's agent-driven browser-test discipline (uat_test and local_test). Use for any task touching app/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}.rb; app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb; app/services/scheduling/uat_phase.rb; app/services/prompts/stage_sections/local_feedback.rb or app/services/prompts/defaults/{uat_test,local_test}.md; app/views/projects/form/{_uat_test,_local_test}.html.erb; or spec/services/ai_cli/{browser_test_run,browser_test_credentials,cursor_mcp_file}_spec.rb, spec/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}_spec.rb, spec/services/scheduling/uat_phase_spec.rb, or spec/services/prompts/stage_sections/local_feedback_spec.rb.
+description: Owns agent-driven uat_test and local_test execution and feedback. Use for app/services/ai_cli/browser_test_*.rb, app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb, app/services/scheduling/uat_phase.rb, or their prompts and project form partials.
 ---
 
 # ai-worker-browser-tests

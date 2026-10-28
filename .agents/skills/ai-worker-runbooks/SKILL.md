@@ -1,6 +1,6 @@
 ---
 name: ai-worker-runbooks
-description: Applies ai-worker's runbook workflow discipline (Workflow#kind = runbook). Use for any task touching the runbook parts of app/models/workflows/{runbook_navigator,runbook_clone,stage_seeder,stage_outputs,variables,current_stage,transitions}.rb or app/models/stage.rb, app/services/stages/{runbook_step_start,runbook_step_finish,workflow_run_gate}.rb, Prompts::StagePrompt#slack_message, app/controllers/{stages,workflow_runbooks}_controller.rb, app/views/workflows/_stages.html.erb, app/views/workflows/form/_runbook_fields.html.erb, app/views/stages/form/_runbook_fields.html.erb, or spec/models/workflows/runbook_*_spec.rb, spec/services/stages/{runbook_step_start,runbook_step_finish,workflow_run_gate}_spec.rb, spec/requests/{stages,workflow_runbooks}_spec.rb.
+description: Owns runbook workflows, ordered runbook_step stages, navigation, variables, and stage execution. Use for app/models/workflows/{runbook_*,stage_seeder,stage_outputs,variables,current_stage,transitions}.rb, app/services/stages/{runbook_step_*,workflow_run_gate}.rb, or runbook UI.
 ---
 
 # ai-worker-runbooks

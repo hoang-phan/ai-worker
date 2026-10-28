@@ -1,6 +1,6 @@
 ---
 name: ai-worker-domain
-description: Applies ai-worker's data model discipline. Use for any task touching app/models/{project,workflow,stage,stage_run,prompt_template}.rb, app/models/stages/run_history.rb, app/models/workflows/{image_store,validator,label}.rb, app/models/projects/{validator,slack_user_map,live_checkout,agent_lessons,skill_catalog,workflow_defaults,run_blockers}.rb, db/migrate/**, or db/schema.rb — including cross-cutting enum and migration rules.
+description: Owns core data-model, enum, validation, and migration conventions. Use for app/models/{project,workflow,stage,stage_run,prompt_template}.rb, app/models/{projects,workflows,stages}/**, db/migrate/**, or db/schema.rb.
 ---
 
 # ai-worker-domain

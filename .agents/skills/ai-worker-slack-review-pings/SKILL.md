@@ -1,6 +1,6 @@
 ---
 name: ai-worker-slack-review-pings
-description: Applies ai-worker's Slack "please review" ping discipline. Use for any task touching app/services/slack/{review_notifier,ping_collector,ping_run,review_message,thread_ref,notify_error}.rb, app/jobs/slack_ping_job.rb, the slack_ping entry in config/schedule.yml, or their specs (spec/services/slack/{review_notifier,ping_collector,ping_run,review_message,thread_ref}_spec.rb, spec/jobs/slack_ping_job_spec.rb) — Slack::ReviewNotifier, PingCollector, PingRun, ReviewMessage, ThreadRef, NotifyError and SlackPingJob.
+description: Owns Slack please-review pings through Slack::ReviewNotifier and PingRun. Use for app/services/slack/{review_notifier,ping_*,review_message,thread_ref,notify_error}.rb, app/jobs/slack_ping_job.rb, or slack_ping scheduling.
 ---
 
 # ai-worker-slack-review-pings

@@ -1,6 +1,6 @@
 ---
 name: ai-worker-jira-ticket-sync
-description: Applies ai-worker's Jira ticket import discipline (agent fetches assigned tickets through the Atlassian MCP, app creates development workflows). Use for any task touching app/models/jira_sync.rb, app/services/jira/{agent_fetcher,fetch_prompt,ticket_rows,ticket_ref,ticket_sync,ticket_importer,fetch_error,sync_cycle_source}.rb, app/jobs/jira_sync_job.rb, the jira_sync entries in config/schedule.yml, app/controllers/jira_syncs_controller.rb, app/controllers/jira_sync_runs_controller.rb, app/views/jira_syncs/**, or their specs. Worklogs / time logging belong to ai-worker-jira-worklogs.
+description: Owns Jira ticket import from the agent into development workflows. Use for app/models/jira_sync.rb, app/services/jira/{agent_fetcher,fetch_prompt,ticket_*,fetch_error,sync_cycle_source}.rb, app/jobs/jira_sync_job.rb, Jira sync controllers and views, or jira_sync scheduling.
 ---
 
 # ai-worker-jira-ticket-sync

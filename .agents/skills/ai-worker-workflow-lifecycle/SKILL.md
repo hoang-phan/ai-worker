@@ -1,6 +1,6 @@
 ---
 name: ai-worker-workflow-lifecycle
-description: Owns ai-worker's Workflow status machine (status → stage, start/resume/rollback). Use for any task touching app/models/workflows/{transitions,resume_status,ci_loop_resume,current_stage,stage_resolver,stage_seeder}.rb, the transitions delegate line or current_stage in app/models/workflow.rb, app/controllers/workflow_transitions_controller.rb, or spec/models/workflows/{transitions,resume_status,ci_loop_resume,current_stage,stage_resolver,stage_seeder}_spec.rb, spec/requests/workflow_transitions_spec.rb.
+description: Owns Workflow status transitions, stage resolution, start, resume, and rollback. Use for app/models/workflows/{transitions,resume_status,ci_loop_resume,current_stage,stage_resolver,stage_seeder}.rb, app/models/workflow.rb, or WorkflowTransitionsController.
 ---
 
 # ai-worker-workflow-lifecycle
