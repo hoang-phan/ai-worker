@@ -21,10 +21,6 @@ RSpec.describe SlackPingJob, type: :job do
   end
 
   it "defaults to a real PingCollector" do
-    Dir.mktmpdir do |dir|
-      stub_const("Slack::PingRun::ROOT", Pathname(dir))
-
-      expect { described_class.perform_now }.not_to raise_error
-    end
+    expect { described_class.perform_now }.not_to raise_error
   end
 end

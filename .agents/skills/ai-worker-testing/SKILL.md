@@ -41,4 +41,5 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 - Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Brainstorm::Planner`, `Slack::PingCollector`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).
 - `spec/structure/constructor_stub_ratchet_spec.rb` caps remaining `receive(:new)` stubs per file; lower or delete ALLOWLIST entries when you remove stubs (never raise caps).
 - `spec/structure/private_state_peek_ratchet_spec.rb` caps `instance_variable_get` and private `send` calls per file; assert public behaviour or use a small spec-local subclass for protected hooks, then lower or delete ALLOWLIST entries (never raise caps).
+- `spec/structure/global_stub_ratchet_spec.rb` caps app-global class/singleton method stubs, constant stubs, and any-instance stubs per file; inject collaborators or assert real behaviour, then lower or delete ALLOWLIST entries (never raise caps). Its only subprocess-boundary exception is `AiCli::Runner.start` / `.poll`.
 

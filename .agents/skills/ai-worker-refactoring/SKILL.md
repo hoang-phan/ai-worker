@@ -39,7 +39,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `spec/skills/file_map_coverage_spec.rb` enforces the file-map rule for production Ruby files.
 - `spec/skills/skill_references_spec.rb` verifies skill frontmatter and that skill path and skill-name references still exist.
 - `spec/skills/review_routing_spec.rb` verifies the review-routing table covers each subsystem skill exactly once and preserves its spec fallback.
-- `spec/structure/constructor_stub_ratchet_spec.rb` caps `allow`/`expect(...).to receive(:new)` stubs of app-namespace constructors, and `spec/structure/private_state_peek_ratchet_spec.rb` caps private-state peeks; lower or delete their ALLOWLIST entries when stubs or peeks are removed (`ai-worker-testing`).
+- `spec/structure/constructor_stub_ratchet_spec.rb` caps `allow`/`expect(...).to receive(:new)` stubs of app-namespace constructors, `spec/structure/global_stub_ratchet_spec.rb` caps app-global method/constant/any-instance stubs, and `spec/structure/private_state_peek_ratchet_spec.rb` caps private-state peeks; lower or delete their ALLOWLIST entries when stubs or peeks are removed (`ai-worker-testing`).
 - Move examples with the extracted code: add one spec file per new class and slim the original spec to orchestration/public-delegation coverage. Preserve all coverage; compare `rspec --dry-run` example counts before and after the move.
 - In the same commit, update the matching owning skill's file map so it describes every new production file and where its spec belongs. Point to the owning skills for subsystem-specific rules rather than duplicating them here.
 

@@ -79,25 +79,21 @@ RSpec.describe Github::Reader do
     expect(reader).to be_checks_failing(pr_url)
   end
 
-  it "passes parsed workflow runs and the project's repo to WorkflowRunState" do
+  it "returns the state for the parsed workflow runs" do
     workflow = "ci.yml"
     since = Time.zone.parse("2026-01-01T10:00:00Z")
     command = [ "gh", "run", "list", "--workflow", workflow, "--limit", "20", "--json", "status,conclusion,createdAt,url" ]
     runs = [ { "createdAt" => "2026-01-01T11:00:00Z", "status" => "completed", "conclusion" => "success", "url" => "u" } ]
     stub_run(command, JSON.generate(runs), repo: "acme/widgets")
-    result = { state: :success, url: "u", conclusion: "success" }
-    expect(Github::WorkflowRunState).to receive(:call).with(runs, since: since).and_return(result)
 
-    expect(reader.workflow_run_state(workflow, since: since)).to eq(result)
+    expect(reader.workflow_run_state(workflow, since: since)).to eq(state: :success, url: "u", conclusion: "success")
   end
 
   it "uses a repo override for workflow runs" do
     workflow = "ci.yml"
     command = [ "gh", "run", "list", "--workflow", workflow, "--limit", "20", "--json", "status,conclusion,createdAt,url" ]
     stub_run(command, "[]", repo: "other/repo")
-    allow(Github::WorkflowRunState).to receive(:call).and_return(state: :none)
-
-    reader.workflow_run_state(workflow, since: Time.zone.now, repo: "other/repo")
+    expect(reader.workflow_run_state(workflow, since: Time.zone.now, repo: "other/repo")).to eq(state: :none)
 
     expect(runner).to have_received(:run!).with(command, repo: "other/repo")
   end
