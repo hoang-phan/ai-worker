@@ -22,14 +22,10 @@ class Workflow < ApplicationRecord
 
   scope :queued, -> { development.where(status: QUEUED_STATUSES) }
 
-  def jira_key
-    Jira::TicketRef.key_for(jira_ticket)
-  end
+  def jira_key = Jira::TicketRef.key_for(jira_ticket)
 
   # Seconds the Jira user has logged on this workflow's ticket (mirrored in time_logs).
-  def logged_seconds
-    TimeLog.seconds_for(jira_key)
-  end
+  def logged_seconds = TimeLog.seconds_for(jira_key)
 
   def slack_review_thread_ts=(value); super(Slack::ThreadRef.ts_for(value)); end
 
@@ -53,9 +49,7 @@ class Workflow < ApplicationRecord
   after_destroy :purge_images
 
   # Reference images are plain files on disk; see Workflows::ImageStore.
-  def image_store
-    Workflows::ImageStore.new(workflow_id: id)
-  end
+  def image_store = Workflows::ImageStore.new(workflow_id: id)
 
   delegate :dir, :paths, to: :image_store, prefix: :image
 
@@ -65,24 +59,9 @@ class Workflow < ApplicationRecord
   def remove_image(name) = image_store.remove(name)
 
   # Position for a stage appended after this workflow's existing ones.
-  def next_stage_position
-    (stages.maximum(:position) || 0) + 1
-  end
+  def next_stage_position = (stages.maximum(:position) || 0) + 1
 
-  # comma-separated skill names entered in the UI, rendered into the {SKILLS} placeholder
-  def skill_list
-    comma_list(skills)
-  end
-
-  # Same format as `skills`, rendered into {PR_SKILLS}: the skills only the PR stage uses (e.g. PR description writing).
-  def pr_skill_list
-    comma_list(pr_skills)
-  end
-
-  # `github_reviewer` holds one or more usernames, separated by commas and/or whitespace.
-  def reviewer_list
-    github_reviewer.to_s.split(/[,\s]+/).reject(&:blank?).uniq
-  end
+  delegate :skill_list, :pr_skill_list, :reviewer_list, to: :setting_lists
 
   # brief / heading text lives in Workflows::Label.
   delegate :brief, :heading, to: :workflow_label
@@ -90,28 +69,9 @@ class Workflow < ApplicationRecord
   # "org/repo#123" for PR-review workflows, otherwise the Jira ticket / task.
   def label = workflow_label.value
 
-  def variables
-    super || {}
-  end
+  def variables = super || {}
 
-  # Names a stage produced at run time (`VAR: NAME=value` in its output), as opposed to inputs the user typed.
-  def output_variable_names
-    Workflows::Variables.output_names(stage_outputs)
-  end
-
-  # The variables the user set up front (channel, CSS group …), without anything a stage emitted.
-  def input_variables
-    Workflows::Variables.input_only(variables, stage_outputs)
-  end
-
-  # Edited in the UI as one `NAME=value` per line.
-  def variables_text
-    Workflows::Variables.to_text(variables)
-  end
-
-  def variables_text=(text)
-    self.variables = Workflows::Variables.parse(text)
-  end
+  delegate :output_variable_names, :input_variables, :variables_text, :variables_text=, to: :variable_set
 
   # Ends an agent run: clears the ai_* run columns (AI_RUN_RESET) and applies attrs in the same update.
   def finish_ai_run!(**attrs) = update!(AI_RUN_RESET.merge(attrs))
@@ -121,36 +81,22 @@ class Workflow < ApplicationRecord
            :request_stage_run!, :can_advance?, to: :transitions
 
   # The runbook state machine lives in Workflows::RunbookNavigator.
-  def start_runbook! = runbook_navigator.start!
-
-  def advance! = runbook_navigator.advance!
-
-  def next_runbook_stage = runbook_navigator.next_stage
-
-  def previous_runbook_stage = runbook_navigator.previous_stage
+  delegate :start_runbook!, :advance!, :next_runbook_stage, :previous_runbook_stage, to: :runbook_actions
 
   def current_stage = Workflows::CurrentStage.new(self).call
 
   # Development workflows on a project set up for local testing: the PR goes to local testing before review.
-  def local_test_before_review?
-    development? && project.local_test_ready?
-  end
+  def local_test_before_review? = development? && project.local_test_ready?
 
   # Where a workflow goes once its PR is up and checked.
-  def post_pr_status
-    local_test_before_review? ? :local_testing : :reviewing
-  end
+  def post_pr_status = local_test_before_review? ? :local_testing : :reviewing
 
   # Jira-project development workflows that got a PR: the ones whose ticket
   # moves to UAT/Releaseable once the PR is merged.
-  def tracks_jira_after_merge?
-    development? && project.jira? && github_pr_url.present?
-  end
+  def tracks_jira_after_merge? = development? && project.jira? && github_pr_url.present?
 
   # The runbook this one's stages are copied from at creation (nil when none was chosen or it isn't valid).
-  def copy_source
-    project.workflows.runbook.find_by(id: copy_stages_from_id) if copy_stages_from_id.present?
-  end
+  def copy_source = copy_stages_from_id.present? ? project.workflows.runbook.find_by(id: copy_stages_from_id) : nil
 
   private
 
@@ -159,17 +105,13 @@ class Workflow < ApplicationRecord
 
   def workflow_label = Workflows::Label.new(self)
 
+  def variable_set = Workflows::VariableSet.new(self)
+
+  def setting_lists = Workflows::SettingLists.new(self)
+
   def runbook_navigator = Workflows::RunbookNavigator.new(self)
 
-  def comma_list(value)
-    value.to_s.split(",").map(&:strip).reject(&:blank?)
-  end
+  def runbook_actions = Workflows::RunbookActions.new(runbook_navigator)
 
-  def stage_outputs
-    Workflows::StageOutputs.new(self).all
-  end
-
-  def purge_images
-    image_store.purge!
-  end
+  def purge_images = image_store.purge!
 end

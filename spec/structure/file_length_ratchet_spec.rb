@@ -10,8 +10,6 @@ RSpec.describe "file length ratchet" do
   # path => current maximum line count. Lower or delete entries after splitting;
   # never raise caps.
   FILE_LENGTH_ALLOWLIST = {
-    # Workflow still owns the status machine; split its remaining responsibilities first.
-    "app/models/workflow.rb" => 175,
     # Project validation scenarios have not yet been separated by concern.
     "spec/models/projects/validator_spec.rb" => 253,
     # Sync-cycle cases still cover polling, import, and start behaviour together.

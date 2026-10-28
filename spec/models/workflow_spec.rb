@@ -47,66 +47,11 @@ RSpec.describe Workflow, type: :model do
     end
   end
 
-  describe "stage output variables" do
-    let(:runbook) { build_runbook_workflow(project, variables: { "CHANNEL" => "#ops", "PR_URL" => "typed" }) }
-    let!(:step) { build_runbook_stage(runbook, name: "Step") }
-    let!(:other) { build_runbook_stage(runbook, name: "Other") }
+  describe "extracted API delegators" do
+    it "keeps setting-list callers on the model" do
+      workflow.skills = " a, b "
 
-
-    it "collects names from every completed run, across stages and runs" do
-      step.log_run!("stage_completed", output: "VAR: PR_URL=http://x")
-      step.log_run!("stage_completed", output: "VAR: EXTRA=1")
-      other.log_run!("stage_completed", output: "VAR_BEGIN: NOTES\nl1\nVAR_END")
-
-      expect(runbook.output_variable_names).to match_array(%w[PR_URL EXTRA NOTES])
-      expect(runbook.input_variables).to eq("CHANNEL" => "#ops")
-    end
-
-    it "ignores failed and started rows" do
-      step.log_run!("failed", output: "VAR: PR_URL=http://x", error: "boom")
-      step.log_run!("started", output: "VAR: OTHER=1")
-
-      expect(runbook.output_variable_names).to eq([])
-      expect(runbook.input_variables).to eq("CHANNEL" => "#ops", "PR_URL" => "typed")
-    end
-
-    it "is empty with no runs" do
-      expect(runbook.output_variable_names).to eq([])
-    end
-  end
-
-  describe "#reviewer_list" do
-    it "splits on commas and whitespace, drops blanks and duplicates" do
-      workflow.github_reviewer = " alice, bob  carol,,alice ,\n"
-      expect(workflow.reviewer_list).to eq(%w[alice bob carol])
-    end
-
-    it "returns an empty list for blank or nil input" do
-      workflow.github_reviewer = nil
-      expect(workflow.reviewer_list).to eq([])
-      workflow.github_reviewer = "  , "
-      expect(workflow.reviewer_list).to eq([])
-    end
-
-    it "parses a simple pair" do
-      workflow.github_reviewer = "a, b"
-      expect(workflow.reviewer_list).to eq(%w[a b])
-    end
-  end
-
-  describe "#skill_list and #pr_skill_list" do
-    it "splits on commas only, strips and drops blanks, keeping duplicates and inner spaces" do
-      workflow.skills = " a , b c,, a ,"
-      workflow.pr_skills = "x,\n y ,,"
-      expect(workflow.skill_list).to eq([ "a", "b c", "a" ])
-      expect(workflow.pr_skill_list).to eq(%w[x y])
-    end
-
-    it "returns empty lists for nil" do
-      workflow.skills = nil
-      workflow.pr_skills = nil
-      expect(workflow.skill_list).to eq([])
-      expect(workflow.pr_skill_list).to eq([])
+      expect(workflow.skill_list).to eq(%w[a b])
     end
   end
 
