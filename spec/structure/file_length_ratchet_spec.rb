@@ -2,7 +2,7 @@ require "spec_helper"
 
 # Keeps production code, specs, and templates small enough to remain easy to
 # navigate. Split files instead of raising these limits or ALLOWLIST caps.
-RSpec.describe "file length ratchet" do
+module FileLengthRatchet
   FILE_LENGTH_APP_RUBY_LIMIT = 120
   FILE_LENGTH_SPEC_LIMIT = 200
   FILE_LENGTH_VIEW_LIMIT = 60
@@ -10,7 +10,9 @@ RSpec.describe "file length ratchet" do
   # path => current maximum line count. Lower or delete entries after splitting;
   # never raise caps.
   FILE_LENGTH_ALLOWLIST = {}.freeze
+end
 
+RSpec.describe "file length ratchet" do
   def scanned_files
     Dir.glob("app/**/*.rb").sort +
       Dir.glob("spec/**/*_spec.rb").sort +
@@ -18,10 +20,10 @@ RSpec.describe "file length ratchet" do
   end
 
   def default_limit_for(path)
-    return FILE_LENGTH_APP_RUBY_LIMIT if path.end_with?(".rb") && path.start_with?("app/")
-    return FILE_LENGTH_SPEC_LIMIT if path.start_with?("spec/")
+    return FileLengthRatchet::FILE_LENGTH_APP_RUBY_LIMIT if path.end_with?(".rb") && path.start_with?("app/")
+    return FileLengthRatchet::FILE_LENGTH_SPEC_LIMIT if path.start_with?("spec/")
 
-    FILE_LENGTH_VIEW_LIMIT
+    FileLengthRatchet::FILE_LENGTH_VIEW_LIMIT
   end
 
   def line_count(path)
@@ -31,7 +33,7 @@ RSpec.describe "file length ratchet" do
   it "does not let files exceed their limits or ALLOWLIST caps" do
     violations = scanned_files.filter_map do |path|
       count = line_count(path)
-      limit = FILE_LENGTH_ALLOWLIST.fetch(path, default_limit_for(path))
+      limit = FileLengthRatchet::FILE_LENGTH_ALLOWLIST.fetch(path, default_limit_for(path))
 
       next unless count > limit
 
@@ -43,8 +45,8 @@ RSpec.describe "file length ratchet" do
   end
 
   it "keeps ALLOWLIST accurate" do
-    gone = FILE_LENGTH_ALLOWLIST.keys.reject { |path| File.exist?(path) }
-    within_default_limit = FILE_LENGTH_ALLOWLIST.keys.select do |path|
+    gone = FileLengthRatchet::FILE_LENGTH_ALLOWLIST.keys.reject { |path| File.exist?(path) }
+    within_default_limit = FileLengthRatchet::FILE_LENGTH_ALLOWLIST.keys.select do |path|
       File.exist?(path) && line_count(path) <= default_limit_for(path)
     end
 

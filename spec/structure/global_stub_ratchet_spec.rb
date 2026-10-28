@@ -1,4 +1,5 @@
 require "spec_helper"
+require_relative "support/match_count_ratchet"
 
 # Caps global class/singleton-method and constant stubs. Prefer injecting
 # collaborators, and use the documented AiCli::Runner subprocess boundary only
@@ -17,27 +18,15 @@ module GlobalStubRatchet
 end
 
 RSpec.describe "global stub ratchet" do
-  def scanned_files
-    (Dir.glob("spec/**/*_spec.rb") + Dir.glob("spec/support/**/*.rb")).uniq.sort
-  end
-
-  def match_count(path)
-    File.readlines(path).count { |line| line.match?(GlobalStubRatchet::PATTERN) }
-  end
-
   it "does not add global stubs beyond ALLOWLIST maxima" do
-    violations = scanned_files.filter_map do |path|
-      count = match_count(path)
-      max = GlobalStubRatchet::ALLOWLIST[path]
-
-      if max.nil?
-        next if count.zero?
-
-        "#{path}: #{count} match(es) (not in ALLOWLIST — inject collaborators or assert real behaviour)"
-      elsif count > max
-        "#{path}: #{count} matches (ALLOWLIST max #{max} — lower the cap only after removing stubs)"
-      end
-    end
+    violations = MatchCountRatchet.violations(
+      globs: [ "spec/**/*_spec.rb", "spec/support/**/*.rb" ],
+      pattern: GlobalStubRatchet::PATTERN,
+      count_mode: MatchCountRatchet::PER_LINE,
+      allowlist: GlobalStubRatchet::ALLOWLIST,
+      unallowlisted_hint: "not in ALLOWLIST — inject collaborators or assert real behaviour",
+      allowlist_exceeded_hint: "lower the cap only after removing stubs"
+    )
 
     expect(violations).to be_empty,
       "Global stub ratchet exceeded (inject collaborators; update ALLOWLIST only when lowering, never raising):\n#{violations.map { |v| "  #{v}" }.join("\n")}"

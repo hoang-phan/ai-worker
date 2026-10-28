@@ -5,7 +5,7 @@ require "spec_helper"
 # scope (request specs do not mirror paths). EXEMPT is for files that are not
 # usefully unit-tested on their own; prefer writing a focused spec over adding
 # an exemption when the class has real behaviour.
-RSpec.describe "spec mirror" do
+module SpecMirror
   LAYERS = %w[models services jobs helpers].freeze
 
   EXEMPT = [
@@ -32,9 +32,11 @@ RSpec.describe "spec mirror" do
     # Error-only class (subclass of StandardError)
     "app/services/slack/notify_error.rb"
   ].freeze
+end
 
+RSpec.describe "spec mirror" do
   def app_files
-    LAYERS.flat_map { |layer| Dir.glob("app/#{layer}/**/*.rb") }.sort
+    SpecMirror::LAYERS.flat_map { |layer| Dir.glob("app/#{layer}/**/*.rb") }.sort
   end
 
   def mirror_spec_for(app_path)
@@ -43,7 +45,7 @@ RSpec.describe "spec mirror" do
 
   it "has a mirrored spec for every production file outside EXEMPT" do
     missing = app_files.reject do |path|
-      EXEMPT.include?(path) || File.exist?(mirror_spec_for(path))
+      SpecMirror::EXEMPT.include?(path) || File.exist?(mirror_spec_for(path))
     end
 
     expect(missing).to be_empty,
@@ -51,8 +53,8 @@ RSpec.describe "spec mirror" do
   end
 
   it "keeps EXEMPT accurate (entry exists and still has no mirrored spec)" do
-    gone = EXEMPT.reject { |path| File.exist?(path) }
-    now_mirrored = EXEMPT.select { |path| File.exist?(path) && File.exist?(mirror_spec_for(path)) }
+    gone = SpecMirror::EXEMPT.reject { |path| File.exist?(path) }
+    now_mirrored = SpecMirror::EXEMPT.select { |path| File.exist?(path) && File.exist?(mirror_spec_for(path)) }
 
     expect(gone).to be_empty,
       "EXEMPT entries no longer exist (remove them):\n#{gone.map { |p| "  #{p}" }.join("\n")}"
