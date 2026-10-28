@@ -94,10 +94,4 @@ RSpec.describe Prompts::StagePrompt do
       )
     end
   end
-
-  describe "CONFLICT" do
-    it "aliases Prompts::ConflictResolution::TEXT" do
-      expect(described_class::CONFLICT).to equal(Prompts::ConflictResolution::TEXT)
-    end
-  end
 end

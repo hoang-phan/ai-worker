@@ -52,7 +52,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     allow(git).to receive(:update_with_main!).and_return(:conflict)
     run
 
-    expect(launcher).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+    expect(launcher).to have_received(:call).with(Prompts::ConflictResolution::TEXT, action: "conflict_resolution_started")
     expect(launcher).not_to have_received(:call).with("the prompt")
     expect(github).not_to have_received(:checks_failing?)
   end
@@ -72,7 +72,7 @@ RSpec.describe Stages::PrCheckRun, type: :service do
     run
 
     expect(stage_actions(stage)).to eq %w[local_test_failing]
-    expect(launcher).to have_received(:call).with(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+    expect(launcher).to have_received(:call).with(Prompts::ConflictResolution::TEXT, action: "conflict_resolution_started")
     expect(github).not_to have_received(:checks_failing?)
   end
 

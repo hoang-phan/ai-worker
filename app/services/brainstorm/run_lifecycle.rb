@@ -5,24 +5,14 @@ module Brainstorm
   # project-specific launch inputs; this class keeps the detached-run state and
   # retries one aborted API stream before reporting its terminal reason.
   class RunLifecycle
+    delegate :running?, :last_started_at, :result_path, to: :run
+
     def initialize(dir:, stale_after:, error_class: FetchError, run: nil, runner: AiCli::Runner)
       @dir = Pathname(dir)
       @stale_after = stale_after
       @error_class = error_class
       @run = run
       @runner = runner
-    end
-
-    def running?
-      run.running?
-    end
-
-    def last_started_at
-      run.last_started_at
-    end
-
-    def result_path
-      run.result_path
     end
 
     def start(prepare: nil, **launch_inputs)
@@ -32,7 +22,7 @@ module Brainstorm
       FileUtils.rm_f(retried_file)
       log_file.write("")
       prepare&.call
-      launch(**launch_inputs)
+      run.start(**launch_inputs)
       true
     end
 
@@ -60,10 +50,6 @@ module Brainstorm
       )
     end
 
-    def launch(**launch_inputs)
-      run.start(**launch_inputs)
-    end
-
     def retry_missing_result(prepare:, **launch_inputs)
       outcome = RunOutcome.new(log_path: log_file, retried: retried_file.exist?)
       unless outcome.retry?
@@ -72,7 +58,7 @@ module Brainstorm
 
       FileUtils.touch(retried_file)
       prepare&.call
-      launch(**launch_inputs)
+      run.start(**launch_inputs)
       nil
     end
 

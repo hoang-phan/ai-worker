@@ -18,7 +18,7 @@ This subsystem owns the review cycle for this app's own pull requests: inspect r
 ## Conventions
 
 - **Keep `PrCheckDecision` pure.** It receives the review decision, local-test state, and lazy check-failure callable; it does not access workflows, Git, or GitHub. Consult CI only while an approval remains possible, and return the ordered stage actions for the caller to log.
-- **Launch the right fix path.** `PrCheckRun` updates the branch with main before launching a requested-changes fix: a conflict launches `Prompts::StagePrompt::CONFLICT` with `conflict_resolution_started`; a clean update launches the review-fix prompt. Git and GitHub errors propagate to the pipeline's single rescue point.
+- **Launch the right fix path.** `PrCheckRun` updates the branch with main before launching a requested-changes fix: a conflict launches `Prompts::ConflictResolution::TEXT` with `conflict_resolution_started`; a clean update launches the review-fix prompt. Git and GitHub errors propagate to the pipeline's single rescue point.
 - **Use the local-retest policy after a fix.** `PrCheckFinish` clears local-test feedback and uses `Stages::LocalTestPolicy.retest_after_fix?` with project readiness, completed local-test rounds, pending feedback, and the agent's `LOCAL_RETEST` marker. A retest moves to `local_testing`; otherwise it stays reviewing and notifies reviewers with the fixed summary.
 - **Keep review handoffs best effort.** `ReviewHandoff` notification and auto-merge failures are logged through the stage and never re-fail a completed stage. Notification collects completed pings before reading the current thread timestamp.
 - **Record agent lessons best effort.** A failure to save parsed lessons logs a warning and cannot fail the review-fix completion.

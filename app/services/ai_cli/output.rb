@@ -70,23 +70,9 @@ module AiCli
       text.match?(/^\s*POSTED\s*$/)
     end
 
-    # The last valid claude result event, or nil (see AiCli::ClaudeResult).
-    def result_event
-      claude_result.result_event
-    end
-
-    # :success / :error from the last claude result event, or nil (see AiCli::ClaudeResult).
-    def final_outcome
-      claude_result.final_outcome
-    end
-
     private
 
     attr_reader :text
-
-    def claude_result
-      ClaudeResult.new(text)
-    end
 
     def marker(name, values)
       text[marker_pattern(name, values), 1]

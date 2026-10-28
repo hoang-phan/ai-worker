@@ -112,12 +112,6 @@ RSpec.describe AiCli::Output do
     it("rejects POSTED inside a sentence") { expect(output("not POSTED yet").posted?).to be false }
     it("is false when missing") { expect(output(nil).posted?).to be false }
   end
-
-  describe "claude result forwarding" do
-    it("forwards #final_outcome") { expect(output(%({"type":"result","is_error":true})).final_outcome).to eq(:error) }
-    it("forwards #result_event") { expect(output(%({"type":"result","subtype":"x"})).result_event).to eq({ "type" => "result", "subtype" => "x" }) }
-    it("is nil for nil") { expect(output(nil).final_outcome).to be_nil }
-  end
 end
 
 RSpec.describe AiCli::Output, "#ci_verdict" do

@@ -1,8 +1,6 @@
 module Prompts
   # Builds the text the agent CLI is run with for one stage of a workflow.
   class StagePrompt
-    CONFLICT = Prompts::ConflictResolution::TEXT
-
     def initialize(workflow, stage, notifier: nil, latest_log: Prompts::StageSectionList::DEFAULT_LATEST_LOG, section_list: nil)
       @workflow = workflow
       @stage = stage

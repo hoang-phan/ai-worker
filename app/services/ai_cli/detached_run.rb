@@ -66,17 +66,21 @@ module AiCli
       if runner.poll(pid_file.read.to_i) == :running
         return unless stale?
 
-        clear
+        discard!
         raise error_class, "agent did not finish within #{stale_after.inspect}"
       end
 
-      clear
+      discard!
       rows = read_rows
       block_given? ? yield(rows) : rows
     end
 
     def log_path = log_file
     def result_path = result_file
+
+    private
+
+    attr_reader :dir, :result_name, :stale_after, :error_class, :runner, :clock
 
     def read_rows
       raise error_class, "agent wrote no #{result_file.basename}; see #{log_file}" unless result_file.exist?
@@ -89,17 +93,9 @@ module AiCli
       raise error_class, "invalid JSON in #{result_file.basename}: #{e.message}"
     end
 
-    private
-
-    attr_reader :dir, :result_name, :stale_after, :error_class, :runner, :clock
-
     def stale?
       started_at = last_started_at
       started_at.nil? || started_at < clock.call - stale_after
-    end
-
-    def clear
-      discard!
     end
 
     def pid_file = dir.join("pid")

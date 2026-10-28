@@ -12,7 +12,7 @@ module AiCli
 
       # Claude's final result event in the log says how the run ended.
       def outcome(output)
-        Output.new(output).final_outcome
+        ClaudeResult.new(output).final_outcome
       end
     end
   end

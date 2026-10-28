@@ -19,7 +19,7 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 The production adapters select capabilities and delegate argv construction to `AiCli::Command::{Claude,Codex,Cursor}`; command-builder implementation remains with `ai-worker-cli-commands`. They are the selection-layer seam between the registry and those builders.
 
-- `AiCli::Provider::Claude` passes the shared Claude options to its builder and parses Claude's final result event through `AiCli::Output#final_outcome`.
+- `AiCli::Provider::Claude` passes the shared Claude options to its builder and parses Claude's final result event through `AiCli::ClaudeResult#final_outcome`.
 - `AiCli::Provider::Codex` passes MCP, model, and effort options to its builder; its default outcome and wrapper remain the base provider behaviour.
 - `AiCli::Provider::Cursor` keeps `Command::DEFAULT_EXECUTABLE_CHECK` and `Command::DEFAULT_HELP_PROBE` as injectable production seams, and wraps MCP runs with `CursorMcpFile`. `CursorMcpFile` itself remains owned by `ai-worker-browser-tests`.
 

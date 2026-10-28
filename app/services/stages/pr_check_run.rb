@@ -50,7 +50,7 @@ module Stages
 
     def start_fix_run
       if git.update_with_main!(project, workflow.branch_name) == :conflict
-        launcher.call(Prompts::StagePrompt::CONFLICT, action: "conflict_resolution_started")
+        launcher.call(Prompts::ConflictResolution::TEXT, action: "conflict_resolution_started")
       else
         launcher.call(prompt.body)
       end

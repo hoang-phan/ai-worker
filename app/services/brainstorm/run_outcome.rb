@@ -1,7 +1,7 @@
 module Brainstorm
   # What a finished brainstorm run left in its agent.log (stream-json output) when it wrote no result.json:
   # the final valid `result` event, whether to retry the run, and why it failed. Result-event parsing belongs to
-  # AiCli::ClaudeResult (AiCli::Output forwards to it). Read-only; RunLifecycle owns the `retried` marker file and the relaunch.
+  # AiCli::ClaudeResult. Read-only; RunLifecycle owns the `retried` marker file and the relaunch.
   class RunOutcome
     def initialize(log_path:, retried:)
       @log_path = Pathname(log_path)
@@ -31,7 +31,7 @@ module Brainstorm
     def read_event
       return unless @log_path.exist?
 
-      AiCli::Output.new(@log_path.read).result_event
+      AiCli::ClaudeResult.new(@log_path.read).result_event
     end
   end
 end

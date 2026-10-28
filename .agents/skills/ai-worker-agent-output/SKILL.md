@@ -9,10 +9,10 @@ Owns the pure parsers that interpret a finished agent run's log. Process launch,
 
 ## File map
 
-- `app/services/ai_cli/output.rb` — `AiCli::Output.new(text)`, pure stage-marker parser: `variables` (`VAR:` / `VAR_BEGIN`..`VAR_END`), `jira_result`, `uat_result`, `local_test_result`, `ci_verdict`, `retest_requested?` (missing counts as YES), `local_test_feedback_block`, `fixed_summary`, `lessons`, `follow_ups` (rows cleaned by `Workflows::ProposalNormalizer`), `posted?`, plus thin forwarders `result_event` / `final_outcome` to `AiCli::ClaudeResult`.
+- `app/services/ai_cli/output.rb` — `AiCli::Output.new(text)`, pure stage-marker parser: `variables` (`VAR:` / `VAR_BEGIN`..`VAR_END`), `jira_result`, `uat_result`, `local_test_result`, `ci_verdict`, `retest_requested?` (missing counts as YES), `local_test_feedback_block`, `fixed_summary`, `lessons`, `follow_ups` (rows cleaned by `Workflows::ProposalNormalizer`), `posted?`. Claude stream-json result parsing belongs to `AiCli::ClaudeResult`.
 - `app/services/ai_cli/claude_result.rb` — `AiCli::ClaudeResult.new(text)`, pure provider-format parser for claude's stream-json log: `result_event` (last valid `{"type":"result"}` line starting with `{`; malformed/non-result lines skipped) and `final_outcome` (`:error` if `is_error` truthy, else `:success`; nil without an event). Stage markers stay in `AiCli::Output`.
 - `app/services/ai_cli/run_verdict.rb` — `AiCli::RunVerdict.new(exit_status:, output:, agent:, pid:).verify!` (pure, no I/O): returns the output or raises `AiCli::CommandError`. A nil status (reaped elsewhere) is judged from the final claude result event; no result event means failed.
-- `spec/services/ai_cli/output_spec.rb` — every marker incl. missing, plus claude-result forwarding.
+- `spec/services/ai_cli/output_spec.rb` — every stage marker incl. missing.
 - `spec/services/ai_cli/claude_result_spec.rb` — result event / final outcome parsing.
 - `spec/services/ai_cli/run_verdict_spec.rb` — exit-status and nil-status verdict paths.
 
@@ -24,7 +24,7 @@ Owns the pure parsers that interpret a finished agent run's log. Process launch,
 - **Missing `LOCAL_RETEST` counts as YES.** `retest_requested?` is false only when the last marker is explicitly `NO`.
 - **`follow_ups` is cleaned by `Workflows::ProposalNormalizer`.** Invalid or non-array JSON becomes `[]`.
 - **`RunVerdict` on a nil exit status** asks the provider for an outcome from the log (claude: the final result event). A missing outcome is treated as failed; `:error` raises `AiCli::CommandError`.
-- **`ClaudeResult` is the provider-format parser;** stage markers (`JIRA_RESULT`, `UAT_RESULT`, blocks, …) stay in `Output`. `Output` only forwards `result_event` / `final_outcome` to it.
+- **`ClaudeResult` is the provider-format parser;** stage markers (`JIRA_RESULT`, `UAT_RESULT`, blocks, …) stay in `Output`. Callers that need a result event or final outcome use `AiCli::ClaudeResult` directly.
 - New markers: add the method and spec here, follow the checklist in `ai-worker-stage-types`, and put the ask-for-marker wording in `ai-worker-prompts`.
 
 ## Specs
