@@ -28,7 +28,7 @@ RSpec.describe Workflows::StageSeeder do
   it "seeds the ci_loop stages for a new workflow, and none of the plain implementation" do
     workflow = build_ci_workflow(build_ci_project)
 
-    expect(stage_types(workflow)).to eq(%w[simple_implementation ci_check ci_verify pr_create pr_check])
+    expect(stage_types(workflow)).to eq(%w[simple_implementation pr_create ci_check ci_verify pr_check])
   end
 
   it "does not touch a standard project's workflows" do

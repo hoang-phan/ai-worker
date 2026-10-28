@@ -16,7 +16,7 @@ module Workflows
       elsif workflow.project.personal?
         workflow.stages.create!(stage_type: :task)
       elsif workflow.project.ci_loop_ready?
-        %i[simple_implementation ci_check ci_verify pr_create pr_check].each { |stage_type| workflow.stages.create!(stage_type: stage_type) }
+        %i[simple_implementation pr_create ci_check ci_verify pr_check].each { |stage_type| workflow.stages.create!(stage_type: stage_type) }
       else
         workflow.stages.create!(stage_type: :implementation)
         workflow.stages.create!(stage_type: :pr_check)
