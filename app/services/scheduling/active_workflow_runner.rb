@@ -3,17 +3,9 @@ module Scheduling
   # their slot/clone), then starts eligible waiting ones within Capacity. One workflow's failure is
   # logged and never stops the rest of the tick.
   class ActiveWorkflowRunner
-    def self.stage_executor(executor_class: StageExecutor)
-      lambda do |workflow|
-        stage = workflow.current_stage
-        executor_class.new(workflow, stage).call if stage
-      end
-    end
+    attr_reader :max_capacity
 
-    # Default executor: runs the workflow's current stage, if any.
-    DEFAULT_EXECUTOR = stage_executor
-
-    def initialize(queries: WorkflowQueries, executor: ActiveWorkflowRunner.stage_executor, logger: Rails.logger, max_capacity: nil)
+    def initialize(queries: WorkflowQueries, executor: CurrentStageExecutor.new, logger: Rails.logger, max_capacity: nil)
       @queries = queries
       @guarded_executor = GuardedExecutor.new(executor: executor, logger: logger)
       @max_capacity = max_capacity

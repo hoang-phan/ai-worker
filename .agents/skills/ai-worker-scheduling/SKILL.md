@@ -10,17 +10,18 @@ The delayed-UAT browser-test phase is specialised in `ai-worker-browser-tests`.
 Scope:
 
 - `app/jobs/workflow_scheduler_job.rb` enqueues on `stage_execution` and forwards each tick to `Scheduling::Tick` via `perform(run_workflow_id = nil, tick: nil)` (default tick built with `max_capacity: max_concurrent_agents`; specs pass `tick:`).
-- `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows; `stage_executor(executor_class:)` supplies its injectable current-stage executor (with `DEFAULT_EXECUTOR` retained as the compatibility alias).
+- `app/services/scheduling/active_workflow_runner.rb` polls running workflows and starts eligible active workflows; default `executor:` is `Scheduling::CurrentStageExecutor`.
 - `app/services/scheduling/capacity.rb` tracks global slots and busy clones.
+- `app/services/scheduling/current_stage_executor.rb` runs a workflow's current stage through `StageExecutor` (no-op without a current stage); default `executor:`/`execute:` for the three scheduler phases.
 - `app/services/scheduling/guarded_executor.rb` logs and isolates individual executor failures.
 - `app/services/scheduling/planner.rb` makes pure eligibility and `clone_key` decisions.
 - `app/services/scheduling/post_merge_phase.rb` confirms tracked merges and starts one merged workflow when idle.
-- `app/services/scheduling/tick.rb` runs ActiveWorkflowRunner, PostMergePhase, then UatPhase for one scheduler tick; accepts `active_runner_class:`, `post_merge_phase_class:`, `uat_phase_class:` factories (and optional instance overrides).
+- `app/services/scheduling/tick.rb` runs ActiveWorkflowRunner, PostMergePhase, then UatPhase for one scheduler tick; accepts optional instance overrides (`active_runner:`, `post_merge_phase:`, `uat_phase:`) and otherwise builds each phase lazily in call order.
 - `app/services/scheduling/uat_phase.rb` schedules due or retried UAT tests within free slots; its `clock:` seam passes a fixed `now:` to the due-UAT query in specs.
 - `app/services/scheduling/workflow_queries.rb` provides the AR selections, ordering, due-UAT relation (with a required `now:` seam), and free-slot count.
 - `config/sidekiq.yml` serializes scheduler ticks.
 - `config/schedule.yml` defines the cron cadence; `spec/config/sidekiq_schedule_spec.rb` asserts every entry parses with Fugit and has exactly five time fields (plus an optional time-zone token).
-- `spec/services/scheduling/tick_spec.rb` covers phase order, named-workflow forwarding, and max_capacity defaults via injected `*_class:` factories.
+- `spec/services/scheduling/tick_spec.rb` covers phase order, named-workflow forwarding, and max_capacity defaults via injected instances and public `max_capacity` readers.
 
 What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-type wiring: `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
 

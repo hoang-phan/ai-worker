@@ -7,7 +7,7 @@ module Scheduling
   class PostMergePhase
     DEFAULT_GITHUB_FACTORY = ->(project) { Github::Client.new(project) }
 
-    def initialize(queries: WorkflowQueries, execute: ActiveWorkflowRunner::DEFAULT_EXECUTOR,
+    def initialize(queries: WorkflowQueries, execute: CurrentStageExecutor.new,
                    github_factory: DEFAULT_GITHUB_FACTORY, logger: Rails.logger)
       @queries = queries
       @guarded_executor = GuardedExecutor.new(executor: execute, logger: logger)

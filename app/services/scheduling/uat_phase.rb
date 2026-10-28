@@ -4,7 +4,9 @@ module Scheduling
   # a test never touches the git clone and nothing else depends on it, so it only needs a free agent
   # slot (`max_capacity`). A `uat_testing` workflow that isn't running is a failed attempt being retried.
   class UatPhase
-    def initialize(queries: WorkflowQueries, execute: ActiveWorkflowRunner::DEFAULT_EXECUTOR,
+    attr_reader :max_capacity
+
+    def initialize(queries: WorkflowQueries, execute: CurrentStageExecutor.new,
                    logger: Rails.logger, max_capacity: nil, clock: -> { Time.current })
       @queries = queries
       @guarded_executor = GuardedExecutor.new(executor: execute, logger: logger)
