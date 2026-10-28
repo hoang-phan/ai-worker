@@ -51,21 +51,15 @@ RSpec.describe Stages::CompletionHandler, type: :service do
         def initialize(**kwargs)
           @kwargs = kwargs
         end
-      end
-      handler = described_class.new(
-        workflow: workflow,
-        stage: stage,
-        project: project,
-        github: github,
-        git: git,
-        handoff: handoff
-      )
 
-      expect(handler.send(:build_finisher, fake_finisher, %i[workflow stage handoff]).kwargs).to eq(
-        workflow: workflow,
-        stage: stage,
-        handoff: handoff
-      )
+        def call(_output)
+          self
+        end
+      end
+
+      result = handle(finishers: { "implementation" => [ fake_finisher, %i[workflow stage handoff] ] })
+
+      expect(result.kwargs).to eq(workflow: workflow, stage: stage, handoff: handoff)
     end
 
     Stage::STAGE_TYPES.each_key do |type|

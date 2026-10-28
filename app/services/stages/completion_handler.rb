@@ -35,16 +35,10 @@ module Stages
     private
 
     def finisher
-      factory = finishers[stage.stage_type]
-      return unless factory
+      entry = finishers[stage.stage_type]
+      return unless entry
 
-      return factory.call(**collaborators) if factory.respond_to?(:call)
-
-      build_finisher(*factory)
-    end
-
-    def build_finisher(klass, keys)
-      klass.new(**collaborators.slice(*keys))
+      CollaboratorFactory.new(collaborators).build(entry)
     end
 
     def collaborators

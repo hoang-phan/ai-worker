@@ -19,6 +19,7 @@ Use this skill for behaviour-preserving structural work. It complements the skil
 
 Before creating a new class, grep for an existing seam below and extend it instead of duplicating. If you create a new shared seam, add it to this list in the same commit.
 
+- `Stages::CollaboratorFactory` — start/finish dispatch-table entry builder (`ai-worker-stage-pipeline`)
 - `AgentRuns::SyncCycle` + `AgentRuns::CycleSource` — detached sync job poll/import/start (`ai-worker-detached-agent-runs`)
 - `AiCli::DetachedRun` — detached agent run with JSON result file (`ai-worker-detached-agent-runs`)
 - `AgentRuns::ManualStart` + `ManualStartFlash` — "run now" buttons (`ai-worker-detached-agent-runs`, `ai-worker-ui`)

@@ -12,32 +12,15 @@ module Stages
     # development server on the PR's branch, after the PR exists and before review.
     BROWSER_TEST_KINDS = { "uat_test" => :uat, "local_test" => :local }.freeze
 
-    # Start-service factories keyed by dispatch arm. Each receives every collaborator as a keyword (browser_test also
-    # gets `kind:`) and builds its service with exactly the arguments that service takes.
+    # Start-service class-and-collaborator-key table. Each entry is built through CollaboratorFactory; browser_test's
+    # keys include :kind, supplied as an extra collaborator when that arm runs.
     STARTERS = {
-      pr_check: lambda { |workflow:, stage:, project:, github:, git:, handoff:, prompt:, launcher:, **|
-        Stages::PrCheckRun.new(
-          workflow: workflow, stage: stage, project: project, github: github, git: git,
-          handoff: handoff, prompt: prompt, launcher: launcher
-        )
-      },
-      pr_review: lambda { |workflow:, stage:, project:, github:, git:, prompt:, launcher:, **|
-        Stages::PrReviewStart.new(
-          workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher
-        )
-      },
-      ci_check: lambda { |stage:, project:, launcher:, **|
-        Stages::CiCheckStart.new(stage: stage, project: project, launcher: launcher)
-      },
-      browser_test: lambda { |workflow:, project:, kind:, prompt:, git:, launcher:, **|
-        Stages::BrowserTestStart.new(
-          workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
-        )
-      },
-      runbook_step: lambda { |workflow:, stage:, github:, prompt:, launcher:, **|
-        Stages::RunbookStepStart.new(workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher)
-      }
-    }.freeze
+      pr_check: [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
+      pr_review: [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
+      ci_check: [ Stages::CiCheckStart, %i[stage project launcher] ],
+      browser_test: [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher] ],
+      runbook_step: [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]
+    }.transform_values(&:freeze).freeze
 
     def initialize(workflow:, stage:, project:, github:, git:, prompt:, handoff:, launcher:, starters: STARTERS)
       @workflow = workflow
@@ -83,10 +66,14 @@ module Stages
     def run_pr_check = build(:pr_check).call
 
     def build(name, **extra)
-      starters.fetch(name).call(
+      CollaboratorFactory.new(collaborators.merge(extra)).build(starters.fetch(name))
+    end
+
+    def collaborators
+      {
         workflow: workflow, stage: stage, project: project, github: github, git: git,
-        prompt: prompt, handoff: handoff, launcher: launcher, **extra
-      )
+        prompt: prompt, handoff: handoff, launcher: launcher
+      }
     end
   end
 end

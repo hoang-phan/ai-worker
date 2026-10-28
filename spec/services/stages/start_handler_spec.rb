@@ -177,23 +177,16 @@ RSpec.describe Stages::StartHandler, type: :service do
   end
 
   describe "default STARTERS" do
-    it "builds each start service with the right class and collaborators" do
-      args = { workflow: workflow, stage: stage, project: project, github: github, git: git,
-               prompt: prompt, handoff: handoff, launcher: launcher }
-      expectations = {
-        pr_check: Stages::PrCheckRun,
-        pr_review: Stages::PrReviewStart,
-        ci_check: Stages::CiCheckStart,
-        browser_test: Stages::BrowserTestStart,
-        runbook_step: Stages::RunbookStepStart
-      }
-      expect(described_class::STARTERS.keys).to match_array(expectations.keys)
+    starters = {
+      pr_check: [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
+      pr_review: [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
+      ci_check: [ Stages::CiCheckStart, %i[stage project launcher] ],
+      browser_test: [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher] ],
+      runbook_step: [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]
+    }
 
-      expectations.each do |name, klass|
-        built_instance = described_class::STARTERS.fetch(name).call(**args, kind: :uat)
-
-        expect(built_instance).to be_a(klass)
-      end
+    it "covers every start-service arm" do
+      expect(described_class::STARTERS).to eq(starters)
     end
   end
 end

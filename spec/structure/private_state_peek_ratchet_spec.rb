@@ -8,8 +8,7 @@ RSpec.describe "private state peek ratchet" do
 
   # path => maximum match count. Lower or delete an entry when peeks go away.
   PRIVATE_STATE_ALLOWLIST = {
-    "spec/config/sidekiq_schedule_spec.rb" => 1,
-    "spec/services/stages/completion_handler_spec.rb" => 1
+    "spec/config/sidekiq_schedule_spec.rb" => 1
   }.freeze
 
   def scanned_files
