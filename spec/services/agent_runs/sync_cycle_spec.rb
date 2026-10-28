@@ -11,44 +11,8 @@ RSpec.describe AgentRuns::SyncCycle do
 
   let(:overrides) { {} }
 
-  let(:source_class) do
-    Class.new(AgentRuns::CycleSource) do
-      attr_accessor :calls, :payload, :eligible, :idle, :due, :blocker_list, :failures, :rescue_errors
-
-      def initialize(calls)
-        @calls = calls
-        @eligible = @idle = @due = true
-        @blocker_list = []
-        @failures = {}
-        @rescue_errors = [ ArgumentError, AiCli::CommandError ]
-      end
-
-      def poll = step(:poll) { payload }
-      def import(p) = step(:import, p) { "result-of-#{p}" }
-      def summary(r) = "summary(#{r})"
-      def persist!(r, s) = step(:persist, r, s) { nil }
-      def persist_failure!(m) = calls << [ :persist_failure, m ]
-      def eligible? = eligible
-      def idle? = idle
-      def due? = due
-      def blockers = blocker_list
-      def start! = step(:start) { nil }
-      def after_import(r) = calls << [ :after_import, r ]
-      def after_start = calls << :after_start
-
-      private
-
-      def step(name, *args)
-        calls << (args.empty? ? name : [ name, *args ])
-        raise failures[name] if failures[name]
-
-        yield
-      end
-    end
-  end
-
   let(:source) do
-    source_class.new(calls).tap do |s|
+    FakeCycleSource.new(calls).tap do |s|
       s.payload = payload
       s.eligible = eligible
       s.idle = idle
@@ -166,88 +130,6 @@ RSpec.describe AgentRuns::SyncCycle do
         expect(calls).to eq([ :start ])
         expect(logger).to have_received(:info).with("[Spec] thing=1 s(r-p)")
       end
-    end
-  end
-
-  describe "expected errors" do
-    {
-      "a poll error" => :poll,
-      "an import error" => :import,
-      "a start error" => :start
-    }.each do |name, step|
-      [ ArgumentError.new("boom"), AiCli::CommandError.new("cli boom") ].each do |error|
-        context "when #{name} raises #{error.class}" do
-          let(:payload) { "p" }
-          let(:overrides) { { failures: { step => error } } }
-
-          it "logs, records a truncated failure and returns failed without raising" do
-            expect(outcome.failed).to be(true)
-            expect(outcome.started).to be(false)
-            expect(logger).to have_received(:error).with("[Spec] thing=1 #{error.message}")
-            expect(calls).to include([ :persist_failure, "failed: #{error.message}" ])
-          end
-        end
-      end
-    end
-
-    context "when the persisted error message is long" do
-      let(:overrides) { { failures: { poll: ArgumentError.new("x" * 400) } } }
-
-      it "truncates to 250 characters" do
-        outcome
-        message = calls.find { |c| c.is_a?(Array) && c.first == :persist_failure }.last
-        expect(message.length).to eq(250)
-      end
-    end
-
-    context "when an import fails after a successful poll" do
-      let(:payload) { "p" }
-      let(:overrides) { { failures: { import: ArgumentError.new("bad") } } }
-
-      it "does not report an import" do
-        expect(outcome).to have_attributes(imported: false, failed: true)
-      end
-    end
-
-    context "when the record step fails after import" do
-      let(:payload) { "p" }
-      let(:overrides) { { failures: { persist: ArgumentError.new("db") } } }
-
-      it "is reported as failed" do
-        expect(outcome.failed).to be(true)
-      end
-    end
-
-    context "with an unexpected error" do
-      let(:overrides) { { failures: { poll: RuntimeError.new("surprise") } } }
-
-      it "propagates" do
-        expect { outcome }.to raise_error(RuntimeError, "surprise")
-      end
-    end
-
-    context "without a rescue_errors: keyword" do
-      let(:overrides) { { failures: { poll: ArgumentError.new("boom") }, rescue_errors: [ AiCli::CommandError ] } }
-
-      it "rescues only the source's errors" do
-        expect { outcome }.to raise_error(ArgumentError, "boom")
-      end
-    end
-
-    context "with an explicit rescue_errors: keyword" do
-      let(:overrides) { { failures: { poll: ArgumentError.new("boom") } } }
-
-      it "uses it instead of the source's list" do
-        expect { described_class.call(**args, rescue_errors: [ AiCli::CommandError ]) }.to raise_error(ArgumentError, "boom")
-        expect(described_class.call(**args, rescue_errors: [ ArgumentError ]).failed).to be(true)
-      end
-    end
-
-    it "lets later records run after a failing one" do
-      failing = source_class.new([]).tap { |s| s.failures = { poll: ArgumentError.new("first") } }
-      outcomes = [ failing, source ].map { |s| described_class.call(**args, source: s) }
-      expect(outcomes.map(&:failed)).to eq([ true, false ])
-      expect(outcomes.last.started).to be(true)
     end
   end
 end

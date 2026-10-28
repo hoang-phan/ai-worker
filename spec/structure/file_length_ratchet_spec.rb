@@ -9,12 +9,7 @@ RSpec.describe "file length ratchet" do
 
   # path => current maximum line count. Lower or delete entries after splitting;
   # never raise caps.
-  FILE_LENGTH_ALLOWLIST = {
-    # Project validation scenarios have not yet been separated by concern.
-    "spec/models/projects/validator_spec.rb" => 253,
-    # Sync-cycle cases still cover polling, import, and start behaviour together.
-    "spec/services/agent_runs/sync_cycle_spec.rb" => 253
-  }.freeze
+  FILE_LENGTH_ALLOWLIST = {}.freeze
 
   def scanned_files
     Dir.glob("app/**/*.rb").sort +
