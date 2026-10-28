@@ -12,7 +12,8 @@ RSpec.describe "the Sidekiq cron schedule" do
       schedule.fetch("slack_ping").merge("class" => "NotLoadedYetJob", "fetch_missing_args" => false)
     )
 
-    expect(job.send(:active_job_message)).to include(
+    # enqueue! also persists last-enqueue metadata to Redis; assert the public message builder instead.
+    expect(job.active_job_message).to include(
       "class" => "ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper",
       "wrapped" => "NotLoadedYetJob"
     )

@@ -6,10 +6,8 @@ require "spec_helper"
 RSpec.describe "private state peek ratchet" do
   PRIVATE_STATE_PATTERN = Regexp.union("instance_variable" + "_get", "." + "send(:", "." + "__send__(:")
 
-  # path => maximum match count. Lower or delete an entry when peeks go away.
-  PRIVATE_STATE_ALLOWLIST = {
-    "spec/config/sidekiq_schedule_spec.rb" => 1
-  }.freeze
+  # path => maximum match count. Empty: no peeks remain; keep the constant so new peeks fail.
+  PRIVATE_STATE_ALLOWLIST = {}.freeze
 
   def scanned_files
     Dir.glob("spec/**/*_spec.rb").sort
