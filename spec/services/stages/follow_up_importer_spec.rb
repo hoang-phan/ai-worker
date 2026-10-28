@@ -48,4 +48,21 @@ RSpec.describe Stages::FollowUpImporter, type: :service do
     expect(described_class.new(project).call(batch)).to eq [ "Fix A" ]
     expect(follow_ups.map(&:summary)).to eq [ "Fix A" ]
   end
+
+  it "normalizes proposals before deduplicating and importing" do
+    long = "a" * (Workflow::SUMMARY_LENGTH + 50)
+    rows = [
+      { "summary" => "  #{long}  ", "task" => " Task A ", "skills" => [ "ruby", "bad skill", "ruby" ] },
+      { "summary" => "", "task" => "Task B" },
+      { "summary" => "Fix C", "task" => "   " },
+      "not a proposal"
+    ]
+
+    expect(described_class.new(project).call(rows)).to eq([ "#{'a' * (Workflow::SUMMARY_LENGTH - 3)}..." ])
+    expect(follow_ups.first).to have_attributes(
+      summary: "#{'a' * (Workflow::SUMMARY_LENGTH - 3)}...",
+      task_description: "Task A",
+      skills: "ruby"
+    )
+  end
 end

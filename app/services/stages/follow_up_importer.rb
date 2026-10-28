@@ -13,7 +13,7 @@ module Stages
     def call(proposals)
       known = Workflows::SummaryKey.set(project.workflows.where.not(status: :done))
       created = []
-      proposals.each do |proposal|
+      Workflows::ProposalNormalizer.call(proposals).each do |proposal|
         break if created.size >= MAX_FOLLOW_UPS
         next unless known.add?(Workflows::SummaryKey.call(proposal["summary"]))
 

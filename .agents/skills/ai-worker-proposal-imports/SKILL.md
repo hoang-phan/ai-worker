@@ -11,7 +11,7 @@ This skill owns the shared seams and the deliberately different importing polici
 
 ## Shared seams
 
-- `Workflows::ProposalNormalizer.call(rows)` is pure. It accepts only Hash rows, returns only `{ "summary", "task" }` plus optional `"skills"`, drops blank summary/task rows, squishes and truncates summaries to `Workflow::SUMMARY_LENGTH`, and strips/truncates tasks to `TASK_LENGTH` (4000). Skills accept an Array or comma-delimited string; retain valid `/\A[\w:.\-\/]+\z/` names only, dedupe, cap at six, join with `", "`, and omit the key when none remain. Both brainstorm `result.json` rows and `AiCli::Output#follow_ups` use it.
+- `Workflows::ProposalNormalizer.call(rows)` is pure. It accepts only Hash rows, returns only `{ "summary", "task" }` plus optional `"skills"`, drops blank summary/task rows, squishes and truncates summaries to `Workflow::SUMMARY_LENGTH`, and strips/truncates tasks to `TASK_LENGTH` (4000). Skills accept an Array or comma-delimited string; retain valid `/\A[\w:.\-\/]+\z/` names only, dedupe, cap at six, join with `", "`, and omit the key when none remain. Brainstorm normalizes `result.json` rows before import; `Stages::FollowUpImporter` normalizes raw `AiCli::Output#follow_ups` rows before its follow-up policy.
 - `Workflows::SummaryKey.call(text)` is the common comparison key: lowercase, collapse non-alphanumerics to spaces, then strip. `.set(workflows)` returns the Set of keys from workflow briefs. Do not give the importers distinct normalization rules.
 - `Workflows::ProposalWorkflow.new(project).build(proposal, merge_skills:)` returns an unsaved development workflow with the proposal summary/task, `project.next_workflow_position`, and status resolved by `project.brainstorm_auto_start?` (`implementing` or `pending`). It does not take `status:`. With `merge_skills: true`, defaults come first and proposal skills are appended, blank entries removed and names deduped; without it, use project defaults alone.
 - New proposal fields change the normalizer, both import inputs/prompts that expose the field, builder, and their focused specs together. Do not make the importers uniform merely because they share these seams.
@@ -29,6 +29,8 @@ This skill owns the shared seams and the deliberately different importing polici
 ## Follow-up import
 
 `Stages::FollowUpImporter.new(project).call(proposals)` returns only the summaries of successfully created workflows.
+
+- Normalize proposals with `Workflows::ProposalNormalizer.call` before applying the follow-up dedupe or cap policy.
 
 - There is no queued-workflow gate. Seed known keys from every project workflow except `done` ones, so done work may be proposed again.
 - The independent cap is `MAX_FOLLOW_UPS` (2) successful creations; ignored rows and failed saves do not increment it.

@@ -85,10 +85,12 @@ RSpec.describe AiCli::Output do
       expect(output("#{echoed}work\n#{block}").follow_ups.map { |row| row["summary"] }).to eq([ "Fix X" ])
     end
 
-    it "cleans rows" do
+    it "returns raw parsed rows" do
       long = "a" * 300
-      text = %(FOLLOW_UPS_BEGIN\n[{"summary":"#{long}","task":"t"},{"summary":"","task":"t"},"x"]\nFOLLOW_UPS_END)
-      expect(output(text).follow_ups.map { |row| row["summary"].length }).to eq([ Workflow::SUMMARY_LENGTH ])
+      rows = [ { "summary" => long, "task" => "t" }, { "summary" => "", "task" => "t" }, "x" ]
+      text = "FOLLOW_UPS_BEGIN\n#{rows.to_json}\nFOLLOW_UPS_END"
+
+      expect(output(text).follow_ups).to eq(rows)
     end
 
     it("is empty for invalid JSON") { expect(output("FOLLOW_UPS_BEGIN\nnot json\nFOLLOW_UPS_END").follow_ups).to eq([]) }

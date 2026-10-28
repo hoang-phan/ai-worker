@@ -55,12 +55,12 @@ module AiCli
       block.lines.map { |line| line.strip.delete_prefix("- ").strip }.reject(&:blank?)
     end
 
-    # Rows of the last FOLLOW_UPS_BEGIN/FOLLOW_UPS_END block (the log may echo the prompt's own example): a JSON array
-    # of {"summary", "task"}, cleaned by Workflows::ProposalNormalizer. [] when the block is missing or not valid JSON.
+    # Raw rows of the last FOLLOW_UPS_BEGIN/FOLLOW_UPS_END block (the log may echo the prompt's own example): a JSON array,
+    # or [] when the block is missing, invalid JSON, or not an array.
     def follow_ups
       body = last_block("FOLLOW_UPS_BEGIN", "FOLLOW_UPS_END", anchored: true)
       rows = JSON.parse(body.to_s)
-      rows.is_a?(Array) ? Workflows::ProposalNormalizer.call(rows) : []
+      rows.is_a?(Array) ? rows : []
     rescue JSON::ParserError
       []
     end

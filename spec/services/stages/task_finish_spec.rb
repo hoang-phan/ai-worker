@@ -69,6 +69,16 @@ RSpec.describe Stages::TaskFinish, type: :service do
       expect(stage_actions(stage)).to eq(%w[task_completed task_pushed])
     end
 
+    it "does not log when every parsed proposal is invalid" do
+      rows = [ { summary: "", task: "Task A" }, { summary: "Fix B", task: " " } ]
+      output = "FOLLOW_UPS_BEGIN\n#{rows.to_json}\nFOLLOW_UPS_END"
+
+      finish(output)
+
+      expect(follow_up_workflows).to be_empty
+      expect(stage_actions(stage)).to eq(%w[task_completed task_pushed])
+    end
+
     it "skips follow-ups for a non-personal project" do
       jira_project = build_jira_project(local_directory: local_directory)
       jira_workflow = build_jira_workflow(jira_project, jira_ticket: "TASK-2", branch_name: "t2", status: :implementing)
