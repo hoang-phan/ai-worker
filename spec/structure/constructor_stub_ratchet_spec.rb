@@ -9,13 +9,7 @@ RSpec.describe "constructor stub ratchet" do
   PATTERN = /(allow|expect)\((?:(?:AiCli|Git|Github|Stages|Jira|Slack|Bugsnag|Brainstorm|Scheduling|Prompts|Ci|AgentRuns|Workflows|Projects)::[A-Za-z:]+|StageExecutor)\)\.(to|not_to) receive\(:new\)/
 
   # path => maximum match count. Lower or delete an entry when stubs go away.
-  ALLOWLIST = {
-    "spec/requests/bugsnag_sync_runs_spec.rb" => 1,
-    "spec/requests/jira_sync_runs_spec.rb" => 1,
-    "spec/requests/project_brainstorms_spec.rb" => 1,
-    "spec/requests/project_slack_syncs_spec.rb" => 1,
-    "spec/services/slack/review_sync_spec.rb" => 0
-  }.freeze
+  ALLOWLIST = {}.freeze
 
   def scanned_files
     (Dir.glob("spec/**/*_spec.rb") + Dir.glob("spec/support/**/*.rb")).uniq.sort
