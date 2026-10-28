@@ -30,7 +30,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `Projects::WorkflowDefaults` — new workflow attributes (`ai-worker-domain`)
 - `Workflows::SummaryKey` and `Workflows::ProposalNormalizer` — proposal dedupe and agent proposal rows (`ai-worker-proposal-imports`)
 - `AiCli::Output` — result markers (`ai-worker-agent-output`)
-- `Prompts::Renderer` + `Prompts::StageSections` — prompt text (`ai-worker-prompts`)
+- `Prompts::Renderer` + `Prompts::StageSections` — prompt text (`ai-worker-prompts`, `ai-worker-stage-sections`)
 - `Github::Runner` — `gh` subprocesses (`ai-worker-github`); `Git::Shell` — `git` subprocesses (`ai-worker-git`)
 - `spec/support` helpers (`RecordHelper`, `let_tmpdir`, `FakeDetachedRun`, `GitRepoHelper`, `StageRunHelper`, `active_job_test_adapter`) — shared spec setup (`ai-worker-testing`)
 - Structural spec guards are owned by `ai-worker-spec-guards`.

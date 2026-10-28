@@ -5,7 +5,7 @@ description: Owns ai-worker pure parsers for a finished agent run's log. Use for
 
 # ai-worker agent output parsers
 
-Owns the pure parsers that interpret a finished agent run's log. Process launch, polling, stale handling, and log I/O stay in `ai-worker-agent-cli`. Adding a new stage result marker: `ai-worker-stage-types`. The prompt text that asks the agent to print a marker: `ai-worker-prompts`.
+Owns the pure parsers that interpret a finished agent run's log. Process launch, polling, stale handling, and log I/O stay in `ai-worker-agent-cli`. Adding a new stage result marker: `ai-worker-stage-types`. Default prompt text that asks the agent to print a marker: `ai-worker-prompts`; appended section wording: `ai-worker-stage-sections`.
 
 ## File map
 
@@ -25,7 +25,7 @@ Owns the pure parsers that interpret a finished agent run's log. Process launch,
 - **`follow_ups` is cleaned by `Workflows::ProposalNormalizer`.** Invalid or non-array JSON becomes `[]`.
 - **`RunVerdict` on a nil exit status** asks the provider for an outcome from the log (claude: the final result event). A missing outcome is treated as failed; `:error` raises `AiCli::CommandError`.
 - **`ClaudeResult` is the provider-format parser;** stage markers (`JIRA_RESULT`, `UAT_RESULT`, blocks, …) stay in `Output`. Callers that need a result event or final outcome use `AiCli::ClaudeResult` directly.
-- New markers: add the method and spec here, follow the checklist in `ai-worker-stage-types`, and put the ask-for-marker wording in `ai-worker-prompts`.
+- New markers: add the method and spec here, follow the checklist in `ai-worker-stage-types`, and put the ask-for-marker wording in `ai-worker-prompts` or `ai-worker-stage-sections` as applicable.
 
 ## Specs
 

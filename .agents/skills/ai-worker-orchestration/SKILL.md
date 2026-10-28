@@ -27,7 +27,8 @@ Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Ot
 | `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` | `ai-worker-agent-cli` |
 | `app/services/git/**` | `ai-worker-git` |
 | `app/services/github/**` | `ai-worker-github` |
-| `app/services/prompts/**` | `ai-worker-prompts` |
+| `app/services/prompts/stage_section_list.rb`, `app/services/prompts/stage_sections.rb`, `app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb` | `ai-worker-stage-sections` |
+| remaining `app/services/prompts/**` | `ai-worker-prompts` |
 | `app/services/stage_executor.rb`, `app/services/stages/**` except `run_tooling.rb` | `ai-worker-stage-pipeline` |
 
 ## Adding a new service/job

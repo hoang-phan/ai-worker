@@ -38,7 +38,8 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | a stage type, Workflow status, or agent result-marker change spanning Stage, StageRun::ACTIONS, Workflow, StageExecutor, prompts, AiCli::Output, and scheduler | `ai-worker-stage-types` |
    | `app/services/github/**`, or their specs | `ai-worker-github` |
    | `app/services/git/**`, or their specs | `ai-worker-git` |
-   | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults,stage_sections}.rb`, `defaults/jira_update.md`, its listed section files, `prompt_template.rb`, prompt templates (CRUD controller/views/request spec), or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
+   | `app/services/prompts/stage_section_list.rb`, `app/services/prompts/stage_sections.rb`, `app/services/prompts/stage_sections/{check_output,retry,fixed_summary,lessons_request,lessons,follow_ups}.rb`, or their specs | `ai-worker-stage-sections` |
+   | prompt files owned by `ai-worker-prompts`: `app/services/prompts/{slack_post,conflict_resolution,stage_prompt,renderer,workflow_placeholders,project_placeholders,defaults}.rb`, `defaults/jira_update.md`, `prompt_template.rb`, prompt templates (CRUD controller/views/request spec), or `docs/PROMPT_TEMPLATES.md` | `ai-worker-prompts` |
    | `app/services/stages/{pr_check_run,pr_check_decision,pr_check_finish,review_handoff,merge_check}.rb`, or their specs | `ai-worker-pr-check` |
    | `app/services/stage_executor.rb`, or remaining generic `app/services/stages/**` and their specs | `ai-worker-stage-pipeline` |
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |

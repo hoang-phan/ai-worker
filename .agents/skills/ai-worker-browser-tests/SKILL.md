@@ -14,7 +14,7 @@ description: Owns agent-driven uat_test and local_test execution and feedback. U
 - `app/services/ai_cli/cursor_mcp_file.rb` — Cursor's transient `.cursor/mcp.json` delivery.
 - `app/services/stages/{browser_test_start,local_test_policy,local_test_finish,uat_test_finish}.rb` — start, result handling, and retest decisions.
 - `app/services/scheduling/uat_phase.rb` — due-UAT selection, slot limit, and retry of non-processing `uat_testing` runs.
-- `app/services/prompts/stage_sections/local_feedback.rb`, `app/services/prompts/defaults/{uat_test,local_test}.md` — retest feedback section and prompts.
+- `app/services/prompts/stage_sections/local_feedback.rb`, `app/services/prompts/defaults/{uat_test,local_test}.md` — retest feedback section and prompts. Other appended stage sections belong to `ai-worker-stage-sections`.
 - `app/views/projects/form/{_uat_test,_local_test}.html.erb` — project opt-in/configuration screens.
 
 Related files owned elsewhere (read them, but follow the owning skill when changing them):
