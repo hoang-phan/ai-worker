@@ -29,16 +29,6 @@ class Workflow < ApplicationRecord
 
   def slack_review_thread_ts=(value); super(Slack::ThreadRef.ts_for(value)); end
 
-  # The agent CLI this workflow runs with. Precedence: the rotation provider picked by AiCli::Rotation the first time
-  # one is needed (pinned per workflow for its life); else nil, meaning the app-wide AiCli::AgentSetting applies.
-  def rotation_provider!
-    return rotation_provider if rotation_provider.present?
-
-    provider = AiCli::Rotation.next_provider
-    update_column(:rotation_provider, provider) if provider
-    provider
-  end
-
   validates_with Workflows::Validator
   validates :github_pr_url, format: { with: %r{\Ahttps://github\.com/[^/\s]+/[^/\s]+/pull/\d+\z}, message: "must be a github.com pull request URL" }, allow_blank: true
 

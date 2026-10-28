@@ -11,8 +11,8 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 ## CLI selection and provider registry
 
-- `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: `workflow.rotation_provider!`, then `AiCli::AgentSetting.current`. `Stages::RunProvider.new(workflow:)` exposes only `override`: the rotation provider, or nil meaning `AiCli::Runner` falls back to the app-wide setting. Do not re-create this chain elsewhere.
-- `AiCli::Rotation` holds per-provider nonnegative weights and a counter in `Rails.cache`; setting weights resets the counter. Default/all-zero is off; `next_provider` returns nil when off or advances through weighted slots. `Workflow#rotation_provider!` pins its one chosen provider; brainstorm and sync runs do not rotate.
+- `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: the workflow's pinned `rotation_provider` (set by `override` on first need via `AiCli::Rotation.next_provider`), then `AiCli::AgentSetting.current`. `Stages::RunProvider.new(workflow:, rotation: AiCli::Rotation)` exposes only `override`: the rotation provider, or nil meaning `AiCli::Runner` falls back to the app-wide setting. Do not re-create this chain elsewhere.
+- `AiCli::Rotation` holds per-provider nonnegative weights and a counter in `Rails.cache`; setting weights resets the counter. Default/all-zero is off; `next_provider` returns nil when off or advances through weighted slots. `Stages::RunProvider#override` pins the chosen provider on the workflow; brainstorm and sync runs do not rotate.
 - `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AiCli::AgentSetting.current(env: ENV)` reads a valid cached setting, otherwise `env["AGENT"]`, otherwise `claude` (specs pass `env:` a hash); its writer rejects unknown providers.
 
 ## Provider adapters
