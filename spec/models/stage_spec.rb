@@ -40,15 +40,21 @@ RSpec.describe Stage, type: :model do
     end
 
     it "forwards all run history methods" do
-      run_history = instance_double(Stages::RunHistory)
-      allow(stage).to receive(:run_history).and_return(run_history)
+      stage.log_run!("failed")
+      expect(stage.last_action).to eq("failed")
 
-      { last_action: "failed", consecutive_failures: 2, resolving_conflicts?: true,
-        completed_local_test_rounds: 3, completed_ci_rounds: 4, local_test_unfinished?: false }.each do |method, result|
-        expect(run_history).to receive(method).and_return(result)
+      stage.log_run!("failed")
+      expect(stage.consecutive_failures).to eq(2)
 
-        expect(stage.public_send(method)).to eq(result)
-      end
+      stage.log_run!("conflict_resolution_started")
+      expect(stage).to be_resolving_conflicts
+
+      3.times { stage.log_run!("local_test_completed") }
+      expect(stage.completed_local_test_rounds).to eq(3)
+      expect(stage).not_to be_local_test_unfinished
+
+      4.times { stage.log_run!("ci_check_completed") }
+      expect(stage.completed_ci_rounds).to eq(4)
     end
   end
 

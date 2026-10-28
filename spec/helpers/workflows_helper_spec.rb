@@ -58,8 +58,8 @@ RSpec.describe WorkflowsHelper, type: :helper do
       end
 
       it "badges PR reviews" do
-        allow(workflow).to receive(:pr_review?).and_return(true)
-        expect(helper.workflow_kind_badges(workflow)).to eq('<span class="badge badge-neutral">review</span>')
+        review = build_pr_review_workflow(project)
+        expect(helper.workflow_kind_badges(review)).to eq('<span class="badge badge-neutral">review</span>')
       end
     end
   end

@@ -169,6 +169,7 @@ RSpec.describe Stages::StartHandler, type: :service do
   end
 
   it "is a no-op returning nil for an unknown stage type" do
+    # Enum rejects unknown values; stub to exercise the dispatch guard.
     allow(stage).to receive(:stage_type).and_return("bogus")
 
     expect(handler.call).to be_nil

@@ -50,7 +50,7 @@ RSpec.describe Prompts::StagePrompt do
       context "with a #{type} stage and no prompt or template" do
         let(:stage_type) { type }
 
-        before { allow(stage).to receive(:effective_template).and_return(nil) }
+        before { PromptTemplate.where(stage_type: type).delete_all }
 
         it "falls back to the rendered default body" do
           expect(stage_prompt.body).to eq(Prompts::Renderer.render(default_body, workflow))
@@ -59,7 +59,7 @@ RSpec.describe Prompts::StagePrompt do
     end
 
     context "with no prompt, template or default" do
-      before { allow(stage).to receive(:effective_template).and_return(nil) }
+      before { PromptTemplate.where(stage_type: :task).delete_all }
 
       it "raises" do
         expect { stage_prompt.body }.to raise_error(ArgumentError, "no prompt available for stage #{stage.id}")

@@ -2,6 +2,7 @@ require "rails_helper"
 
 RSpec.describe Prompts::WorkflowPlaceholders do
   let_tmpdir(:local_directory, "workflow-placeholders-spec")
+  let_tmpdir(:upload_dir, "workflow-placeholders-uploads")
   let(:project) do
     build_personal_project(local_directory: local_directory)
   end
@@ -14,6 +15,15 @@ RSpec.describe Prompts::WorkflowPlaceholders do
     )
   end
 
+  def attach_images(*names)
+    workflow.image_store.purge!
+    uploads = names.map do |name|
+      path = File.join(upload_dir, name)
+      File.binwrite(path, "img")
+      Rack::Test::UploadedFile.new(path, "image/png", original_filename: name)
+    end
+    workflow.add_images(uploads)
+  end
 
   it "lists every token it substitutes in TOKENS" do
     expect(described_class::TOKENS).to be_frozen
@@ -21,16 +31,18 @@ RSpec.describe Prompts::WorkflowPlaceholders do
   end
 
   it "maps each workflow field to its token" do
-    allow(workflow).to receive(:image_paths).and_return(%w[/a.png /b.png])
+    attach_images("a.png", "b.png")
     workflow.stages.create!(stage_type: :implementation)
+    images = workflow.image_paths.join(", ")
 
+    expect(workflow.image_paths.map { |p| File.basename(p) }).to eq(%w[a.png b.png])
     expect(described_class.for(workflow)).to eq(
       "{JIRA}" => "ABC-1",
       "{PR}" => "https://github.com/acme/app/pull/7",
       "{REVIEWER}" => "alice,bob",
       "{SKILLS}" => "one, two",
       "{PR_SKILLS}" => "pr-one",
-      "{IMAGES}" => "/a.png, /b.png",
+      "{IMAGES}" => images,
       "{TASK}" => "Do the thing",
       "{SLACK}" => "https://slack.example/t/1",
       "{CI_OUTPUT}" => "/tmp/ci.log",

@@ -2,6 +2,7 @@ require "rails_helper"
 
 RSpec.describe Prompts::Renderer do
   let_tmpdir(:local_directory, "renderer-spec")
+  let_tmpdir(:upload_dir, "renderer-uploads")
   let(:project) do
     build_personal_project(
       local_directory: local_directory,
@@ -20,6 +21,15 @@ RSpec.describe Prompts::Renderer do
     )
   end
 
+  def attach_images(*names)
+    workflow.image_store.purge!
+    uploads = names.map do |name|
+      path = File.join(upload_dir, name)
+      File.binwrite(path, "img")
+      Rack::Test::UploadedFile.new(path, "image/png", original_filename: name)
+    end
+    workflow.add_images(uploads)
+  end
 
   describe "BUILT_IN_TOKENS" do
     it "lists exactly the built-in tokens placeholders_for substitutes" do
@@ -44,13 +54,15 @@ RSpec.describe Prompts::Renderer do
 
   describe ".render" do
     it "substitutes every built-in token" do
-      allow(workflow).to receive(:image_paths).and_return(%w[/a.png /b.png])
+      attach_images("a.png", "b.png")
+      images = workflow.image_paths.join(", ")
+
       described_class.placeholders_for(workflow).each_key do |token|
         expect(described_class.render(token, workflow)).to eq(described_class.placeholders_for(workflow).fetch(token))
       end
 
       expect(described_class.render("{JIRA} {PR} {REVIEWER} {SKILLS} {PR_SKILLS} {IMAGES} {TASK} {SLACK}", workflow))
-        .to eq("ABC-1 https://github.com/acme/app/pull/7 alice,bob one, two pr-one /a.png, /b.png Do the thing https://slack.example/t/1")
+        .to eq("ABC-1 https://github.com/acme/app/pull/7 alice,bob one, two pr-one #{images} Do the thing https://slack.example/t/1")
       expect(described_class.render("{TESTER} {UAT_URL} {CI_COMMAND} {CI_OUTPUT} {CI_STATUS}", workflow))
         .to eq("tess https://uat.example bin/ci /tmp/ci.log 2")
     end

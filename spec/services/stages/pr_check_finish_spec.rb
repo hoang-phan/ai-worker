@@ -14,9 +14,9 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   end
 
   it "schedules a retest, clears feedback, and does not notify reviewers" do
+    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
     workflow.update!(local_test_feedback: "The login button is broken")
     build_stage(workflow, :local_test)
-    allow(project).to receive(:local_test_ready?).and_return(true)
 
     finish("LOCAL_RETEST: YES\nFIXED_SUMMARY_BEGIN\n- fixed login\nFIXED_SUMMARY_END")
 
@@ -28,7 +28,6 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
 
   it "notifies reviewers with the fixed summary and clears feedback when no retest is needed" do
     workflow.update!(local_test_feedback: "Only a comment change")
-    allow(project).to receive(:local_test_ready?).and_return(false)
     output = "LOCAL_RETEST: NO\nFIXED_SUMMARY_BEGIN\n- clarified the comment\nFIXED_SUMMARY_END"
 
     finish(output)
@@ -40,8 +39,6 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   end
 
   describe "agent lessons" do
-    before { allow(project).to receive(:local_test_ready?).and_return(false) }
-
     def lessons_output(*lines) = "LESSONS_BEGIN\n#{lines.map { |l| "- #{l}" }.join("\n")}\nLESSONS_END\nLOCAL_RETEST: NO"
 
     it "records lessons from the LESSONS block" do
@@ -59,6 +56,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
     end
 
     it "does not fail the stage when saving them fails" do
+      # Real DB errors are impractical to force; inject the failure on update_column.
       allow(project).to receive(:update_column).and_raise(ActiveRecord::StatementInvalid, "boom")
 
       expect { finish(lessons_output("Prefer services")) }.not_to raise_error

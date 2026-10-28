@@ -83,12 +83,13 @@ RSpec.describe Stages::CompletionHandler, type: :service do
   end
 
   it "propagates a missing JIRA_RESULT error from the finisher" do
-    allow(stage).to receive(:stage_type).and_return("jira_update")
+    stage.update!(stage_type: :jira_update)
 
     expect { handle }.to raise_error(AiCli::CommandError, /JIRA_RESULT/)
   end
 
   it "is a no-op returning nil for an unknown stage type" do
+    # Enum rejects unknown values; stub to exercise the dispatch guard.
     allow(stage).to receive(:stage_type).and_return("bogus")
     expect(handle).to be_nil
   end

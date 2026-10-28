@@ -15,8 +15,6 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
   end
 
   it "discovers the PR, clears the AI run, starts review, and hands off" do
-    allow(project).to receive(:local_test_ready?).and_return(false)
-
     finish
 
     expect(github).to have_received(:find_pr_url).with(branch_name: "implementation-finish", jira_ticket: "DONE-1", output: output)
@@ -29,8 +27,7 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
   end
 
   it "waits for the local test before auto-merge or reviewer notification on development workflows" do
-    allow(project).to receive(:local_test_ready?).and_return(true)
-    allow(workflow).to receive(:development?).and_return(true)
+    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
 
     finish
 

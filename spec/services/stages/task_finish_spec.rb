@@ -79,6 +79,7 @@ RSpec.describe Stages::TaskFinish, type: :service do
     end
 
     it "never fails the task when creating follow-ups raises" do
+      # Inject a failure; real next_workflow_position does not raise.
       allow(project).to receive(:next_workflow_position).and_raise("boom")
 
       expect { finish(block("Fix A")) }.not_to raise_error

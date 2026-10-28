@@ -10,7 +10,8 @@ RSpec.describe StageExecutor, type: :service do
   let(:handler_class) { class_double(Stages::CompletionHandler, new: handler) }
 
   it "fails without polling or starting when the project uses the live checkout" do
-    allow(project).to receive(:runs_from_live_checkout?).and_return(true)
+    # Validations reject the live checkout path; set the column so the predicate sees real state.
+    project.update_column(:local_directory, Rails.root.to_s)
     ai_run_poll = instance_double(Stages::AiRunPoll)
     expect(ai_run_poll).not_to receive(:call)
     start_handler_class = class_double(Stages::StartHandler)
@@ -119,10 +120,10 @@ RSpec.describe StageExecutor, type: :service do
     it "passes its launcher to conflict resolution finishing" do
       stage = build_stage(workflow, :pr_check)
       workflow.update!(running_ai_run)
+      stage.log_run!("conflict_resolution_started")
       launcher = instance_double(Stages::AiRunLauncher)
       finish = instance_double(Stages::ConflictResolutionFinish, call: nil)
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "merged")
-      allow(stage).to receive(:resolving_conflicts?).and_return(true)
       launcher_class = class_double(Stages::AiRunLauncher, new: launcher)
       finish_class = class_double(Stages::ConflictResolutionFinish, new: finish)
 
