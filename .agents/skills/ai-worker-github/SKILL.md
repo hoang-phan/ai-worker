@@ -24,7 +24,7 @@ Every `gh` subprocess runs inside the project's clone (`project.local_directory`
 ## Command and repository rules
 
 - Build an argv array; pass it to `Open3.capture3(*argv, chdir: dir)`. Never interpolate a shell string, use `cd X && ...`, backticks, or `system("...#{x}")`. Ticket text, PR titles, branch names, and reviewer logins are individual argv elements.
-- Raise `Github::CommandError` for non-zero exits with command and stderr in the message. Do not rescue inside these objects except intentional lookup fallbacks such as `PrLocator#url_for_head`; `StageExecutor` in `ai-worker-stage-pipeline` records stage failures.
+- Raise `Github::CommandError` for non-zero exits with command and stderr in the message. Do not rescue inside these objects except intentional lookup fallbacks such as `Github::PrLocator#url_for_head`; `StageExecutor` in `ai-worker-stage-pipeline` records stage failures.
 - Run `gh` only through `Github::Runner`. Repository-scoped commands receive `-R <repo>`; `gh api` has no `-R`, so supply the repo in its endpoint and pass `scope_to_repo: false`. `current_login` is also unscoped.
 
 ## Specs

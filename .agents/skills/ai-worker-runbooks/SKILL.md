@@ -28,7 +28,7 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 
 ## Lifecycle
 
-1. **Start** (`Transitions#start!` → `RunbookNavigator#start!`): `current_stage_id` = first stage, `implementing`, `auto_run: false`. No stages → `done`.
+1. **Start** (`Workflows::Transitions#start!` → `Workflows::RunbookNavigator#start!`): `current_stage_id` = first stage, `implementing`, `auto_run: false`. No stages → `done`.
 2. **Run stage**: the button sets `auto_run: true` and enqueues `WorkflowSchedulerJob` (a runbook is eligible only if `auto_run?` or named; see `ai-worker-scheduling`). `RunbookStepStart` first passes `WorkflowRunGate` (no `wait_for_workflow` → passes; otherwise re-checked every tick, logs `waiting_for_check` once, `check_passed` on success, raises `Github::CommandError` if the run failed; only runs started after the previous stage's `started` run count). Then the agent runs `prompt.body`, or `slack_message(prompt.body)` for `message` stages.
 3. **Finish** (`RunbookStepFinish`): a message stage whose output has no `POSTED` line (`AiCli::Output#posted?`) raises `AiCli::CommandError`. Otherwise `waiting` + `awaiting_next: true`, `variables` merged with the output's variables, `stage_completed` logged (plus `message_sent` for message stages).
 4. **Wait for Next**: `can_advance?` is true only while `awaiting_next?`. `advance!` logs `advanced`, moves `current_stage_id` on with `auto_run: true` and `implementing`, or ends `done` after the last stage.
@@ -38,7 +38,7 @@ A runbook is a workflow with an ordered, user-editable list of `runbook_step` st
 ## Invariants
 
 - The current stage cannot be removed on a started runbook (`Stage#removable?`; the controller redirects with an alert). Pending runbooks can drop any stage.
-- Variable names must match `Prompts::Renderer::VARIABLE_NAME` (`Workflow#variable_names_are_placeholders`); `Variables.parse` upcases names.
+- Variable names must match `Prompts::Renderer::VARIABLE_NAME` (`Workflows::Validator#variable_names_are_placeholders`); `Workflows::Variables.parse` upcases names.
 - Clone copies only user-set variables (`input_variables`); emitted ones are dropped so old results don't leak. Stages are copied through `StageSeeder`, with `stage_type` forced to `runbook_step`.
 - Stage lists are runbook-only; `stage_params` permits the runbook columns only for runbooks.
 - Message stages require `channel`; every runbook stage requires `name`; `wait_for_workflow` is a workflow file name (format-validated).

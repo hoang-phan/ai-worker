@@ -11,21 +11,21 @@ What `uat_testing` / `local_testing` runs do once resumed: `ai-worker-browser-te
 
 ## File map
 
-- `app/models/workflows/stage_resolver.rb` — `StageResolver.stage_type_for(status:, kind:, personal:, ci_loop: false)` is a pure lookup. Map precedence: `kind == pr_review` -> `PR_REVIEW_STAGE_TYPE_BY_STATUS`, then `personal` -> `SIMPLE_STAGE_TYPE_BY_STATUS`, then `ci_loop` -> `CI_LOOP_STAGE_TYPE_BY_STATUS`, else `STAGE_TYPE_BY_STATUS` (`implementing` -> `implementation`, `reviewing` -> `pr_check`, `merged` -> `jira_update`, `uat_testing` -> `uat_test`, `local_testing` -> `local_test`, plus the ci_loop statuses). Unmapped statuses (`pending`, `done`, ...) give nil. `LAZY_STAGE_TYPES` (`jira_update uat_test local_test ci_check ci_verify pr_create simple_implementation`) are not seeded.
+- `app/models/workflows/stage_resolver.rb` — `Workflows::StageResolver.stage_type_for(status:, kind:, personal:, ci_loop: false)` is a pure lookup. Map precedence: `kind == pr_review` -> `PR_REVIEW_STAGE_TYPE_BY_STATUS`, then `personal` -> `SIMPLE_STAGE_TYPE_BY_STATUS`, then `ci_loop` -> `CI_LOOP_STAGE_TYPE_BY_STATUS`, else `STAGE_TYPE_BY_STATUS` (`implementing` -> `implementation`, `reviewing` -> `pr_check`, `merged` -> `jira_update`, `uat_testing` -> `uat_test`, `local_testing` -> `local_test`, plus the ci_loop statuses). Unmapped statuses (`pending`, `done`, ...) give nil. `LAZY_STAGE_TYPES` (`jira_update uat_test local_test ci_check ci_verify pr_create simple_implementation`) are not seeded.
 - `app/models/workflows/current_stage.rb` — `Workflow#current_stage`: a runbook's stage at `current_stage_id`, else the resolver's type with `ci_loop: development? && project.ci_loop_ready?`; nil when unmapped; lazy types via `find_or_create_by!`, others `find_by`.
-- `app/models/workflows/stage_seeder.rb` — `StageSeeder#call` seeds on create: runbook copies, `pr_review` -> `pr_review`, personal -> `task`, `ci_loop_ready?` -> the five ci_loop stages, else `implementation` + `pr_check`.
+- `app/models/workflows/stage_seeder.rb` — `Workflows::StageSeeder#call` seeds on create: runbook copies, `pr_review` -> `pr_review`, personal -> `task`, `ci_loop_ready?` -> the five ci_loop stages, else `implementation` + `pr_check`.
 - `app/models/workflows/transitions.rb` — the manual transitions, each returning true when applied, false when the guard fails. Its `resume_status:` keyword seam defaults to a fresh `ResumeStatus` for the workflow:
   - `start!`: only `pending?`; a runbook calls `start_runbook!`, otherwise `implementing`.
   - `resume!`: only `errored?`; in one transaction sets `resume_status` and logs `'resumed'` on `current_stage` (nil-safe).
   - `rollback_to_review!`: needs `can_rollback_to_review?` (`done?`, `development?`, `github_pr_url` present); sets `reviewing` and logs `'rolled_back_to_review'`.
   - `can_run_stage?`, `request_stage_run!`, `can_advance?` are the runbook guards (`ai-worker-runbooks`).
-- `app/models/workflows/resume_status.rb` — `ResumeStatus#call`, first match wins. Its `ci_loop_resume:` keyword seam defaults to a `CiLoopResume` for the workflow while `call` reads workflow state live:
+- `app/models/workflows/resume_status.rb` — `Workflows::ResumeStatus#call`, first match wins. Its `ci_loop_resume:` keyword seam defaults to a `CiLoopResume` for the workflow while `call` reads workflow state live:
   1. `uat_test_at` present -> `:uat_testing`
-  2. `CiLoopResume#status` when non-nil (see `ai-worker-ci-loop`)
+  2. `Workflows::CiLoopResume#status` when non-nil (see `ai-worker-ci-loop`)
   3. `local_test_unfinished?` (the `local_test` stage's `Stage#local_test_unfinished?`) -> `:local_testing`
   4. development workflow with `github_pr_url` -> `:reviewing`
   5. else `:implementing`
-- `app/models/workflows/ci_loop_resume.rb` — `CiLoopResume#status`: nil unless development and `ci_loop_ready?`, else derived from the newest non-`resumed` StageRun.
+- `app/models/workflows/ci_loop_resume.rb` — `Workflows::CiLoopResume#status`: nil unless development and `ci_loop_ready?`, else derived from the newest non-`resumed` StageRun.
 - `app/models/workflow.rb` — `delegate :start!, :resume!, :resume_status, :can_rollback_to_review?, :rollback_to_review!, ... to: :transitions`; `current_stage` builds `CurrentStage`.
 - `app/controllers/workflow_transitions_controller.rb` — `start`, `resume`, `rollback_to_review`: call the model method and redirect with a notice when true, an alert when false. No logic of its own.
 

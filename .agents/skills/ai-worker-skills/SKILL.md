@@ -13,6 +13,7 @@ Use this skill when adding, splitting, renaming, or editing a skill under `.agen
 
 - `.agents/skills/*/SKILL.md` — skill frontmatter, file maps, conventions, verification, and cross-skill ownership pointers.
 - `spec/skills/skill_references_spec.rb` — frontmatter, path-reference, and skill-name-reference checks.
+- `spec/skills/symbol_references_spec.rb` — checks backticked class/instance method references against autoloaded application constants; document intentional gem or test-only exceptions in its commented allowlist.
 - `spec/skills/file_map_coverage_spec.rb` — production-file coverage checks.
 - `spec/skills/file_map_duplicates_spec.rb` — file-map ownership-bullet duplicate checks.
 - `spec/skills/review_routing_spec.rb` — review-routing table coverage, uniqueness, ordering, and fallback checks.

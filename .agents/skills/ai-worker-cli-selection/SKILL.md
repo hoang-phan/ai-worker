@@ -13,7 +13,7 @@ There are no app-managed project agents or subagents: no `Agent` records, delega
 
 - `Stages::RunProvider` is the single resolver for a stage run's CLI. Its precedence is: `workflow.rotation_provider!`, then `AiCli::AgentSetting.current`. `Stages::RunProvider.new(workflow:)` exposes only `override`: the rotation provider, or nil meaning `AiCli::Runner` falls back to the app-wide setting. Do not re-create this chain elsewhere.
 - `AiCli::Rotation` holds per-provider nonnegative weights and a counter in `Rails.cache`; setting weights resets the counter. Default/all-zero is off; `next_provider` returns nil when off or advances through weighted slots. `Workflow#rotation_provider!` pins its one chosen provider; brainstorm and sync runs do not rotate.
-- `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AgentSetting.current(env: ENV)` reads a valid cached setting, otherwise `env["AGENT"]`, otherwise `claude` (specs pass `env:` a hash); its writer rejects unknown providers.
+- `AiCli::Providers` is the display-ordered registry. `names`, `find`, and raising `fetch` are its public lookup surface. Each stateless `Provider` has `name`, `Capabilities(tool_lists:, model:, effort:, mcp:)`, an argv builder, optional run wrapper, and outcome parser. `AiCli::AgentSetting.current(env: ENV)` reads a valid cached setting, otherwise `env["AGENT"]`, otherwise `claude` (specs pass `env:` a hash); its writer rejects unknown providers.
 
 ## Provider adapters
 
@@ -47,6 +47,6 @@ Specs hit the real test `:memory_store` (cleared per example; see `ai-worker-tes
 - `spec/services/ai_cli/provider_spec.rb`: Provider's abstract builder plus default wrapper/outcome and `Capabilities` value object.
 - `spec/services/ai_cli/provider/{claude,codex,cursor}_spec.rb`: each provider's delegated argv, capabilities, and outcome/wrapper behaviour (including Cursor's MCP file).
 - `spec/services/ai_cli/agent_setting_spec.rb`: `current` fallback chain (cache > `AGENT` > `claude`), writer validation, and `available`.
-- `spec/services/ai_cli/runner_spec.rb`: sets `AgentSetting.current` explicitly so a developer's `AGENT` env cannot leak in.
+- `spec/services/ai_cli/runner_spec.rb`: sets `AiCli::AgentSetting.current` explicitly so a developer's `AGENT` env cannot leak in.
 - `spec/requests/settings_spec.rb`: agent-setting update and invalid-agent response.
 - `spec/requests/settings/rotations_spec.rb`: rotation-weight update (assert `AiCli::Rotation.weights` after the request) and invalid-weight response.

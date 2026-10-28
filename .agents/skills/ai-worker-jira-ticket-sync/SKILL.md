@@ -9,7 +9,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 ## Flow
 
-`JiraSyncJob` (skips projects that aren't `jira_site?`) → `AgentRuns::SyncCycle` with `Jira::SyncCycleSource` → poll `AgentFetcher` → `TicketSync#import` → `TicketImporter` creates workflows; then starts a new fetch if idle and due.
+`JiraSyncJob` (skips projects that aren't `jira_site?`) → `AgentRuns::SyncCycle` with `Jira::SyncCycleSource` → poll `AgentFetcher` → `Jira::TicketSync#import` → `TicketImporter` creates workflows; then starts a new fetch if idle and due.
 
 ## File map (file — role; spec)
 
@@ -30,8 +30,8 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 ## Importer rules
 
-- Skip any key that already has a workflow in the project in any status (compare `TicketRef.key_for(workflow.jira_ticket)`) and a key repeated in one batch; ignore blank keys.
-- New workflow = `Projects::WorkflowDefaults#attributes(kind: :development)` plus `jira_ticket` (`TicketRef.url_for(project.jira_base_url, key)`) and `branch_name`.
+- Skip any key that already has a workflow in the project in any status (compare `Jira::TicketRef.key_for(workflow.jira_ticket)`) and a key repeated in one batch; ignore blank keys.
+- New workflow = `Projects::WorkflowDefaults#attributes(kind: :development)` plus `jira_ticket` (`Jira::TicketRef.url_for(project.jira_base_url, key)`) and `branch_name`.
 - A workflow that fails validation goes to `failed` as `"KEY: messages"`; the rest still import.
 
 ## Invariants
@@ -43,8 +43,8 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 
 ## Change checklist
 
-- New field imported from a ticket: add it to the prompt example and `TicketRows` (keep it pure, default missing values), carry it through `TicketImporter#workflow_attributes`, add the Workflow column per `ai-worker-domain` if needed; update the fetch_prompt, ticket_rows and ticket_importer specs.
-- Scope options (`jira_project`, `parent_ticket`): migration + `JiraSync`, `FetchPrompt` and `AgentFetcher#prompt`, controller `jira_sync_params`, `_form`, `_list` partial and `label`; update the specs for each.
+- New field imported from a ticket: add it to the prompt example and `TicketRows` (keep it pure, default missing values), carry it through `Jira::TicketImporter#workflow_attributes`, add the Workflow column per `ai-worker-domain` if needed; update the fetch_prompt, ticket_rows and ticket_importer specs.
+- Scope options (`jira_project`, `parent_ticket`): migration + `JiraSync`, `FetchPrompt` and `Jira::AgentFetcher#prompt`, controller `jira_sync_params`, `_form`, `_list` partial and `label`; update the specs for each.
 - Cadence: change `FETCH_EVERY` on `Jira::SyncCycleSource` only or the `config/schedule.yml` crons; update `sync_cycle_source_spec.rb` and keep the doc in `ai-worker-detached-agent-runs` consistent.
 
 ## Verification

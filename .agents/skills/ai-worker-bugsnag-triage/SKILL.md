@@ -33,11 +33,11 @@ Scope: a detached agent reads open Bugsnag errors, files a Jira Bug per new erro
 
 ## Change checklist
 
-- New field on a triage row: `TriageRows` (validation + spec) → `TriagePrompt` example/instruction (+ spec) → `LedgerMerge`/`TriageSync#import` if it is stored → ledger shape is `{ id => key }`, so a richer value needs a migration plan (`ai-worker-domain`).
-- New `BugsnagSync` column: migration + `db/schema.rb`, controller permit list, `_form`, `_list` table, `TriagePrompt` args via `Triager#prompt`, specs for each.
+- New field on a triage row: `TriageRows` (validation + spec) → `TriagePrompt` example/instruction (+ spec) → `LedgerMerge`/`Bugsnag::TriageSync#import` if it is stored → ledger shape is `{ id => key }`, so a richer value needs a migration plan (`ai-worker-domain`).
+- New `BugsnagSync` column: migration + `db/schema.rb`, controller permit list, `_form`, `_list` table, `TriagePrompt` args via `Bugsnag::Triager#prompt`, specs for each.
 - Changing the prompt: keep the "do NOT create the file on failure" and `[]` lines, the absolute `run.result_path`, and the write limits; update `triage_prompt_spec.rb`. Widening `ALLOWED_TOOLS` needs a reason and a `triager_spec.rb` change.
 - Changing the cadence: `RUN_HOUR` / `Cadence` rule in `SyncCycleSource`, the "Weekdays 9 AM" text in `_list.html.erb`, schedule hours if the window no longer covers it, and the comment in `BugsnagSyncJob`.
-- Changing blockers: `TriageSync#blockers` + `Projects::RunBlockers` message keys and `triage_sync_spec.rb`.
+- Changing blockers: `Bugsnag::TriageSync#blockers` + `Projects::RunBlockers` message keys and `triage_sync_spec.rb`.
 
 ## Verify
 

@@ -32,7 +32,7 @@ Claude supports tool lists, model, and effort. Its argv order is: `claude -p <pr
 
 Codex supports model, effort, and MCP overrides; it does not receive Claude tool-list or verbose flags. Its argv is `codex exec`, followed by MCP `-c` overrides, then the effort override, `--dangerously-bypass-approvals-and-sandbox`, optional `--model <model>`, and the prompt.
 
-`Command.mcp_servers` reads a Claude-format JSON file's `mcpServers` object. For each server, Codex emits paired `-c` TOML assignments in source hash order: required `command`, fixed `startup_timeout_sec=90`, optional `args` as a JSON array (including an explicit empty array), and optional nonblank `env` as a TOML inline table. Quote scalar values with JSON encoding; render inline-table keys and values with JSON quoting. Model reasoning effort is `-c model_reasoning_effort=<JSON-quoted effort>`. MCP overrides must stay after `exec` and before execution flags.
+`AiCli::Command.mcp_servers` reads a Claude-format JSON file's `mcpServers` object. For each server, Codex emits paired `-c` TOML assignments in source hash order: required `command`, fixed `startup_timeout_sec=90`, optional `args` as a JSON array (including an explicit empty array), and optional nonblank `env` as a TOML inline table. Quote scalar values with JSON encoding; render inline-table keys and values with JSON quoting. Model reasoning effort is `-c model_reasoning_effort=<JSON-quoted effort>`. MCP overrides must stay after `exec` and before execution flags.
 
 ### Cursor
 

@@ -40,7 +40,7 @@ Scope: project index/show, workflow list/reordering, bulk delete, and status/kin
 - `first_id` and `last_id` always come from the unfiltered ordered list, even while displayed rows are filtered.
 - Keep the canonical order as `position, id`; reordering an in-project item swaps neighbours and renumbers the whole list.
 - A foreign workflow or an end-of-list move is a harmless no-op; unknown directions redirect with an alert.
-- Do not query inside row loops: pass `WorkflowList#logged_seconds_for` as a local, with the list owning the grouped lookup.
+- Do not query inside row loops: pass `Projects::WorkflowList#logged_seconds_for` as a local, with the list owning the grouped lookup.
 
 ## View and helper conventions
 
