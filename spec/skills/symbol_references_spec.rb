@@ -58,11 +58,11 @@ RSpec.describe "skill symbol references" do
   def active_record_method?(model, method_name)
     attribute_names = model.attribute_names
     association_names = model.reflect_on_all_associations.map { |association| association.name.to_s }
-    enum_names = model.defined_enums.flat_map { |name, values| [name, *values.keys] }
+    enum_names = model.defined_enums.flat_map { |name, values| [ name, *values.keys ] }
     generated_names = attribute_names + association_names + enum_names
 
     generated_names.any? do |name|
-      [name, "#{name}?", "#{name}=", "#{name}_ids", "#{name}_ids="].include?(method_name)
+      [ name, "#{name}?", "#{name}=", "#{name}_ids", "#{name}_ids=" ].include?(method_name)
     end
   end
 

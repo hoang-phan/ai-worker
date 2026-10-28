@@ -23,7 +23,6 @@ RSpec.describe AgentRuns::Cadence do
     it "is due after the interval boundary" do
       expect(due?(now - 3.hours - 1.second)).to be(true)
     end
-
   end
 
   describe ".daily_on_weekdays" do
@@ -64,6 +63,5 @@ RSpec.describe AgentRuns::Cadence do
     it "treats a start at midnight today as already started today" do
       expect(due?(wednesday, wednesday.beginning_of_day)).to be(false)
     end
-
   end
 end
