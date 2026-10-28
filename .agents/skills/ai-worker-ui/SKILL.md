@@ -42,6 +42,7 @@ Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesh
 - Settings screen (`app/controllers/settings_controller.rb`, `app/controllers/settings/rotations_controller.rb`, `app/controllers/concerns/settings_screen.rb`, `app/views/settings/show.html.erb`, and their request specs) — `ai-worker-cli-selection`.
 - `app/controllers/projects_controller.rb` — CRUD → `ai-worker-project-settings`, index/show → `ai-worker-project-dashboard`.
 - Project form partials (`app/views/projects/{_form,new,edit}.html.erb`, `app/views/projects/form/*`) — `ai-worker-project-settings`.
+- Dashboard selection (`app/javascript/controllers/range_select_controller.js`) — `ai-worker-project-dashboard`; it replaces the former select-all controller.
 - Prompt-template CRUD (`app/controllers/prompt_templates_controller.rb`, `app/views/prompt_templates/**`, `spec/requests/prompt_templates_spec.rb`) — `ai-worker-prompts`.
 - Jira sync CRUD, run actions, and views (`app/controllers/jira_syncs_controller.rb`, `app/controllers/jira_sync_runs_controller.rb`, `app/views/jira_syncs/**`) — `ai-worker-jira-ticket-sync`.
 - Bugsnag sync CRUD, run actions, and views (`app/controllers/bugsnag_syncs_controller.rb`, `app/controllers/bugsnag_sync_runs_controller.rb`, `app/views/bugsnag_syncs/**`) — `ai-worker-bugsnag-triage`.

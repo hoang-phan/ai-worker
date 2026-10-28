@@ -16,7 +16,7 @@ Scope: project index/show, workflow list/reordering, bulk delete, and status/kin
 - `app/models/projects/workflow_reorder.rb` — swaps an in-project workflow with its neighbour and renumbers the complete priority list 1..n.
 - `app/views/projects/index.html.erb` — name-ordered project table, new/edit/delete links, and the empty state.
 - `app/views/projects/show.html.erb` — header/new-workflow actions and local-based rendering of the workflow, sync (Jira then Bugsnag in one `jira?` block), brainstorm, and Slack-review sections; the sync lists render from their owning feature directories.
-- `app/views/projects/_workflows.html.erb` — short composer for the workflow status filter, Jira time-log bar, and workflow table partials.
+- `app/views/projects/_workflows.html.erb` — short composer for the workflow status filter and workflow table/selection partials.
 - `app/views/projects/workflows/_status_filter.html.erb` — GET status filter form.
 - `app/views/projects/workflows/_selection_bar.html.erb` — batch bar for select-all / non-time-logged select, Jira preset-hour log-time submits, and bulk delete.
 - `app/views/projects/workflows/_table.html.erb` — bulk-delete bar and its scoped range-select workflow table, rows, and empty state.
