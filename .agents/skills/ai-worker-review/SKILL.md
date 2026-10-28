@@ -43,6 +43,7 @@ Reviews the diff against `main` (or `--staged` / `--working` if passed) using `g
    | remaining `app/models/{project,workflow,stage,stage_run,prompt_template}.rb`, `app/models/stages/run_history.rb`, listed domain workflow/project POROs, `db/migrate/**`, or `db/schema.rb` | `ai-worker-domain` |
    | remaining ProjectsController CRUD, shared UI, stylesheets, remaining Stimulus controllers, or routes | `ai-worker-ui` |
    | `app/jobs/application_job.rb`, `config/initializers/sidekiq.rb`, shared subprocess/error conventions, or a new unowned service namespace/job | `ai-worker-orchestration` |
+   | `.agents/skills/**`, `spec/skills/**`, or `spec/support/skill_path_helper.rb` | `ai-worker-skills` |
    | any `spec/**` not already matched above | `ai-worker-testing` |
 
    `spec/skills/review_routing_spec.rb` keeps this routing table complete.
