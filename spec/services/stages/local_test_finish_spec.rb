@@ -6,7 +6,7 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "local-test-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :local_testing, **running_ai_run)
   end
   let(:stage) { build_stage(workflow, :local_test) }
-  let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, enable_auto_merge!: nil, notify_reviewers!: nil) }
 
   def finish(output)
     described_class.new(workflow: workflow, stage: stage, handoff: handoff).call(output)

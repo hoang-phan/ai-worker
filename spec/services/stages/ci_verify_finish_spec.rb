@@ -8,7 +8,7 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
   let(:stage) { workflow.stages.find_by!(stage_type: :ci_verify) }
   let(:check_stage) { workflow.stages.find_by!(stage_type: :ci_check) }
 
-  let(:handoff) { double("Stages::ReviewHandoff", notify_reviewers!: nil) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, notify_reviewers!: nil) }
 
   def finish(output) = described_class.new(workflow: workflow, stage: stage, project: project, handoff: handoff).call(output)
 

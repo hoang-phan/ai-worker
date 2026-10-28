@@ -7,7 +7,7 @@ RSpec.describe AiCli::ProcessStatus do
   subject(:status_for) { described_class.new(process: process).call(pid) }
 
   it "returns [:completed, status] when wait2 reaps the process" do
-    status = double("Process::Status")
+    status = instance_double(Process::Status)
     allow(process).to receive(:wait2).with(pid, Process::WNOHANG).and_return([ pid, status ])
 
     expect(status_for).to eq([ :completed, status ])

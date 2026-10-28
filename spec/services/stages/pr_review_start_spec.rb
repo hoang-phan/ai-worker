@@ -5,8 +5,8 @@ RSpec.describe Stages::PrReviewStart, type: :service do
   let(:workflow) { instance_double(Workflow, github_pr_url: "https://github.com/acme/widgets/pull/1", update!: true) }
   let(:stage) { instance_double(Stage, log_run!: nil) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
-  let(:github) { double("Github::Client", checkout_pr!: nil) }
-  let(:git) { double("Git::BranchService", checkout_remote_branch!: nil) }
+  let(:github) { instance_double(Github::Client, checkout_pr!: nil) }
+  let(:git) { class_double(Git::BranchService, checkout_remote_branch!: nil) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
 
   def start

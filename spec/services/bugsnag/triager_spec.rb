@@ -11,7 +11,7 @@ RSpec.describe Bugsnag::Triager do
 
   it "needs a valid bugsnag id and jira key" do
     tmp = make_tmpdir("bugsnag-triager-spec")
-    runner = double("AiCli::Runner", poll: [ :completed, nil ])
+    runner = class_double(AiCli::Runner, poll: [ :completed, nil ])
     run = AiCli::DetachedRun.new(dir: Pathname(tmp).join("1"), result_name: "result.json", stale_after: described_class::STALE_AFTER,
                                  error_class: Bugsnag::FetchError, runner: runner)
     triager = described_class.new(sync, root: Pathname(tmp), run: run)

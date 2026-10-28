@@ -7,10 +7,10 @@ RSpec.describe Stages::StartHandler, type: :service do
   end
   let(:stage_type) { :implementation }
   let(:stage) { build_stage(workflow, stage_type) }
-  let(:github) { double("Github::Client") }
+  let(:github) { instance_double(Github::Client) }
   let(:git) { class_double(Git::BranchService, create_branch!: nil, checkout_remote_branch!: nil, update_with_main!: :updated) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
-  let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ]) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
 
   let(:starter_names) { %i[pr_check pr_review ci_check browser_test runbook_step] }

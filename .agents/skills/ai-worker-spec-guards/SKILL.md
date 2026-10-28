@@ -10,6 +10,7 @@ description: Owns ai-worker's structural spec guards. Use for any task touching 
 - `spec/structure/spec_mirror_spec.rb` — requires focused mirrored specs for production models, services, jobs, and helpers.
 - `spec/structure/constructor_stub_ratchet_spec.rb` — caps app-namespace constructor stubs in specs and support helpers.
 - `spec/structure/global_stub_ratchet_spec.rb` — caps app-global method, constant, and any-instance stubs.
+- `spec/structure/verified_double_ratchet_spec.rb` — caps plain `double("Some::Class")` fakes; prefer verifying doubles.
 - `spec/structure/private_state_peek_ratchet_spec.rb` — caps private-state inspection and private-method calls.
 - `spec/structure/file_length_ratchet_spec.rb` — caps line counts for Ruby production files, specs, and ERB views.
 - `spec/structure/time_travel_ratchet_spec.rb` — caps wall-clock time-travel helpers in specs.

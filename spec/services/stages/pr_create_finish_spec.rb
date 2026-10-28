@@ -2,8 +2,8 @@ require "rails_helper"
 
 RSpec.describe Stages::PrCreateFinish, type: :service do
   let(:pr_url) { "https://github.com/acme/widgets/pull/9" }
-  let(:github) { double("Github::Client", find_pr_url: pr_url) }
-  let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
+  let(:github) { instance_double(Github::Client, find_pr_url: pr_url) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, enable_auto_merge!: nil, notify_reviewers!: nil) }
   let(:output) { "agent output" }
 
   def finish

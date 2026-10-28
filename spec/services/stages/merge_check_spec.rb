@@ -6,7 +6,7 @@ RSpec.describe Stages::MergeCheck, type: :service do
     build_jira_workflow(project, jira_ticket: "MC-1", branch_name: "merge-check", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :done)
   end
   let(:stage) { build_stage(workflow, :pr_check) }
-  let(:github) { double("Github::Client", merged?: false) }
+  let(:github) { instance_double(Github::Client, merged?: false) }
 
   def call = described_class.new(workflow: workflow, stage: stage, github: github).call
 

@@ -65,9 +65,9 @@ RSpec.describe StageExecutor, type: :service do
 
     it "uses injected collaborators for a finished ci_check stage" do
       ai_run_poll = instance_double(Stages::AiRunPoll, call: "green")
-      github = double("Github::Client")
-      git = double("Git::BranchService")
-      handoff = double("Stages::ReviewHandoff")
+      github = instance_double(Github::Client)
+      git = class_double(Git::BranchService)
+      handoff = instance_double(Stages::ReviewHandoff)
 
       described_class.new(
         workflow, stage, github: github, git: git, ai_run_poll: ai_run_poll, handoff: handoff,

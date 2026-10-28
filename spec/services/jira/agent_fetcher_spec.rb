@@ -8,7 +8,7 @@ RSpec.describe Jira::AgentFetcher do
 
   it "keeps only rows whose key matches KEY" do
     tmp = make_tmpdir("jira-fetcher-spec")
-    runner = double("AiCli::Runner", poll: [ :completed, nil ])
+    runner = class_double(AiCli::Runner, poll: [ :completed, nil ])
     run = AiCli::DetachedRun.new(dir: Pathname(tmp).join("1"), result_name: "tickets.json", stale_after: described_class::STALE_AFTER,
                                  error_class: Jira::FetchError, runner: runner)
     fetcher = described_class.new(jira_sync, root: Pathname(tmp), run: run)

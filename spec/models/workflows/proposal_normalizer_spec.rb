@@ -70,7 +70,7 @@ RSpec.describe Workflows::ProposalNormalizer do
 
   describe "malformed result.json as surfaced by AiCli::DetachedRun" do
     let(:dir) { Pathname(make_tmpdir("proposal-normalizer-spec")) }
-    let(:runner) { double("AiCli::Runner", poll: :done) }
+    let(:runner) { class_double(AiCli::Runner, poll: :done) }
     let(:run) do
       AiCli::DetachedRun.new(dir: dir, result_name: "result.json", stale_after: 1.hour, error_class: Brainstorm::FetchError, runner: runner)
     end

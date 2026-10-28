@@ -7,9 +7,9 @@ RSpec.describe Stages::CompletionHandler, type: :service do
   end
   let(:stage_type) { :implementation }
   let(:stage) { build_stage(workflow, stage_type) }
-  let(:github) { double("Github::Client") }
-  let(:git) { double("Git::BranchService") }
-  let(:handoff) { double("Stages::ReviewHandoff") }
+  let(:github) { instance_double(Github::Client) }
+  let(:git) { class_double(Git::BranchService) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff) }
   let(:output) { "agent output" }
 
   def handle(out = output, finishers: described_class::FINISHERS)

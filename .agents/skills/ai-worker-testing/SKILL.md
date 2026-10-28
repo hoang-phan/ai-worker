@@ -36,6 +36,7 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 
 ## Seams over global stubs
 
+- Fake real collaborators with `instance_double`/`class_double`, never a plain `double` named after a class.
 - Inject collaborators by keyword (see `ai-worker-refactoring`) instead of `allow(X).to receive(:new)`.
 - Thin cron jobs take a perform-keyword seam with a production default (`sync:`, `collector:`, `tick:`, `cycle:`) so specs call `perform_now(sync: double)` (etc.) instead of stubbing `.new` or `AgentRuns::SyncCycle.call`.
 - Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Brainstorm::Planner`, `Slack::PingCollector`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).

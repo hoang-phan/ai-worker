@@ -6,8 +6,8 @@ RSpec.describe Stages::PrOpenedFinish, type: :service do
     build_ci_workflow(project, status: :ci_verifying, **running_ai_run)
   end
   let(:pr_url) { "https://github.com/acme/widgets/pull/9" }
-  let(:github) { double("Github::Client", find_pr_url: pr_url) }
-  let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
+  let(:github) { instance_double(Github::Client, find_pr_url: pr_url) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, enable_auto_merge!: nil, notify_reviewers!: nil) }
   let(:stage) { workflow.stages.find_by!(stage_type: :pr_create) }
 
   def finish = described_class.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call("out", action: "pr_created")

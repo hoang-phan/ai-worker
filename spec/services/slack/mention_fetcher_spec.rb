@@ -8,7 +8,7 @@ RSpec.describe Slack::MentionFetcher do
 
   it "needs slack_url and at least one matching PR URL" do
     tmp = make_tmpdir("slack-fetcher-spec")
-    runner = double("AiCli::Runner", poll: [ :completed, nil ])
+    runner = class_double(AiCli::Runner, poll: [ :completed, nil ])
     run = AiCli::DetachedRun.new(dir: Pathname(tmp).join("1"), result_name: "mentions.json", stale_after: described_class::STALE_AFTER,
                                  error_class: Slack::FetchError, runner: runner)
     fetcher = described_class.new(project, root: Pathname(tmp), run: run)

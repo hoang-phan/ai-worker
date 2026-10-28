@@ -6,8 +6,8 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
     build_jira_workflow(project, jira_ticket: "DONE-1", branch_name: "implementation-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing, **running_ai_run)
   end
   let(:stage) { build_stage(workflow, :implementation) }
-  let(:github) { double("Github::Client", find_pr_url: "https://github.com/acme/widgets/pull/9") }
-  let(:handoff) { double("Stages::ReviewHandoff", enable_auto_merge!: nil, notify_reviewers!: nil) }
+  let(:github) { instance_double(Github::Client, find_pr_url: "https://github.com/acme/widgets/pull/9") }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, enable_auto_merge!: nil, notify_reviewers!: nil) }
   let(:output) { "agent output" }
 
   def finish(out = output)

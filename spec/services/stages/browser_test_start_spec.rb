@@ -9,7 +9,7 @@ RSpec.describe Stages::BrowserTestStart, type: :service do
   let(:run) do
     instance_double(AiCli::BrowserTestRun, mcp_config_path: "/tmp/mcp.json", env: { "TEST_USER" => "u" }, disallowed_tools: [ "Bash" ])
   end
-  let(:unvalidated) { double("AiCli::BrowserTestRun", validate!: run) }
+  let(:unvalidated) { instance_double(AiCli::BrowserTestRun, validate!: run) }
   let(:factory) { class_double(AiCli::BrowserTestRun, new: unvalidated) }
 
   def start(kind)

@@ -6,8 +6,8 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
     build_jira_workflow(project, jira_ticket: "PCF-1", branch_name: "pr-check-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :reviewing, **running_ai_run)
   end
   let(:stage) { build_stage(workflow, :pr_check) }
-  let(:github) { double("Github::Client", request_review!: nil) }
-  let(:handoff) { double("Stages::ReviewHandoff", reviewers: [ "octocat" ], notify_reviewers!: nil) }
+  let(:github) { instance_double(Github::Client, request_review!: nil) }
+  let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ], notify_reviewers!: nil) }
 
   def finish(output)
     described_class.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call(output)
