@@ -19,14 +19,14 @@ Scope:
 - `app/services/scheduling/uat_phase.rb` schedules due or retried UAT tests within free slots; its `clock:` seam passes a fixed `now:` to the due-UAT query in specs.
 - `app/services/scheduling/workflow_queries.rb` provides the AR selections, ordering, due-UAT relation (with a `now:` seam), and free-slot count.
 - `config/sidekiq.yml` serializes scheduler ticks.
-- `config/schedule.yml` defines the cron cadence.
+- `config/schedule.yml` defines the cron cadence; `spec/config/sidekiq_schedule_spec.rb` asserts every entry parses with Fugit and has exactly five time fields (plus an optional time-zone token).
 - `spec/services/scheduling/tick_spec.rb` covers phase order, named-workflow forwarding, and max_capacity defaults via injected `*_class:` factories.
 
 What a started stage does is `StageExecutor` (`ai-worker-stage-pipeline`; stage-type wiring: `ai-worker-stage-types`). The code wins over `docs/RUNBOOK.md`.
 
 ## Tick
 
-`WorkflowSchedulerJob#perform(run_workflow_id = nil, tick: nil)` is cron-driven on the `stage_execution` queue (`schedule.yml`: every 3 minutes, in two entries for working hours 05–14 and off-hours, Asia/Ho_Chi_Minh). Cron and `perform_later` pass no keywords; the default builds `Scheduling::Tick` with `max_capacity: max_concurrent_agents`. It walks every in-flight workflow in `position` order and never blocks on an agent. Three phases, in order:
+`WorkflowSchedulerJob#perform(run_workflow_id = nil, tick: nil)` is cron-driven on the `stage_execution` queue (`schedule.yml`: every 2 minutes, in two entries for working hours 05–13 and off-hours, Asia/Ho_Chi_Minh). Cron and `perform_later` pass no keywords; the default builds `Scheduling::Tick` with `max_capacity: max_concurrent_agents`. It walks every in-flight workflow in `position` order and never blocks on an agent. Three phases, in order:
 
 1. **Active workflows** — `Scheduling::ActiveWorkflowRunner` handles `implementing`/`reviewing`/`local_testing`, plus `merged`/`uat_testing` ones that are `processing`. Running ones are executed (polled) first so finished runs free their slot and clone; then eligible waiting ones are started while `Scheduling::Capacity#can_start?` holds, calling `started!` only if the workflow is `processing` after `execute`.
 2. **Post-merge** — `Scheduling::PostMergePhase` is skipped while any workflow is `implementing`/`local_testing` or any is `processing`. Otherwise `confirm_merges` runs `Stages::MergeCheck` for `done` development workflows with a PR URL that `tracks_jira_after_merge?`, then one non-processing `merged` workflow (lowest position) is executed.

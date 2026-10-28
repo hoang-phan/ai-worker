@@ -1,7 +1,7 @@
 # Working hours are 05:00-14:00 Vietnam time (UTC+7, Asia/Ho_Chi_Minh)
 
 workflow_scheduler:
-  cron: "*/2 5-13 * * Asia/Ho_Chi_Minh"
+  cron: "*/2 5-13 * * * Asia/Ho_Chi_Minh"
   class: "WorkflowSchedulerJob"
   active_job: true
   queue: stage_execution
