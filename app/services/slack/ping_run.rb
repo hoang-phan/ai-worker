@@ -38,12 +38,11 @@ module Slack
     end
 
     # Alive and fresh. A missing pid file counts as finished, as does a stale run.
-    def running?(poller, now = Time.current)
-      state = pid_file.exist? ? poller.call(pid_file.read.to_i) : [ :completed, nil ]
-      state == :running && !stale?(now)
+    def running?(poller, now)
+      pid_file.exist? && poller.call(pid_file.read.to_i) == :running && !stale?(now)
     end
 
-    def stale?(now = Time.current)
+    def stale?(now)
       started_at <= now - STALE_AFTER
     end
 
