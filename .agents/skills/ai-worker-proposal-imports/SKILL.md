@@ -7,7 +7,7 @@ description: Owns normalization and import of agent-proposed workflows. Use for 
 
 Scope: `app/models/workflows/{proposal_normalizer,proposal_workflow,summary_key}.rb`, `app/services/brainstorm/proposal_importer.rb`, `app/services/stages/follow_up_importer.rb`, and `spec/models/workflows/{proposal_normalizer,proposal_workflow,summary_key}_spec.rb`, `spec/services/brainstorm/proposal_importer_spec.rb`, and `spec/services/stages/follow_up_importer_spec.rb`.
 
-This skill owns the shared seams and the deliberately different importing policies. Read the code and its mirrored specs before changing a policy. Brainstorm lifecycle/prompt/job work remains `ai-worker-brainstorm`; task-stage completion remains `ai-worker-stage-pipeline`; result-marker parsing remains `ai-worker-agent-cli`; general model/enum rules remain `ai-worker-domain`.
+This skill owns the shared seams and the deliberately different importing policies. Read the code and its mirrored specs before changing a policy. Brainstorm lifecycle/prompt/job work remains `ai-worker-brainstorm`; task-stage completion remains `ai-worker-stage-pipeline`; result-marker parsing remains `ai-worker-agent-output`; general model/enum rules remain `ai-worker-domain`.
 
 ## Shared seams
 

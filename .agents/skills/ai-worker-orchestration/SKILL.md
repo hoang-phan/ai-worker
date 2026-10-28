@@ -23,6 +23,7 @@ Each existing `app/services/**` and `app/jobs/**` path has one primary owner. Ot
 | `app/jobs/slack_ping_job.rb`, `app/services/slack/{notify_error,ping_collector,ping_run,review_message,review_notifier}.rb` | `ai-worker-slack-review-pings` |
 | `app/jobs/workflow_scheduler_job.rb`, `app/services/scheduling/**` | `ai-worker-scheduling` |
 | `app/services/agent_runs/**` | `ai-worker-detached-agent-runs` |
+| `app/services/ai_cli/{output,claude_result,run_verdict}.rb` | `ai-worker-agent-output` |
 | `app/services/ai_cli/**`, `app/services/ci/**`, `app/services/stages/run_tooling.rb` | `ai-worker-agent-cli` |
 | `app/services/git/**` | `ai-worker-git` |
 | `app/services/github/**` | `ai-worker-github` |

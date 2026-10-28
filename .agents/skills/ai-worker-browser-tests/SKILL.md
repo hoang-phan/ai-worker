@@ -19,7 +19,7 @@ description: Applies ai-worker's agent-driven browser-test discipline (uat_test 
 
 Related files owned elsewhere (read them, but follow the owning skill when changing them):
 
-- Launching the CLI (`AiCli::Runner`, `Command`, `command/{claude,codex,cursor}.rb`) with `--mcp-config` / Codex `-c mcp_servers...` overrides, and the result-marker parser `AiCli::Output`: `ai-worker-agent-cli`.
+- Launching the CLI (`AiCli::Runner`, `Command`, `command/{claude,codex,cursor}.rb`) with `--mcp-config` / Codex `-c mcp_servers...` overrides: `ai-worker-agent-cli`. Result-marker parser `AiCli::Output`: `ai-worker-agent-output`.
 - `AiCli::Provider` and `provider/{claude,codex,cursor}.rb` (provider registry and selection): `ai-worker-cli-selection`.
 - `Stages::{JiraUpdateFinish,PrCheckFinish,PrCheckDecision,ReviewHandoff}` — the UAT scheduling handoff, retest branch and reviewer/auto-merge handoff live inside general stage finishers, and `StartHandler` / `CompletionHandler` dispatch: `ai-worker-stage-pipeline`.
 - Readiness predicates on `Project`, `Stage#local_test_unfinished?`, `StageRun::ACTIONS`, `Stages::RunHistory`: `ai-worker-domain`.
