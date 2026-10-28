@@ -19,6 +19,18 @@ RSpec.describe Stages::CollaboratorFactory, type: :service do
     expect(build([ klass, %i[workflow stage] ]).kwargs).to eq(workflow: :wf, stage: :st)
   end
 
+  it "merges per-entry extras before slicing keys" do
+    klass = Class.new do
+      attr_reader :kwargs
+
+      def initialize(**kwargs)
+        @kwargs = kwargs
+      end
+    end
+
+    expect(build([ klass, %i[workflow kind], { kind: :uat } ]).kwargs).to eq(workflow: :wf, kind: :uat)
+  end
+
   it "calls an injected callable with every collaborator as a keyword" do
     received = nil
     entry = ->(**kwargs) { received = kwargs; :built }

@@ -1,6 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Stages::StartHandler, type: :service do
+  RecordingStarter = Class.new do
+    attr_reader :kwargs
+    def initialize(**kwargs) = @kwargs = kwargs
+    def call = self
+  end
+
   let_jira_project("start-handler-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
@@ -13,7 +19,7 @@ RSpec.describe Stages::StartHandler, type: :service do
   let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
 
-  let(:starter_names) { %i[pr_check pr_review ci_check browser_test runbook_step] }
+  let(:starter_names) { %w[pr_check pr_review ci_check uat_test local_test runbook_step] }
   let(:built) { Hash.new { |hash, name| hash[name] = [] } }
   let(:fake_starters) do
     starter_names.to_h do |name|
@@ -33,13 +39,17 @@ RSpec.describe Stages::StartHandler, type: :service do
     expect(launcher).to have_received(:call).with(prompt_text, **options)
   end
 
-  describe "implementation" do
+  shared_examples "creates branch and starts agent" do
     it "creates the branch and starts the agent" do
       handler.call
 
       expect(git).to have_received(:create_branch!).with(project, "start-handler")
       expect_run_started
     end
+  end
+
+  describe "implementation" do
+    include_examples "creates branch and starts agent"
 
     it "propagates a branch error without starting the agent" do
       allow(git).to receive(:create_branch!).and_raise(Git::CommandError, "nope")
@@ -47,6 +57,12 @@ RSpec.describe Stages::StartHandler, type: :service do
       expect { handler.call }.to raise_error(Git::CommandError, "nope")
       expect(launcher).not_to have_received(:call)
     end
+  end
+
+  describe "simple_implementation" do
+    let(:stage_type) { :simple_implementation }
+
+    include_examples "creates branch and starts agent"
   end
 
   describe "prompt-only stages" do
@@ -89,25 +105,14 @@ RSpec.describe Stages::StartHandler, type: :service do
     end
   end
 
-  describe "simple_implementation" do
-    let(:stage_type) { :simple_implementation }
-
-    it "creates the branch and starts the agent" do
-      handler.call
-
-      expect(git).to have_received(:create_branch!).with(project, "start-handler")
-      expect_run_started
-    end
-  end
-
   describe "ci_check" do
     let(:stage_type) { :ci_check }
 
     it "delegates to Stages::CiCheckStart" do
       handler.call
 
-      expect(built[:ci_check]).to contain_exactly(hash_including(stage: stage, project: project, launcher: launcher))
-      expect(built.keys).to eq([ :ci_check ])
+      expect(built["ci_check"]).to contain_exactly(hash_including(stage: stage, project: project, launcher: launcher))
+      expect(built.keys).to eq([ "ci_check" ])
     end
   end
 
@@ -117,25 +122,25 @@ RSpec.describe Stages::StartHandler, type: :service do
     it "delegates to Stages::PrReviewStart" do
       handler.call
 
-      expect(built[:pr_review]).to contain_exactly(
+      expect(built["pr_review"]).to contain_exactly(
         hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git, prompt: prompt, launcher: launcher)
       )
-      expect(built.keys).to eq([ :pr_review ])
+      expect(built.keys).to eq([ "pr_review" ])
     end
   end
 
   describe "browser-test stages" do
-    Stages::StartHandler::BROWSER_TEST_KINDS.each do |type, kind|
+    { "uat_test" => :uat, "local_test" => :local }.each do |type, kind|
       context type do
         let(:stage_type) { type }
+        let(:fake_starters) do
+          { type => [ RecordingStarter, %i[workflow project kind prompt git launcher], { kind: kind } ] }
+        end
 
         it "delegates to BrowserTestStart for the #{kind} kind" do
-          handler.call
-
-          expect(built[:browser_test]).to contain_exactly(
-            hash_including(workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher)
+          expect(handler.call.kwargs).to eq(
+            workflow: workflow, project: project, kind: kind, prompt: prompt, git: git, launcher: launcher
           )
-          expect(built.keys).to eq([ :browser_test ])
         end
       end
     end
@@ -147,10 +152,10 @@ RSpec.describe Stages::StartHandler, type: :service do
     it "delegates to Stages::RunbookStepStart" do
       handler.call
 
-      expect(built[:runbook_step]).to contain_exactly(
+      expect(built["runbook_step"]).to contain_exactly(
         hash_including(workflow: workflow, stage: stage, github: github, prompt: prompt, launcher: launcher)
       )
-      expect(built.keys).to eq([ :runbook_step ])
+      expect(built.keys).to eq([ "runbook_step" ])
     end
   end
 
@@ -160,11 +165,11 @@ RSpec.describe Stages::StartHandler, type: :service do
     it "delegates to Stages::PrCheckRun, passing the launcher" do
       handler.call
 
-      expect(built[:pr_check]).to contain_exactly(
+      expect(built["pr_check"]).to contain_exactly(
         hash_including(workflow: workflow, stage: stage, project: project, github: github, git: git,
                        handoff: handoff, prompt: prompt, launcher: launcher)
       )
-      expect(built.keys).to eq([ :pr_check ])
+      expect(built.keys).to eq([ "pr_check" ])
     end
   end
 
@@ -179,11 +184,12 @@ RSpec.describe Stages::StartHandler, type: :service do
 
   describe "default STARTERS" do
     starters = {
-      pr_check: [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
-      pr_review: [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
-      ci_check: [ Stages::CiCheckStart, %i[stage project launcher] ],
-      browser_test: [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher] ],
-      runbook_step: [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]
+      "pr_check" => [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
+      "pr_review" => [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
+      "ci_check" => [ Stages::CiCheckStart, %i[stage project launcher] ],
+      "uat_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :uat } ],
+      "local_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :local } ],
+      "runbook_step" => [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]
     }
 
     it "covers every start-service arm" do
