@@ -65,7 +65,7 @@ RSpec.describe "Project dashboard", type: :request do
       get project_path(personal)
 
       expect(Nokogiri::HTML(response.body).text).to include("Brainstorm", "3 days ago · created 2 · 0 pending")
-      expect(response.body).not_to include("Jira syncs", 'id="workflow-selection-form"')
+      expect(response.body).not_to include("Jira syncs", "Log time on selected", "Select all non time logged")
     end
 
     it "renders the workflow empty state" do
