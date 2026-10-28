@@ -7,10 +7,7 @@ RSpec.describe "time travel ratchet" do
   TIME_TRAVEL_PATTERN = Regexp.union("travel" + "_to", "freeze" + "_time", "travel" + "(")
 
   # path => maximum match count. Lower or delete an entry when time travel goes away.
-  TIME_TRAVEL_ALLOWLIST = {
-    "spec/services/agent_runs/cadence_spec.rb" => 2,
-    "spec/services/ai_cli/run_logs_spec.rb" => 1
-  }.freeze
+  TIME_TRAVEL_ALLOWLIST = {}.freeze
 
   def scanned_files
     Dir.glob("spec/**/*_spec.rb").sort

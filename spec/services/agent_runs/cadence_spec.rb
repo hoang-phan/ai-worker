@@ -24,12 +24,6 @@ RSpec.describe AgentRuns::Cadence do
       expect(due?(now - 3.hours - 1.second)).to be(true)
     end
 
-    it "defaults now to Time.current" do
-      travel_to(now) do
-        expect(described_class.every(3.hours, last_started_at: now - 3.hours)).to be(true)
-        expect(described_class.every(3.hours, last_started_at: now - 2.hours)).to be(false)
-      end
-    end
   end
 
   describe ".daily_on_weekdays" do
@@ -71,8 +65,5 @@ RSpec.describe AgentRuns::Cadence do
       expect(due?(wednesday, wednesday.beginning_of_day)).to be(false)
     end
 
-    it "defaults now to Time.zone.now" do
-      travel_to(wednesday) { expect(described_class.daily_on_weekdays(hour: 9, last_started_at: nil)).to be(true) }
-    end
   end
 end

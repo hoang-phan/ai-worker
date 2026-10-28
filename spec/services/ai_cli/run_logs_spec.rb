@@ -10,10 +10,10 @@ RSpec.describe AiCli::RunLogs do
       expect(path).to eq(File.join(dir, "workflow-7-1700000000.log"))
     end
 
-    it "defaults to DIR and the current time" do
-      freeze_time do
-        expect(described_class.new_path(7)).to eq(File.join(described_class::DIR, "workflow-7-#{Time.current.to_i}.log"))
-      end
+    it "defaults to DIR" do
+      path = described_class.new_path(7, at: Time.at(1_700_000_000))
+
+      expect(path).to eq(File.join(described_class::DIR, "workflow-7-1700000000.log"))
     end
   end
 

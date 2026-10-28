@@ -3,7 +3,7 @@ module AiCli
   module RunLogs
     DIR = Rails.root.join("log", "ai_runs")
 
-    def self.new_path(workflow_id, at: Time.current, dir: DIR)
+    def self.new_path(workflow_id, at:, dir: DIR)
       File.join(dir, "workflow-#{workflow_id}-#{at.to_i}.log")
     end
 

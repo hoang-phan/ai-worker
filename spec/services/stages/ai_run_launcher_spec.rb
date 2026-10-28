@@ -18,7 +18,13 @@ RSpec.describe Stages::AiRunLauncher, type: :service do
       end
     end
   end
-  let(:logs) { Class.new { def self.new_path(workflow_id) = "/tmp/workflow-#{workflow_id}.log" } }
+  let(:logs) do
+    Class.new do
+      def self.new_path(workflow_id, at:)
+        "/tmp/workflow-#{workflow_id}-#{at.to_i}.log"
+      end
+    end
+  end
   let(:now) { Time.zone.local(2026, 10, 20, 12, 0) }
   let(:clock) { -> { now } }
 
@@ -30,10 +36,10 @@ RSpec.describe Stages::AiRunLauncher, type: :service do
 
     expect(runner.arguments).to eq [
       [ local_directory, "run this" ],
-      { log_path: "/tmp/workflow-#{workflow.id}.log", mcp_config: "/tmp/mcp.json", env: { "TOKEN" => "value" }, disallowed_tools: [ "Bash" ], provider: nil }
+      { log_path: "/tmp/workflow-#{workflow.id}-#{now.to_i}.log", mcp_config: "/tmp/mcp.json", env: { "TOKEN" => "value" }, disallowed_tools: [ "Bash" ], provider: nil }
     ]
     expect(workflow.reload).to have_attributes(
-      processing: true, ai_pid: 4242, ai_log_path: "/tmp/workflow-#{workflow.id}.log",
+      processing: true, ai_pid: 4242, ai_log_path: "/tmp/workflow-#{workflow.id}-#{now.to_i}.log",
       ai_started_at: now, ai_log_offset: 0
     )
     expect(workflow.ai_provider).to be_nil

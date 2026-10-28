@@ -14,7 +14,8 @@ module Stages
     end
 
     def call(prompt_text, action: "started", mcp_config: nil, env: {}, disallowed_tools: [])
-      log_path = logs.new_path(workflow.id)
+      started_at = clock.call
+      log_path = logs.new_path(workflow.id, at: started_at)
       provider = run_provider.override
       pid = runner.start(
         project.local_directory,
@@ -30,7 +31,7 @@ module Stages
         processing: true,
         ai_pid: pid,
         ai_log_path: log_path,
-        ai_started_at: clock.call,
+        ai_started_at: started_at,
         ai_log_offset: 0,
         ai_provider: provider
       )

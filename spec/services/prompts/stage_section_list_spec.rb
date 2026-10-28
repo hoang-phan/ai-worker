@@ -135,7 +135,7 @@ RSpec.describe Prompts::StageSectionList do
       # StageSectionList's default calls RunLogs.latest(id) without dir:; write under DIR rather than
       # adding a production seam to forward a tmp dir.
       FileUtils.mkdir_p(AiCli::RunLogs::DIR)
-      log_path = AiCli::RunLogs.new_path(workflow.id)
+      log_path = AiCli::RunLogs.new_path(workflow.id, at: Time.current)
       File.write(log_path, "previous attempt")
 
       begin
