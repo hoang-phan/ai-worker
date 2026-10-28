@@ -25,7 +25,7 @@ Generic detached-run rules: `ai-worker-detached-agent-runs`; model/migrations: `
 - `app/jobs/jira_sync_job.rb` — iterates all `JiraSync`s, skips projects that are not `jira?` or have no `jira_base_url`; `spec/jobs/jira_sync_job_spec.rb`.
 - `config/schedule.yml` — `jira_sync` (`*/5 5-13`) and `jira_sync_off_hours` (hourly otherwise), Asia/Ho_Chi_Minh, queue `default`.
 - `app/controllers/jira_syncs_controller.rb` — new/create/edit/update/destroy (permits `jira_project`, `parent_ticket`, `auto_sync`), redirects to the project.
-- `app/controllers/jira_sync_runs_controller.rb` — `POST /projects/:project_id/jira_syncs/:id/run` ("Sync now"): `ManualStartFlash#start_manually` (`AgentRuns::ManualStart`) with `TicketSync#blockers` and `fetcher.start`; `spec/requests/jira_sync_runs_spec.rb`. CRUD coverage lives in `spec/requests/jira_syncs_spec.rb`; `spec/requests/projects_spec.rb` also touches the section.
+- `app/controllers/jira_sync_runs_controller.rb` — `POST /projects/:project_id/jira_syncs/:id/run` ("Sync now"): one `ManualStartFlash#start_source_manually` call with `Jira::SyncCycleSource`; `spec/requests/jira_sync_runs_spec.rb`. CRUD coverage lives in `spec/requests/jira_syncs_spec.rb`; `spec/requests/projects_spec.rb` also touches the section.
 - `app/views/jira_syncs/{new,edit,_form,_list}.html.erb` — form and the project-page list with last result and "Sync now".
 
 ## Importer rules

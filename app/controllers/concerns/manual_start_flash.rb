@@ -1,14 +1,13 @@
-# Runs an AgentRuns::ManualStart and maps its result to the redirect + flash the "run now"
-# buttons show. Callers supply the label and the started / already-running texts.
+# Starts an AgentRuns::ManualStart from a CycleSource and maps its result to the
+# redirect + flash the "run now" buttons show. Callers pass the source plus the
+# label and the started / already-running texts.
 module ManualStartFlash
   extend ActiveSupport::Concern
 
   private
 
-  # Remaining keywords (blockers:, start:, skip_reason:, after_start:, rescue_errors:) go to
-  # AgentRuns::ManualStart.call unchanged.
-  def start_manually(label:, started:, already_running:, to: @project, **manual_start_args)
-    result = AgentRuns::ManualStart.call(**manual_start_args)
+  def start_source_manually(source, label:, started:, already_running:, to: @project)
+    result = AgentRuns::ManualStart.for(source).call
     redirect_after_manual_start(result, to:, label:, started:, already_running:)
   end
 

@@ -5,7 +5,7 @@
 # Prefer ManualStart.for(source) when the record has an AgentRuns::CycleSource:
 # that wires blockers / skip_reason / start! / after_start / rescue_errors from
 # the source so the source stays the single place that knows how the run is
-# gated, started and rescued. Hand-built callbacks remain for one-offs.
+# gated, started and rescued.
 #
 # Callbacks (all callables):
 #   blockers    -> array of reasons not to start
@@ -18,8 +18,6 @@
 module AgentRuns
   class ManualStart
     Result = Struct.new(:status, :detail, keyword_init: true)
-
-    def self.call(...) = new(...).call
 
     def self.for(source)
       new(

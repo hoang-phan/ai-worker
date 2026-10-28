@@ -20,7 +20,7 @@ Scope: a detached agent reads open Bugsnag errors, files a Jira Bug per new erro
 - `app/jobs/bugsnag_sync_job.rb` — `find_each` + `AgentRuns::SyncCycle.call` rescuing `Bugsnag::FetchError, AiCli::CommandError` (`spec/jobs/bugsnag_sync_job_spec.rb`).
 - `config/schedule.yml` — `bugsnag_sync` (`*/5` 05–13 Asia/Ho_Chi_Minh) and `bugsnag_sync_off_hours` (hourly otherwise), queue `default`; cron is only the poll tick, the once-a-day rule lives in the source.
 - `app/controllers/bugsnag_syncs_controller.rb` — includes `ProjectScoped` then `ProjectChildCrud`, configuring `:bugsnag_syncs` and the "Bugsnag sync" flash label; CRUD remains nested under project (redirects to project; permits the five editable fields) (`spec/requests/bugsnag_syncs_spec.rb`).
-- `app/controllers/bugsnag_sync_runs_controller.rb` — "Run now" (`POST /projects/:id/bugsnag_syncs/:id/run` → `#create`): `ManualStartFlash#start_manually` (`AgentRuns::ManualStart` with `TriageSync#blockers` / `triager.start`) (`spec/requests/bugsnag_sync_runs_spec.rb`). Ignores `auto_sync`/`due?`.
+- `app/controllers/bugsnag_sync_runs_controller.rb` — "Run now" (`POST /projects/:id/bugsnag_syncs/:id/run` → `#create`): one `ManualStartFlash#start_source_manually` call with `Bugsnag::SyncCycleSource` (`spec/requests/bugsnag_sync_runs_spec.rb`). Ignores `auto_sync`/`due?`.
 - `app/views/bugsnag_syncs/{new,edit,_form,_list}.html.erb` (table: label, auto, ledger size, last run/result, Run now/Edit/Delete) — covered by the request specs.
 
 ## Invariants

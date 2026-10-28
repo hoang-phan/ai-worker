@@ -13,7 +13,7 @@ Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesh
 - `app/controllers/concerns/project_scoped.rb` — project loading for nested controllers.
 - `app/controllers/concerns/project_child_crud.rb` — reusable project-nested CRUD actions.
 - `app/controllers/concerns/project_member_scoped.rb` — project loading for `/projects/:id` member actions.
-- `app/controllers/concerns/manual_start_flash.rb` — `AgentRuns::ManualStart` redirect and flash mapping.
+- `app/controllers/concerns/manual_start_flash.rb` — `start_source_manually` runs `AgentRuns::ManualStart.for(source)` and maps the result to redirect + flash.
 - `app/helpers/action_links_helper.rb` — reusable destructive links and inline button forms; spec: `spec/helpers/action_links_helper_spec.rb`.
 - `app/views/layouts/application.html.erb` — navigation and flashes; spec: `spec/requests/layout_spec.rb`.
 - `app/views/layouts/mailer.html.erb` — mailer HTML layout.
@@ -52,7 +52,7 @@ Scope: ProjectsController CRUD, shared UI, stylesheets under `app/assets/stylesh
 
 - These are plain Rails server-rendered CRUD controllers. `create`/`update` re-render `:new`/`:edit` with `status: :unprocessable_entity` on failure; `destroy` redirects with a flash `notice`; forms are `form_with model:` partials shared between `new`/`edit`.
 - Project-nested CRUD controllers include `ProjectScoped` followed by `ProjectChildCrud`; configure their association and flash label and keep only strong params locally. `ProjectSlackSyncsController` and `ProjectBrainstormsController` use `ProjectMemberScoped`; `ProjectsController` uses neither.
-- Controllers stay thin. Do not put scheduler, agent, or git logic in a request; new “run now” actions include `ManualStartFlash` and make one `start_manually(...)` call.
+- Controllers stay thin. Do not put scheduler, agent, or git logic in a request; new “run now” actions include `ManualStartFlash` and make one `start_source_manually(...)` call.
 - Render destructive links with `delete_link_to` and single-action inline forms with `inline_button_to`.
 - Enum-backed selects use the model’s own keys; system-set fields do not go in forms or strong params. Secrets are never rendered back into a form; blank means “keep”.
 - Test with RSpec under `spec/`; never use development data, scratch runners, or destructive dev-server actions for verification.

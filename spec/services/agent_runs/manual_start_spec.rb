@@ -5,9 +5,9 @@ RSpec.describe AgentRuns::ManualStart do
   let(:started) { [] }
 
   def run(**overrides)
-    described_class.call(
+    described_class.new(
       blockers: -> { [] }, start: -> { started << :start; true }, rescue_errors: errors, **overrides
-    )
+    ).call
   end
 
   it "is blocked with the joined blockers and does not start" do
