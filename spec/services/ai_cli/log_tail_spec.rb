@@ -31,12 +31,13 @@ RSpec.describe AiCli::LogTail do
 
     it "logs each line with the tag" do
       File.write(log_path, "one\ntwo\n")
-      allow(Rails.logger).to receive(:info)
+      logger = ActiveSupport::Logger.new(io = StringIO.new)
+      tail = described_class.new(log_path: log_path, log_tag: "workflow=1 stage=2", logger: logger)
 
       tail.read_from(0)
 
-      expect(Rails.logger).to have_received(:info).with("[ai_cli workflow=1 stage=2] one")
-      expect(Rails.logger).to have_received(:info).with("[ai_cli workflow=1 stage=2] two")
+      expect(io.string).to include("[ai_cli workflow=1 stage=2] one")
+      expect(io.string).to include("[ai_cli workflow=1 stage=2] two")
     end
   end
 

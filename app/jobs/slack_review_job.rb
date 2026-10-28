@@ -5,12 +5,14 @@
 class SlackReviewJob < ApplicationJob
   queue_as :default
 
-  def perform(source_factory: Slack::ReviewCycleSource.method(:new))
+  def perform(source_factory: Slack::ReviewCycleSource.method(:new), cycle: AgentRuns::SyncCycle,
+              logger: Rails.logger)
     Project.jira.where(slack_review_enabled: true).find_each do |project|
       log_prefix = "[SlackReviewJob] project=#{project.id}"
-      AgentRuns::SyncCycle.call(
+      cycle.call(
         source: source_factory.call(project),
-        log_prefix: log_prefix
+        log_prefix: log_prefix,
+        logger: logger
       )
     end
   end

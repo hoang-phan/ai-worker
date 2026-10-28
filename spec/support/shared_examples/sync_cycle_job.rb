@@ -15,17 +15,17 @@ RSpec.shared_examples "an agent sync-cycle job" do
     sources = eligible_records.to_h { |record| [ record, instance_double(source_class) ] }
     factory_records = []
     source_factory = ->(record) { factory_records << record; sources.fetch(record) }
+    cycle_calls = []
+    cycle = ->(**kwargs) { cycle_calls << kwargs }
 
-    eligible_records.each do |record|
-      expect(AgentRuns::SyncCycle).to receive(:call).with(
-        source: sources.fetch(record),
-        log_prefix: log_prefix_for.call(record)
-      ).ordered
-    end
-
-    described_class.perform_now(source_factory: source_factory)
+    described_class.perform_now(source_factory: source_factory, cycle: cycle)
 
     expect(factory_records).to eq(eligible_records)
+    expect(cycle_calls).to match(
+      eligible_records.map do |record|
+        hash_including(source: sources.fetch(record), log_prefix: log_prefix_for.call(record))
+      end
+    )
   end
 
   it "persists an expected error and continues to the next record" do
@@ -40,9 +40,8 @@ RSpec.shared_examples "an agent sync-cycle job" do
 
     allow(failing_source).to receive(:poll).and_raise(error_class, "source unavailable")
     allow(failing_source).to receive(:persist_failure!) { |message| failure_observer.call(failing_record, message) }
-    allow(Rails.logger).to receive(:error)
 
-    described_class.perform_now(source_factory: source_factory)
+    described_class.perform_now(source_factory: source_factory, logger: ActiveSupport::Logger.new(StringIO.new))
 
     expect(failure_observer.call(failing_record)).to eq("failed: source unavailable")
     expect(factory_records).to eq([ failing_record, next_record ])

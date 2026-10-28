@@ -61,20 +61,18 @@ RSpec.describe Github::Reader do
     expect(reader.merged?(pr_url)).to be(true)
   end
 
-  it "hands latest reviews to ReviewDecision" do
+  it "derives the review decision from latest reviews JSON" do
     command = [ "gh", "pr", "view", pr_url, "--json", "latestReviews" ]
     reviews = [ { "author" => { "login" => "alice" }, "state" => "APPROVED" } ]
     stub_run(command, JSON.generate("latestReviews" => reviews))
-    expect(Github::ReviewDecision).to receive(:call).with(reviews, [ "alice" ]).and_return("APPROVED")
 
     expect(reader.review_decision(pr_url, [ "alice" ])).to eq("APPROVED")
   end
 
-  it "hands the status check rollup to FailingChecks" do
+  it "detects failing checks from the status check rollup JSON" do
     command = [ "gh", "pr", "view", pr_url, "--json", "statusCheckRollup" ]
     rollup = [ { "conclusion" => "FAILURE" } ]
     stub_run(command, JSON.generate("statusCheckRollup" => rollup))
-    expect(Github::FailingChecks).to receive(:call).with(rollup).and_return(true)
 
     expect(reader).to be_checks_failing(pr_url)
   end

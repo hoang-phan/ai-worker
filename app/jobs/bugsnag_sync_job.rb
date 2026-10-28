@@ -5,11 +5,13 @@
 class BugsnagSyncJob < ApplicationJob
   queue_as :default
 
-  def perform(source_factory: Bugsnag::SyncCycleSource.method(:new))
+  def perform(source_factory: Bugsnag::SyncCycleSource.method(:new), cycle: AgentRuns::SyncCycle,
+              logger: Rails.logger)
     BugsnagSync.includes(:project).find_each do |bugsnag_sync|
-      AgentRuns::SyncCycle.call(
+      cycle.call(
         source: source_factory.call(bugsnag_sync),
-        log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id}"
+        log_prefix: "[BugsnagSyncJob] bugsnag_sync=#{bugsnag_sync.id}",
+        logger: logger
       )
     end
   end

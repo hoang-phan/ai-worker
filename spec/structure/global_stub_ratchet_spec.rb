@@ -13,16 +13,7 @@ module GlobalStubRatchet
   PATTERN = Regexp.union(/#{RUNNER_RECEIVE}/, /#{OTHER_RECEIVE}/, /stub_const\(/, /(?:allow|expect)_any_instance_of\(/)
 
   # path => maximum match count. Lower or delete an entry when stubs go away.
-  ALLOWLIST = {
-    "spec/jobs/jira_hours_sync_job_spec.rb" => 1,
-    "spec/models/workflow_spec.rb" => 1,
-    "spec/services/ai_cli/log_tail_spec.rb" => 1,
-    "spec/services/github/reader_spec.rb" => 2,
-    "spec/services/slack/ping_collector_spec.rb" => 2,
-    "spec/services/slack/review_cycle_source_spec.rb" => 1,
-    "spec/services/slack/review_notifier_spec.rb" => 2,
-    "spec/support/shared_examples/sync_cycle_job.rb" => 2
-  }.freeze
+  ALLOWLIST = {}.freeze
 end
 
 RSpec.describe "global stub ratchet" do

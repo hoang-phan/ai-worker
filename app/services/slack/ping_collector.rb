@@ -4,10 +4,12 @@ module Slack
   # Reads back the posting runs started by Slack::ReviewNotifier: walks tmp/slack_pings/<workflow_id>/<started_at>/,
   # and the first permalink found in a finished run's agent.log becomes Workflow#slack_review_thread_ts when blank.
   class PingCollector
-    def initialize(root: PingRun::ROOT, poller: AiCli::Runner.method(:poll), clock: -> { Time.current })
+    def initialize(root: PingRun::ROOT, poller: AiCli::Runner.method(:poll), clock: -> { Time.current },
+                   logger: Rails.logger)
       @root = Pathname(root)
       @poller = poller
       @clock = clock
+      @logger = logger
     end
 
     def pending_workflow_ids
@@ -35,7 +37,7 @@ module Slack
 
     private
 
-    attr_reader :root, :poller, :clock
+    attr_reader :root, :poller, :clock, :logger
 
     # Returns :running while the run is fresh and alive; otherwise reads its permalink and returns :finished.
     # A finished run with a permalink is removed; one without is logged and kept.
@@ -45,7 +47,7 @@ module Slack
 
       link = run.permalink
       if link.blank?
-        Rails.logger.warn("[Slack::ReviewNotifier] workflow=#{workflow.id} ping gave no permalink; see #{dir}")
+        logger.warn("[Slack::ReviewNotifier] workflow=#{workflow.id} ping gave no permalink; see #{dir}")
       else
         workflow.update!(slack_review_thread_ts: link) if workflow.slack_review_thread_ts.blank?
         FileUtils.rm_rf(dir)

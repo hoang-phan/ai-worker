@@ -44,9 +44,9 @@ RSpec.describe Slack::ReviewNotifier do
     end
 
     it "starts the run with the configured model" do
-      allow(described_class).to receive(:model).and_return("sonnet")
+      notifier = described_class.new(project, runner: runner, clock: -> { now }, root: tmp_root, model: "sonnet")
 
-      notify
+      notifier.notify!(workflow: workflow, pr_url: "u", label: "l", reviewers: [])
 
       expect(runner).to have_received(:start).with(
         run_dir.to_s, anything, hash_including(model: "sonnet")
@@ -106,10 +106,14 @@ RSpec.describe Slack::ReviewNotifier do
 
     it "uses its clock when the default collector checks whether a ping is stale" do
       started_at = Time.current
-      notifier = described_class.new(project, runner: runner, clock: -> { started_at + 6.minutes }, root: tmp_root)
+      collector = Slack::PingCollector.new(
+        root: tmp_root, poller: runner.method(:poll), clock: -> { started_at + 6.minutes },
+        logger: ActiveSupport::Logger.new(StringIO.new)
+      )
+      notifier = described_class.new(project, runner: runner, clock: -> { started_at + 6.minutes },
+                                    root: tmp_root, collector: collector)
       path = ping(pid: 42, log: "", started_at: started_at)
       allow(runner).to receive(:poll).with(42).and_return(:running)
-      allow(Rails.logger).to receive(:warn)
 
       expect(notifier.collect(workflow)).to be(false)
       expect(path).to exist

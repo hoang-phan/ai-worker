@@ -45,9 +45,11 @@ RSpec.describe Slack::PingCollector do
 
   it "logs and keeps a dir without a permalink" do
     path = ping(log: "could not post")
-    expect(Rails.logger).to receive(:warn).with(/no permalink/)
+    logger = ActiveSupport::Logger.new(io = StringIO.new)
+    collector = described_class.new(root: root, poller: poller, logger: logger)
     expect(workflow).not_to receive(:update!)
     expect(collector.collect(workflow)).to be(false)
+    expect(io.string).to match(/no permalink/)
     expect(path).to exist
     expect(workflow_dir).to exist
   end
@@ -78,7 +80,7 @@ RSpec.describe Slack::PingCollector do
 
   it "keeps the workflow dir when a finished ping without a permalink remains" do
     ping(log: "nothing")
-    allow(Rails.logger).to receive(:warn)
+    collector = described_class.new(root: root, poller: poller, logger: ActiveSupport::Logger.new(StringIO.new))
     collector.collect(workflow)
     expect(workflow_dir).to exist
   end

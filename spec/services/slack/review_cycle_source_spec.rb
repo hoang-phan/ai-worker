@@ -1,6 +1,8 @@
 require "rails_helper"
 
-RSpec.describe Slack::ReviewCycleSource do
+RSpec.describe Slack::ReviewCycleSource, active_job_test_adapter: true do
+  include ActiveJob::TestHelper
+
   let(:record) { double("project", update: true) }
   let(:fetcher) { instance_double(Slack::MentionFetcher, poll: nil, running?: false, last_started_at: nil, start: nil) }
   let(:sync) { instance_double(Slack::ReviewSync, fetcher: fetcher, blockers: [ "no token" ]) }
@@ -11,8 +13,6 @@ RSpec.describe Slack::ReviewCycleSource do
   def result(created: [], failed: [])
     Slack::ReviewSync::Result.new(blockers: [], created: created, skipped: [], failed: failed, skipped_reasons: Hash.new(0))
   end
-
-  before { allow(WorkflowSchedulerJob).to receive(:perform_later) }
 
   it "appends failures to the log line" do
     expect(source.log_detail(result(failed: [ "x", "y" ]))).to eq("x; y")
@@ -27,10 +27,8 @@ RSpec.describe Slack::ReviewCycleSource do
   end
 
   it "enqueues the scheduler after import only when workflows were created" do
-    source.after_import(result)
-    expect(WorkflowSchedulerJob).not_to have_received(:perform_later)
-    source.after_import(result(created: [ 1 ]))
-    expect(WorkflowSchedulerJob).to have_received(:perform_later).once
+    expect { source.after_import(result) }.not_to have_enqueued_job(WorkflowSchedulerJob)
+    expect { source.after_import(result(created: [ 1 ])) }.to have_enqueued_job(WorkflowSchedulerJob).once
   end
 
   it "rescues its FetchError and AiCli::CommandError" do

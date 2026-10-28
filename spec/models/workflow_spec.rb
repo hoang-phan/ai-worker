@@ -30,11 +30,8 @@ RSpec.describe Workflow, type: :model do
   end
 
   describe "#slack_review_thread_ts=" do
-    it "delegates normalization to Slack::ThreadRef" do
-      value = "https://acme.slack.com/archives/C123ABC/p1760000000123456"
-      expect(Slack::ThreadRef).to receive(:ts_for).with(value).and_return("1760000000.123456")
-
-      workflow.slack_review_thread_ts = value
+    it "normalizes a Slack permalink to a thread timestamp" do
+      workflow.slack_review_thread_ts = "https://acme.slack.com/archives/C123ABC/p1760000000123456"
 
       expect(workflow.slack_review_thread_ts).to eq("1760000000.123456")
     end

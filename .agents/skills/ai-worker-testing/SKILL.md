@@ -37,8 +37,9 @@ description: Applies ai-worker's testing discipline. Use for any task that adds 
 ## Seams over global stubs
 
 - Inject collaborators by keyword (see `ai-worker-refactoring`) instead of `allow(X).to receive(:new)`.
-- Thin cron jobs take a perform-keyword seam with a production default (`sync:`, `collector:`, `tick:`) so specs call `perform_now(sync: double)` (etc.) instead of stubbing `.new`.
+- Thin cron jobs take a perform-keyword seam with a production default (`sync:`, `collector:`, `tick:`, `cycle:`) so specs call `perform_now(sync: double)` (etc.) instead of stubbing `.new` or `AgentRuns::SyncCycle.call`.
 - Inject a `clock:` callable instead of `freeze_time`/`travel_to` where the class offers one (`AiCli::DetachedRun`, `AiCli::StaleRun`, `Brainstorm::Planner`, `Slack::PingCollector`, `Slack::ReviewNotifier`, `Jira::WorklogSiteSync`).
+- Inject a `logger:` keyword (default `Rails.logger`) instead of stubbing `Rails.logger` — used by `AiCli::LogTail`, `Slack::PingCollector`, `JiraHoursSyncJob`, and the sync-cycle jobs (`JiraSyncJob`, `SlackReviewJob`, `BugsnagSyncJob`, `BrainstormJob`) which forward it to `AgentRuns::SyncCycle`. Assert on `ActiveSupport::Logger.new(io = StringIO.new)` via `io.string`.
 - `spec/structure/time_travel_ratchet_spec.rb` caps wall-clock `travel_to`, `freeze_time`, and `travel` usage per spec file; use a `clock:` or `now:` seam and lower or delete ALLOWLIST entries when removing time travel (never raise caps).
 - `spec/structure/constructor_stub_ratchet_spec.rb` caps remaining `receive(:new)` stubs per file; lower or delete ALLOWLIST entries when you remove stubs (never raise caps).
 - `spec/structure/private_state_peek_ratchet_spec.rb` caps `instance_variable_get` and private `send` calls per file; assert public behaviour or use a small spec-local subclass for protected hooks, then lower or delete ALLOWLIST entries (never raise caps).

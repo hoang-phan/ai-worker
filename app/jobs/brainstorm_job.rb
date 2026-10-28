@@ -3,11 +3,13 @@
 class BrainstormJob < ApplicationJob
   queue_as :default
 
-  def perform(source_factory: Brainstorm::CycleSource.method(:new))
+  def perform(source_factory: Brainstorm::CycleSource.method(:new), cycle: AgentRuns::SyncCycle,
+              logger: Rails.logger)
     Project.personal.where(brainstorm_enabled: true).find_each do |project|
-      AgentRuns::SyncCycle.call(
+      cycle.call(
         source: source_factory.call(project),
-        log_prefix: "[BrainstormJob] project=#{project.id}"
+        log_prefix: "[BrainstormJob] project=#{project.id}",
+        logger: logger
       )
     end
   end

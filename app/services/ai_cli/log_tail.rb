@@ -2,9 +2,10 @@ module AiCli
   # Reads an agent run's log file incrementally across scheduler ticks and
   # mirrors each new line into Rails.logger tagged with the run.
   class LogTail
-    def initialize(log_path:, log_tag:)
+    def initialize(log_path:, log_tag:, logger: Rails.logger)
       @log_path = log_path
       @log_tag = log_tag
+      @logger = logger
     end
 
     # Logs (and returns) any log file content written since offset.
@@ -30,10 +31,10 @@ module AiCli
 
     private
 
-    attr_reader :log_path, :log_tag
+    attr_reader :log_path, :log_tag, :logger
 
     def log_line(line)
-      Rails.logger.info("[ai_cli #{log_tag}] #{line.chomp}")
+      logger.info("[ai_cli #{log_tag}] #{line.chomp}")
     end
   end
 end
