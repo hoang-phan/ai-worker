@@ -1,16 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Stages::RunProvider, type: :service do
-  let(:store) { ActiveSupport::Cache::MemoryStore.new }
   let(:project) { build_jira_project }
   let(:workflow) { build_jira_workflow(project, jira_ticket: "RP-1", branch_name: "run-provider") }
 
   subject(:run_provider) { described_class.new(workflow: workflow) }
 
-  before do
-    allow(Rails).to receive(:cache).and_return(store)
-    AiCli::AgentSetting.current = "claude"
-  end
+  before { AiCli::AgentSetting.current = "claude" }
 
   context "with rotation enabled" do
     it "uses the workflow's pinned round-robin provider" do

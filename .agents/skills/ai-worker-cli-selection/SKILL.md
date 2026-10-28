@@ -39,11 +39,14 @@ The production adapters select capabilities and delegate argv construction to `A
 
 ## Specs
 
+Specs hit the real test `:memory_store` (cleared per example; see `ai-worker-testing`). Set state with `AiCli::AgentSetting.current=` / `AiCli::Rotation.weights=`; do not stub `Rails.cache` or those modules.
+
 - `spec/services/stages/run_provider_spec.rb`: rotation override, workflow pinning, and nil override when rotation is off.
 - `spec/services/ai_cli/rotation_spec.rb`: disabled default, weighted cycling, and invalid weights/providers.
 - `spec/services/ai_cli/providers_spec.rb`: display order and `find`/`fetch` lookup.
 - `spec/services/ai_cli/provider_spec.rb`: Provider's abstract builder plus default wrapper/outcome and `Capabilities` value object.
 - `spec/services/ai_cli/provider/{claude,codex,cursor}_spec.rb`: each provider's delegated argv, capabilities, and outcome/wrapper behaviour (including Cursor's MCP file).
 - `spec/services/ai_cli/agent_setting_spec.rb`: `current` fallback chain (cache > `AGENT` > `claude`), writer validation, and `available`.
+- `spec/services/ai_cli/runner_spec.rb`: sets `AgentSetting.current` explicitly so a developer's `AGENT` env cannot leak in.
 - `spec/requests/settings_spec.rb`: agent-setting update and invalid-agent response.
-- `spec/requests/settings/rotations_spec.rb`: rotation-weight update and invalid-weight response.
+- `spec/requests/settings/rotations_spec.rb`: rotation-weight update (assert `AiCli::Rotation.weights` after the request) and invalid-weight response.

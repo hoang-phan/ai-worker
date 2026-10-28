@@ -33,7 +33,7 @@ RSpec.describe AiCli::Runner do
     def spawn_argv = spawned.last.first.drop(1)
     def spawn_opts = spawned.last.last
 
-    before { allow(AiCli::AgentSetting).to receive(:current).and_return("claude") }
+    before { AiCli::AgentSetting.current = "claude" }
 
     it "spawns the wrapped command in the project directory with stdin closed and appended logs, returning the pid" do
       pid = runner.start(tmp, "go", log_path: log_path)
@@ -74,7 +74,7 @@ RSpec.describe AiCli::Runner do
     end
 
     it "falls back to the app-wide agent when the provider is blank" do
-      allow(AiCli::AgentSetting).to receive(:current).and_return("codex")
+      AiCli::AgentSetting.current = "codex"
 
       runner.start(tmp, "go", log_path: log_path, provider: "")
 
@@ -100,7 +100,7 @@ RSpec.describe AiCli::Runner do
       let(:real) { described_class.new(spawn: spawn) }
 
       it "builds the codex argv for the app-wide agent" do
-        allow(AiCli::AgentSetting).to receive(:current).and_return("codex")
+        AiCli::AgentSetting.current = "codex"
 
         real.start(tmp, "go", log_path: log_path)
 

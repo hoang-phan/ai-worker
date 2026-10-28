@@ -1,19 +1,15 @@
 require "rails_helper"
 
 RSpec.describe AiCli::AgentSetting do
-  let(:store) { ActiveSupport::Cache::MemoryStore.new }
-
-  before { allow(Rails).to receive(:cache).and_return(store) }
-
   describe ".current" do
     it "returns a valid cached value" do
-      store.write("ai_cli/agent", "codex")
+      described_class.current = "codex"
 
       expect(described_class.current(env: { "AGENT" => "cursor" })).to eq("codex")
     end
 
     it "falls back to ENV[AGENT] when the cached value is unknown" do
-      store.write("ai_cli/agent", "bogus")
+      Rails.cache.write(described_class::CACHE_KEY, "bogus")
 
       expect(described_class.current(env: { "AGENT" => "cursor" })).to eq("cursor")
     end
@@ -26,13 +22,13 @@ RSpec.describe AiCli::AgentSetting do
   describe ".current=" do
     it "rejects unknown names without writing" do
       expect { described_class.current = "bogus" }.to raise_error(ArgumentError, /unknown agent "bogus"/)
-      expect(store.read("ai_cli/agent")).to be_nil
+      expect(Rails.cache.read(described_class::CACHE_KEY)).to be_nil
     end
 
     it "writes valid names" do
       described_class.current = "codex"
 
-      expect(store.read("ai_cli/agent")).to eq("codex")
+      expect(Rails.cache.read(described_class::CACHE_KEY)).to eq("codex")
     end
   end
 

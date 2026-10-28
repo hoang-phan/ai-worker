@@ -1,10 +1,6 @@
 require "rails_helper"
 
 RSpec.describe AiCli::Rotation do
-  let(:store) { ActiveSupport::Cache::MemoryStore.new }
-
-  before { allow(Rails).to receive(:cache).and_return(store) }
-
   it "is off by default" do
     expect(described_class).not_to be_enabled
     expect(described_class.next_provider).to be_nil
