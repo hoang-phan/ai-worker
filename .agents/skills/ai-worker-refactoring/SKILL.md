@@ -39,6 +39,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 
 - When a refactor adds or moves files, update the owning skill's file map and follow `ai-worker-skills`.
 - Structural ratchets and their ALLOWLIST rules are owned by `ai-worker-spec-guards`.
+- When a split brings a file under its length limit, delete or lower its `FILE_LENGTH_ALLOWLIST` entry.
 - Move examples with the extracted code: add one spec file per new class and slim the original spec to orchestration/public-delegation coverage. Preserve all coverage; compare `rspec --dry-run` example counts before and after the move.
 
 ## Guardrails
