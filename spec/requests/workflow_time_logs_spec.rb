@@ -1,4 +1,5 @@
 require "rails_helper"
+require "net/http"
 
 RSpec.describe "WorkflowTimeLogs", type: :request do
   let_jira_project("workflow-time-logs-request-spec")
