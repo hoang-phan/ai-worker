@@ -32,7 +32,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `AiCli::Output` — result markers (`ai-worker-agent-output`)
 - `Prompts::Renderer` + `Prompts::StageSections` — prompt text (`ai-worker-prompts`, `ai-worker-stage-sections`)
 - `Github::Runner` — `gh` subprocesses (`ai-worker-github`); `Git::Shell` — `git` subprocesses (`ai-worker-git`)
-- `spec/support` helpers (`RecordHelper`, `let_tmpdir`, `FakeDetachedRun`, `GitRepoHelper`, `StageRunHelper`, `active_job_test_adapter`) — shared spec setup (`ai-worker-testing`)
+- `spec/support` helpers and shared examples — shared spec setup (`ai-worker-spec-support`)
 - Structural spec guards are owned by `ai-worker-spec-guards`.
 
 ## Specs and file maps
