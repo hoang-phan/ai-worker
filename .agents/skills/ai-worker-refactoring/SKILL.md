@@ -22,7 +22,7 @@ Before creating a new class, grep for an existing seam below and extend it inste
 - `Stages::CollaboratorFactory` — start/finish dispatch-table entry builder (`ai-worker-stage-pipeline`)
 - `AgentRuns::SyncCycle` + `AgentRuns::CycleSource` — detached sync job poll/import/start (`ai-worker-detached-agent-runs`)
 - `AiCli::DetachedRun` — detached agent run with JSON result file (`ai-worker-detached-agent-runs`)
-- `AgentRuns::ManualStart` + `ManualStartFlash` — "run now" buttons (`ai-worker-detached-agent-runs`, `ai-worker-ui`)
+- `AgentRuns::ManualStart.for(source)` + `ManualStartFlash` — "run now" buttons wired from a `CycleSource` (`ai-worker-detached-agent-runs`, `ai-worker-ui`)
 - `AgentRuns::Cadence` — due-time logic (`ai-worker-detached-agent-runs`)
 - `AgentRuns::ImportResult` — Jira/Slack import result collections, summaries, and save outcome recording (`ai-worker-detached-agent-runs`)
 - `AgentRuns::StateRoot` — on-disk state dirs under `config.x.state_root` (`ai-worker-detached-agent-runs`)

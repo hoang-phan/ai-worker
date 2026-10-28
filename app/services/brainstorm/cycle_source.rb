@@ -15,6 +15,7 @@ module Brainstorm
     def persist_failure!(message) = @project.update(brainstorm_last_result: message)
     def idle? = !@planner.running?
     def due? = @planner.wait_reason.nil?
+    def skip_reason = @planner.wait_reason
     def blockers = @planner.blockers
     def start! = @planner.start
     def after_start = @planner.record_start!

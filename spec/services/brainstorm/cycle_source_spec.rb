@@ -39,8 +39,10 @@ RSpec.describe Brainstorm::CycleSource do
   it "is idle when not running and due when the planner has no wait reason" do
     expect(source.idle?).to be(true)
     expect(source.due?).to be(true)
+    expect(source.skip_reason).to be_nil
     allow(planner).to receive_messages(running?: true, wait_reason: "pending workflows")
     expect(source.idle?).to be(false)
     expect(source.due?).to be(false)
+    expect(source.skip_reason).to eq("pending workflows")
   end
 end

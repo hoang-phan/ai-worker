@@ -8,6 +8,7 @@ RSpec.describe AgentRuns::CycleSource do
     expect(source).to be_idle
     expect(source).to be_due
     expect(source.blockers).to eq([])
+    expect(source.skip_reason).to be_nil
     expect(source.rescue_errors).to eq([ AiCli::CommandError ])
     expect(source.log_detail("result")).to be_nil
     expect(source.after_import("result")).to be_nil
