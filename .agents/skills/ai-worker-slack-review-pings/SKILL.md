@@ -11,7 +11,6 @@ Scope: the outbound "please review" message posted to the project's Slack channe
 
 - `app/services/slack/review_notifier.rb` (`Slack::ReviewNotifier.new(project, runner: AiCli::Runner, clock: -> { Time.current }, root: PingRun::ROOT, collector: nil, model: self.class.model)`):
   - `enabled?` is true when `project.slack_review_channel` is present; `blockers` returns `["Slack channel is not set"]` otherwise (for the UI).
-  - `message(pr_url:, label:, reviewers:, again: false, fixed: nil)` returns `Slack::ReviewMessage#text` (no app caller today besides specs; `Prompts::StagePrompt` only uses `enabled?`).
   - `notify!(workflow:, pr_url:, label:, reviewers:, again:, fixed:, thread_ts: nil)` raises `NotifyError` unless enabled, builds the prompt and calls `Slack::PingRun.for(root, workflow.id, clock.call).start!(runner, prompt, allowed_tools: ALLOWED_TOOLS, model: model)`. It returns nil immediately and never waits. `AiCli::CommandError` / `SystemCallError` are re-raised as `NotifyError` ("Slack ping failed to start: ...").
   - `DEFAULT_MODEL` is `"haiku"`; `Slack::ReviewNotifier.model(env: ENV)` reads `env.fetch("SLACK_PING_MODEL", DEFAULT_MODEL)` at call time; the constructor freezes that into `model:` (specs pass `model: "sonnet"` or `env:` a hash to `.model`). `ALLOWED_TOOLS` = `mcp__claude_ai_Slack__slack_send_message` only (headless can't prompt).
   - `collect(workflow)` delegates to the collector; returns true while a ping is still running. The default collector is `Slack::PingCollector.new(root:, poller: runner.method(:poll), clock: @clock)`.

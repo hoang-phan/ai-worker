@@ -11,7 +11,7 @@ Use this skill for behaviour-preserving structural work. It complements the skil
 
 - Extract model logic into a focused PORO under `app/models/<plural>/` (for example, `app/models/workflows/`); extract service logic into `app/services/<namespace>/`. Keep one class per file, with the file path matching the constant.
 - Put each formerly inline error class in its own matching file. Do not leave a duplicate compatibility definition behind.
-- Keep the original public API stable: leave a thin `delegate` or one-line forwarder on the original class and keep callers unchanged unless the task explicitly asks to change them.
+- Move callers to the new owner in the same commit. Keep a `delegate` or one-line forwarder only when production code outside the class still calls the original API (for example, a model facade). Never retain an alias constant or method solely for specs or backwards compatibility.
 - Inject collaborators by keyword with production defaults, so production preserves existing wiring and specs can pass doubles. Follow the established patterns in `StageExecutor`, `Brainstorm::Planner`, and `Slack::ReviewNotifier`.
 - Preserve the surrounding comment density, terminology, and naming. Move explanatory comments with the code they explain; do not use a refactor to rewrite documentation or style.
 

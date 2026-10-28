@@ -8,14 +8,6 @@ RSpec.describe Slack::ReviewNotifier do
   let(:workflow) { instance_double(Workflow, id: 987_654_321, slack_review_thread_ts: nil) }
   let(:dir) { tmp_root.join(workflow.id.to_s) }
 
-  describe "#message" do
-    it "delegates to Slack::ReviewMessage with the project's Slack id lookup" do
-      allow(project).to receive(:slack_user_id_for).with("bob").and_return("U1")
-      text = notifier.message(pr_url: "https://github.com/o/r/pull/1", label: "ENG-1 [x]", reviewers: %w[bob amy])
-      expect(text).to eq(":eyes: <@U1> @amy please review [ENG-1 (x)](https://github.com/o/r/pull/1)")
-    end
-  end
-
   describe ".model" do
     it "uses haiku by default" do
       expect(described_class.model(env: {})).to eq("haiku")
@@ -40,6 +32,18 @@ RSpec.describe Slack::ReviewNotifier do
       expect(runner).to have_received(:start).with(
         run_dir.to_s, a_string_including("thread_ts: 1.2"),
         hash_including(log_path: run_dir.join("agent.log").to_s, allowed_tools: described_class::ALLOWED_TOOLS)
+      )
+    end
+
+    it "passes reviewer tags through to the posting prompt" do
+      allow(project).to receive(:slack_user_id_for).with("bob").and_return("U1")
+
+      notifier.notify!(workflow: workflow, pr_url: "https://github.com/o/r/pull/1", label: "ENG-1 [x]", reviewers: %w[bob amy])
+
+      expect(runner).to have_received(:start).with(
+        run_dir.to_s,
+        a_string_including(":eyes: <@U1> @amy please review [ENG-1 (x)](https://github.com/o/r/pull/1)"),
+        anything
       )
     end
 

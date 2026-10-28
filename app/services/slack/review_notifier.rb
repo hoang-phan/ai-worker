@@ -34,11 +34,6 @@ module Slack
       project.slack_review_channel.blank? ? [ "Slack channel is not set" ] : []
     end
 
-    # See Slack::ReviewMessage#text.
-    def message(pr_url:, label:, reviewers:, again: false, fixed: nil)
-      review_message(pr_url: pr_url, label: label, reviewers: reviewers, again: again, fixed: fixed).text
-    end
-
     # Starts the posting run and returns immediately. Posts into `thread_ts` when given (a re-request replies in
     # the original thread), otherwise as a new channel message. Returns nil: starts the run; the thread id is
     # collected later by PingCollector.

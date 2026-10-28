@@ -1,12 +1,9 @@
 module Github
-  # Backwards-compatible facade over the `gh` CLI collaborators:
+  # Facade over the `gh` CLI collaborators:
   #   Github::Reader - query-only PR/check/review/workflow-run operations
   #   Github::Writer - side-effecting operations (request review, auto-merge, checkout)
   # Both share a Github::Runner, which owns command construction and error translation.
   class Client
-    FAILED_CONCLUSIONS = FailingChecks::FAILED_CONCLUSIONS
-    FAILED_STATES = FailingChecks::FAILED_STATES
-
     attr_reader :reader, :writer
 
     def initialize(project, reader: nil, writer: nil)

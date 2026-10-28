@@ -25,11 +25,10 @@ RSpec.describe Github::Client, "facade" do
     expect(writer).to have_received(:enable_auto_merge!).with("u")
   end
 
-  it "builds default collaborators and keeps constants" do
+  it "builds default collaborators" do
     default = described_class.new(project)
 
     expect(default.reader).to be_a(Github::Reader)
     expect(default.writer).to be_a(Github::Writer)
-    expect(described_class::FAILED_STATES).to eq(Github::FailingChecks::FAILED_STATES)
   end
 end
