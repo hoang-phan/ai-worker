@@ -1,12 +1,6 @@
 require "rails_helper"
 
 RSpec.describe Stages::StartHandler, type: :service do
-  RecordingStarter = Class.new do
-    attr_reader :kwargs
-    def initialize(**kwargs) = @kwargs = kwargs
-    def call = self
-  end
-
   let_jira_project("start-handler-spec")
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "START-1", branch_name: "start-handler", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :implementing)
@@ -18,7 +12,13 @@ RSpec.describe Stages::StartHandler, type: :service do
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
-
+  let(:recording_starter_class) do
+    Class.new do
+      attr_reader :kwargs
+      def initialize(**kwargs) = @kwargs = kwargs
+      def call = self
+    end
+  end
   let(:starter_names) { %w[pr_check pr_review ci_check uat_test local_test runbook_step] }
   let(:built) { Hash.new { |hash, name| hash[name] = [] } }
   let(:fake_starters) do
@@ -134,7 +134,7 @@ RSpec.describe Stages::StartHandler, type: :service do
       context type do
         let(:stage_type) { type }
         let(:fake_starters) do
-          { type => [ RecordingStarter, %i[workflow project kind prompt git launcher], { kind: kind } ] }
+          { type => [ recording_starter_class, %i[workflow project kind prompt git launcher], { kind: kind } ] }
         end
 
         it "delegates to BrowserTestStart for the #{kind} kind" do

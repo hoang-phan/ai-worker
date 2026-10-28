@@ -1,8 +1,7 @@
 require "spec_helper"
 require_relative "../support/skill_path_helper"
 
-RSpec.describe "skill file maps" do
-  include SkillPathHelper
+module FileMapCoverage
   APP_LAYERS = %w[models services controllers helpers jobs].freeze
   NON_RUBY_APP_GLOBS = [
     "app/views/**/*.erb",
@@ -18,6 +17,10 @@ RSpec.describe "skill file maps" do
     app/helpers/application_helper.rb
     app/mailers/application_mailer.rb
   ].freeze
+end
+
+RSpec.describe "skill file maps" do
+  include SkillPathHelper
 
   def skill_text
     Dir.glob(".agents/skills/*/SKILL.md").sort.flat_map do |path|
@@ -34,7 +37,7 @@ RSpec.describe "skill file maps" do
   end
 
   def referenced?(path, text)
-    relative_path = path.sub(%r{\Aapp/(?:#{APP_LAYERS.join("|")})/}, "")
+    relative_path = path.sub(%r{\Aapp/(?:#{FileMapCoverage::APP_LAYERS.join("|")})/}, "")
     directory_glob = relative_path.split("/").first + "/**"
 
     text.include?(path) || text.include?(relative_path) ||
@@ -54,11 +57,11 @@ RSpec.describe "skill file maps" do
 
   it "maps every production Ruby file to a skill" do
     text = skill_text
-    app_files = APP_LAYERS.flat_map do |layer|
+    app_files = FileMapCoverage::APP_LAYERS.flat_map do |layer|
       Dir.glob("app/#{layer}/**/*.rb")
     end.sort
     unmapped = app_files.reject do |path|
-      EXEMPT_FILES.include?(path) || referenced?(path, text)
+      FileMapCoverage::EXEMPT_FILES.include?(path) || referenced?(path, text)
     end
 
     expect(unmapped).to be_empty, "Unmapped app files:\n#{unmapped.join("\n")}"
@@ -73,7 +76,7 @@ RSpec.describe "skill file maps" do
       app/views/layouts/mailer.html.erb
       app/views/layouts/mailer.text.erb
     ]
-    app_files = NON_RUBY_APP_GLOBS.flat_map { |glob| Dir.glob(glob) }.sort
+    app_files = FileMapCoverage::NON_RUBY_APP_GLOBS.flat_map { |glob| Dir.glob(glob) }.sort
     unmapped = app_files.reject do |path|
       exempt_files.include?(path) || non_ruby_referenced?(path, text)
     end

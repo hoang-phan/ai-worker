@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "skill symbol references" do
+module SymbolReferences
   # Symbols from gems or test-only helpers cannot be resolved from the application
   # autoload paths. Keep every exception documented here rather than weakening the
   # check for all skill documentation.
@@ -12,14 +12,16 @@ RSpec.describe "skill symbol references" do
   }.freeze
 
   SYMBOL_TOKEN = /(?<![A-Za-z0-9_:<])((?:[A-Z][A-Za-z0-9_]*::)*[A-Z][A-Za-z0-9_]*)([#.])([a-z_][A-Za-z0-9_]*[!?=]?)(?:\([^`]*\))?/.freeze
+end
 
+RSpec.describe "skill symbol references" do
   def skill_files
     Dir.glob(".agents/skills/*/{SKILL.md,assets/*.md}").sort
   end
 
   def symbol_references(path)
     File.read(path).scan(/`([^`]+)`/).flatten.flat_map do |span|
-      span.scan(SYMBOL_TOKEN).filter_map do |constant_name, separator, method_name|
+      span.scan(SymbolReferences::SYMBOL_TOKEN).filter_map do |constant_name, separator, method_name|
         token = "#{constant_name}#{separator}#{method_name}"
         next if constant_name.start_with?("X::") || span.include?("...") || documentation_filename?(token)
 
@@ -69,7 +71,7 @@ RSpec.describe "skill symbol references" do
   it "references resolvable application symbols" do
     missing_symbols = skill_files.flat_map do |path|
       symbol_references(path).uniq.filter_map do |token|
-        "#{path}: #{token}" unless SYMBOL_REFERENCE_ALLOWLIST.key?(token) || resolves?(token)
+        "#{path}: #{token}" unless SymbolReferences::SYMBOL_REFERENCE_ALLOWLIST.key?(token) || resolves?(token)
       end
     end
 

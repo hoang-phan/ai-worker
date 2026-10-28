@@ -1,19 +1,18 @@
 require "rails_helper"
 
 RSpec.describe Jira::TimeSlotPlanner do
-  SlotLog = Struct.new(:started_at, :seconds)
-
+  let(:slot_log_class) { Struct.new(:started_at, :seconds) }
   let(:monday) { Date.new(2027, 2, 1) } # the 1st of the month, a Monday
   let(:logs) { [] }
   let(:planner) { described_class.new(today: monday + 2, logs: ->(_from) { logs }) }
 
   def log(date, hours, hour: 6)
-    logs << SlotLog.new(Time.zone.local(date.year, date.month, date.day, hour), (hours * 3600).to_i)
+    logs << slot_log_class.new(Time.zone.local(date.year, date.month, date.day, hour), (hours * 3600).to_i)
   end
 
   def place(hours)
     start = planner.next_start((hours * 3600).to_i)
-    logs << SlotLog.new(start, (hours * 3600).to_i)
+    logs << slot_log_class.new(start, (hours * 3600).to_i)
     start
   end
 
@@ -78,7 +77,7 @@ RSpec.describe Jira::TimeSlotPlanner do
   it "uses a seeded random HH:MM when every :00 and :30 is used" do
     (6...17).each do |hour|
       log(monday, 0.1, hour: hour)
-      logs << SlotLog.new(Time.zone.local(2027, 2, 1, hour, 30), 360)
+      logs << slot_log_class.new(Time.zone.local(2027, 2, 1, hour, 30), 360)
     end
     expected = Random.new(42).then { |r| format("%02d:%02d", r.rand(6...17), r.rand(1..59)) }
     planner = described_class.new(today: monday + 2, random: Random.new(42), logs: ->(_from) { logs })

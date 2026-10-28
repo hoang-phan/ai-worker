@@ -2,10 +2,12 @@ require "spec_helper"
 require "yaml"
 require_relative "../support/skill_path_helper"
 
+module SkillReferences
+  PATH_TOKEN = %r{(?:app|spec|config|db|docs|lib|bin|\.agents|\.github)/[A-Za-z0-9_./{}*,:<>-]+}.freeze
+end
+
 RSpec.describe "skill references" do
   include SkillPathHelper
-
-  PATH_TOKEN = %r{(?:app|spec|config|db|docs|lib|bin|\.agents|\.github)/[A-Za-z0-9_./{}*,:<>-]+}.freeze
 
   def skill_files
     Dir.glob(".agents/skills/*/**/*.md").sort
@@ -23,7 +25,7 @@ RSpec.describe "skill references" do
     content = File.read(path)
     backticked = content.scan(/`([^`]+)`/).flatten
     (backticked + [ metadata.fetch("description", "") ]).flat_map do |text|
-      text.scan(PATH_TOKEN)
+      text.scan(SkillReferences::PATH_TOKEN)
     end.map { |token| token.sub(/[.,;:]+\z/, "") }
       .reject { |token| token.include?("<") || token.include?("...") }
   end

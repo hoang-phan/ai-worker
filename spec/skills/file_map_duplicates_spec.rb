@@ -1,11 +1,13 @@
 require "spec_helper"
 require_relative "../support/skill_path_helper"
 
-RSpec.describe "skill file map duplicates" do
-  include SkillPathHelper
-
+module FileMapDuplicates
   # File-map ownership bullets: `- \`path\` — description`
   FILE_MAP_BULLET = /\A\s*-\s+`([^`]+)`\s+—/.freeze
+end
+
+RSpec.describe "skill file map duplicates" do
+  include SkillPathHelper
 
   def skill_files
     Dir.glob(".agents/skills/*/SKILL.md").sort
@@ -13,7 +15,7 @@ RSpec.describe "skill file map duplicates" do
 
   def file_map_paths(skill_path)
     File.readlines(skill_path).filter_map do |line|
-      match = line.match(FILE_MAP_BULLET)
+      match = line.match(FileMapDuplicates::FILE_MAP_BULLET)
       next unless match
 
       expand_braces(match[1])

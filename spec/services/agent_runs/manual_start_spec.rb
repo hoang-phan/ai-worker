@@ -51,38 +51,38 @@ RSpec.describe AgentRuns::ManualStart do
   describe ".for" do
     # Spec-local CycleSource so ManualStart.for is covered without constructor
     # stubs of a production source (constructor_stub_ratchet).
-    class SpecCycleSource < AgentRuns::CycleSource
-      RESCUE_ERRORS = [ ArgumentError ].freeze
+    let(:spec_cycle_source_class) do
+      Class.new(AgentRuns::CycleSource) do
+        def initialize(blockers: [], skip_reason: nil, start_result: true, raise_on_start: nil)
+          @blockers = blockers
+          @skip_reason = skip_reason
+          @start_result = start_result
+          @raise_on_start = raise_on_start
+          @started = false
+          @after_started = false
+        end
 
-      def initialize(blockers: [], skip_reason: nil, start_result: true, raise_on_start: nil)
-        @blockers = blockers
-        @skip_reason = skip_reason
-        @start_result = start_result
-        @raise_on_start = raise_on_start
-        @started = false
-        @after_started = false
-      end
+        attr_reader :started, :after_started
 
-      attr_reader :started, :after_started
+        def blockers = @blockers
+        def skip_reason = @skip_reason
+        def rescue_errors = [ ArgumentError ].freeze
 
-      def blockers = @blockers
-      def skip_reason = @skip_reason
-      def rescue_errors = RESCUE_ERRORS
+        def start!
+          raise @raise_on_start if @raise_on_start
 
-      def start!
-        raise @raise_on_start if @raise_on_start
+          @started = true
+          @start_result
+        end
 
-        @started = true
-        @start_result
-      end
-
-      def after_start
-        @after_started = true
+        def after_start
+          @after_started = true
+        end
       end
     end
 
     it "wires blockers, skip_reason, start!, after_start and rescue_errors from the source" do
-      source = SpecCycleSource.new
+      source = spec_cycle_source_class.new
       result = described_class.for(source).call
 
       expect(result.status).to eq(:started)
@@ -91,16 +91,16 @@ RSpec.describe AgentRuns::ManualStart do
     end
 
     it "is blocked, skipped, already_running or failed from the source hooks" do
-      blocked = described_class.for(SpecCycleSource.new(blockers: %w[a b])).call
+      blocked = described_class.for(spec_cycle_source_class.new(blockers: %w[a b])).call
       expect([ blocked.status, blocked.detail ]).to eq([ :blocked, "a; b" ])
 
-      skipped = described_class.for(SpecCycleSource.new(skip_reason: "wait")).call
+      skipped = described_class.for(spec_cycle_source_class.new(skip_reason: "wait")).call
       expect([ skipped.status, skipped.detail ]).to eq([ :skipped, "wait" ])
 
-      running = described_class.for(SpecCycleSource.new(start_result: false)).call
+      running = described_class.for(spec_cycle_source_class.new(start_result: false)).call
       expect(running.status).to eq(:already_running)
 
-      failed = described_class.for(SpecCycleSource.new(raise_on_start: ArgumentError.new("boom"))).call
+      failed = described_class.for(spec_cycle_source_class.new(raise_on_start: ArgumentError.new("boom"))).call
       expect([ failed.status, failed.detail ]).to eq([ :failed, "boom" ])
     end
   end

@@ -1,9 +1,8 @@
 require "rails_helper"
 
 RSpec.describe Workflows::SettingLists do
-  WorkflowSettings = Struct.new(:skills, :pr_skills, :github_reviewer)
-
-  let(:settings) { WorkflowSettings.new }
+  let(:workflow_settings_class) { Struct.new(:skills, :pr_skills, :github_reviewer) }
+  let(:settings) { workflow_settings_class.new }
   let(:lists) { described_class.new(settings) }
 
   describe "#reviewer_list" do

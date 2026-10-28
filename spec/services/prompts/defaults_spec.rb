@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe Prompts::Defaults do
   # marker: the result line the agent must print; placeholders: tokens the body must carry;
   # sha256: digest of the body as of the move out of defaults.rb (any wording change must update it on purpose).
-  BODY_EXPECTATIONS = {
+  body_expectations = {
     "pr_review" => {
       marker: nil,
       placeholders: %w[{PR} {SLACK}],
@@ -41,7 +41,7 @@ RSpec.describe Prompts::Defaults do
     }
   }.freeze
 
-  BODY_EXPECTATIONS.each do |type, expected|
+  body_expectations.each do |type, expected|
     describe ".for(#{type.inspect})" do
       subject(:body) { described_class.for(type) }
 

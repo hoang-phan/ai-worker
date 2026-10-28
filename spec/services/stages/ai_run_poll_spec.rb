@@ -16,23 +16,24 @@ RSpec.describe Stages::AiRunPoll, type: :service do
   let(:stale_after) { 3.hours }
   let(:initial_log_offset) { 0 }
   let(:poll_result) { :running }
-  let(:runner) { FakeRunner.new(poll_result) }
+  let(:fake_runner_class) do
+    Class.new do
+      attr_writer :result
 
-  class FakeRunner
-    attr_writer :result
+      def initialize(result)
+        @result = result
+      end
 
-    def initialize(result)
-      @result = result
-    end
+      def poll(_pid)
+        @result
+      end
 
-    def poll(_pid)
-      @result
-    end
-
-    def agent
-      "fake-agent"
+      def agent
+        "fake-agent"
+      end
     end
   end
+  let(:runner) { fake_runner_class.new(poll_result) }
 
   subject(:ai_run_poll) do
     described_class.new(
@@ -73,7 +74,7 @@ RSpec.describe Stages::AiRunPoll, type: :service do
   end
 
   it "uses the real CI poller" do
-    ci_runner = FakeRunner.new([ :completed, status(false, exitstatus: 2) ])
+    ci_runner = fake_runner_class.new([ :completed, status(false, exitstatus: 2) ])
     ci_poll = described_class.new(
       workflow: workflow, stage: stage, poller_class: Ci::CheckPoller, stale_after: stale_after, poller_runner: ci_runner
     )

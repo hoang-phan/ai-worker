@@ -2,34 +2,35 @@ require "rails_helper"
 require "tmpdir"
 
 RSpec.describe Workflows::ImageStore do
-  Upload = Struct.new(:original_filename, :data) do
-    def read = data
+  let(:upload_class) do
+    Struct.new(:original_filename, :data) do
+      def read = data
+    end
   end
-
   let(:root) { Pathname(make_tmpdir("image_store_spec")) }
   let(:store) { described_class.new(root: root, workflow_id: 42) }
 
   describe "#add" do
     it "saves images and returns the count" do
-      count = store.add([ Upload.new("a.png", "1"), Upload.new("b.JPG", "2") ])
+      count = store.add([ upload_class.new("a.png", "1"), upload_class.new("b.JPG", "2") ])
 
       expect(count).to eq(2)
       expect(store.paths.map { |p| File.basename(p) }).to eq(%w[a.png b.JPG])
     end
 
     it "skips non-image extensions and objects without original_filename" do
-      count = store.add([ Upload.new("notes.txt", "x"), Object.new, "string", Upload.new("noext", "x") ])
+      count = store.add([ upload_class.new("notes.txt", "x"), Object.new, "string", upload_class.new("noext", "x") ])
 
       expect(count).to eq(0)
       expect(store.paths).to eq([])
     end
 
     it "accepts a single upload" do
-      expect(store.add(Upload.new("a.png", "1"))).to eq(1)
+      expect(store.add(upload_class.new("a.png", "1"))).to eq(1)
     end
 
     it "sanitises unsafe characters and path components" do
-      store.add([ Upload.new("../evil.png", "x"), Upload.new("my pic (1)$.png", "x") ])
+      store.add([ upload_class.new("../evil.png", "x"), upload_class.new("my pic (1)$.png", "x") ])
 
       names = store.paths.map { |p| File.basename(p) }
       expect(names).to contain_exactly("evil.png", "my_pic__1__.png")
@@ -38,8 +39,8 @@ RSpec.describe Workflows::ImageStore do
     end
 
     it "gives a duplicate name a random suffix instead of overwriting" do
-      store.add(Upload.new("a.png", "first"))
-      store.add(Upload.new("a.png", "second"))
+      store.add(upload_class.new("a.png", "first"))
+      store.add(upload_class.new("a.png", "second"))
 
       expect(store.paths.size).to eq(2)
       expect(File.binread(store.dir.join("a.png"))).to eq("first")
@@ -76,14 +77,14 @@ RSpec.describe Workflows::ImageStore do
 
   describe "#remove" do
     it "deletes the named file" do
-      store.add(Upload.new("a.png", "x"))
+      store.add(upload_class.new("a.png", "x"))
       store.remove("a.png")
 
       expect(store.paths).to eq([])
     end
 
     it "ignores path traversal and uses only the basename" do
-      store.add(Upload.new("a.png", "x"))
+      store.add(upload_class.new("a.png", "x"))
       outside = root.join("secret.png")
       File.write(outside, "keep")
 
@@ -97,7 +98,7 @@ RSpec.describe Workflows::ImageStore do
 
   describe "#purge!" do
     it "deletes the directory" do
-      store.add(Upload.new("a.png", "x"))
+      store.add(upload_class.new("a.png", "x"))
       store.purge!
 
       expect(store.dir).not_to exist

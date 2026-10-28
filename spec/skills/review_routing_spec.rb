@@ -1,6 +1,6 @@
 require "spec_helper"
 
-RSpec.describe "review skill routing" do
+module ReviewRouting
   REVIEW_SKILL_PATH = ".agents/skills/ai-worker-review/SKILL.md".freeze
   CLI_SELECTION_SKILL_PATH = ".agents/skills/ai-worker-cli-selection/SKILL.md".freeze
   PROVIDER_ADAPTER_TRIGGERS = %w[
@@ -11,13 +11,15 @@ RSpec.describe "review skill routing" do
     app/services/jira/{http_transport,rest_client,worklog_client,worklog_error}.rb
     spec/services/jira/{http_transport,rest_client,worklog_client,worklog_error}_spec.rb
   ].freeze
+end
 
+RSpec.describe "review skill routing" do
   def review_skill_text
-    File.read(REVIEW_SKILL_PATH)
+    File.read(ReviewRouting::REVIEW_SKILL_PATH)
   end
 
   def cli_selection_skill_text
-    File.read(CLI_SELECTION_SKILL_PATH)
+    File.read(ReviewRouting::CLI_SELECTION_SKILL_PATH)
   end
 
   def routing_rows
@@ -63,7 +65,7 @@ RSpec.describe "review skill routing" do
   end
 
   it "lists every provider adapter and mirrored spec as a CLI-selection trigger" do
-    PROVIDER_ADAPTER_TRIGGERS.each do |path|
+    ReviewRouting::PROVIDER_ADAPTER_TRIGGERS.each do |path|
       expect(cli_selection_skill_text).to include(path)
     end
   end
@@ -74,7 +76,7 @@ RSpec.describe "review skill routing" do
     rest_client_row = routing_rows.fetch(rest_client_row_index).first
 
     expect(rest_client_row_index).to be < worklogs_row_index
-    JIRA_REST_CLIENT_TRIGGERS.each { |path| expect(rest_client_row).to include(path) }
+    ReviewRouting::JIRA_REST_CLIENT_TRIGGERS.each { |path| expect(rest_client_row).to include(path) }
   end
 
   it "keeps the spec fallback as the last routing row" do
