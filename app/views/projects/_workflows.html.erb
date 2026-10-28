@@ -13,7 +13,8 @@
   <% end %>
 <% end %>
 
-<%= form_with url: bulk_destroy_project_workflows_path(project, status: workflow_list.status_filter), method: :delete, id: "bulk-delete-form", class: "batch-bar", data: { controller: "bulk-delete" } do %>
+<div data-controller="bulk-delete">
+<%= form_with url: bulk_destroy_project_workflows_path(project, status: workflow_list.status_filter), method: :delete, id: "bulk-delete-form", class: "batch-bar" do %>
   <span class="text-muted" data-bulk-delete-target="count">0 selected</span>
   <button type="submit" class="btn btn-secondary" data-bulk-delete-target="submit" disabled>Delete selected</button>
 <% end %>
@@ -47,4 +48,5 @@
   <% if workflow_list.workflows.empty? %>
     <div class="empty-state"><%= workflow_list_empty_message(workflow_list) %> <%= link_to "Create one", new_project_workflow_path(project) %>.</div>
   <% end %>
+</div>
 </div>
