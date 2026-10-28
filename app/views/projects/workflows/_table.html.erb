@@ -1,17 +1,8 @@
-<div data-controller="bulk-delete">
-<%= form_with url: bulk_destroy_project_workflows_path(project, status: workflow_list.status_filter), method: :delete, id: "bulk-delete-form", class: "batch-bar" do %>
-  <span class="text-muted" data-bulk-delete-target="count">0 selected</span>
-  <button type="submit" class="btn btn-secondary" data-bulk-delete-target="submit" disabled>Delete selected</button>
-<% end %>
-
-<div class="table-wrap" data-controller="select-all range-select" data-action="range-select:changed->bulk-delete#update">
+<div class="table-wrap">
   <table class="workflow-table">
     <thead>
       <tr>
-        <th><input type="checkbox" aria-label="Select all workflows for deletion" data-action="change->range-select#toggleAll"></th>
-        <% if project.jira? %>
-          <th><input type="checkbox" aria-label="Select all tickets without logged time" data-action="change->select-all#toggle" form="time-log-form"></th>
-        <% end %>
+        <th><input type="checkbox" aria-label="Select all workflows" data-action="change->range-select#toggleAll"></th>
         <th>Position</th>
         <th><%= project.personal? ? "Task" : "Jira" %></th>
         <% if project.jira? %>
@@ -33,5 +24,4 @@
   <% if workflow_list.workflows.empty? %>
     <div class="empty-state"><%= workflow_list_empty_message(workflow_list) %> <%= link_to "Create one", new_project_workflow_path(project) %>.</div>
   <% end %>
-</div>
 </div>

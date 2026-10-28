@@ -63,14 +63,19 @@ RSpec.describe TimeLogsHelper, type: :helper do
       end
     end
 
-    describe "#time_log_checkbox_data" do
-      it "marks unlogged rows as select-all targets" do
-        expect(helper.time_log_checkbox_data(0)).to eq(select_all_target: "row")
-        expect(helper.time_log_checkbox_data(nil)).to eq(select_all_target: "row")
+    describe "#workflow_selection_data" do
+      it "marks unlogged development rows as loggable and fresh" do
+        expect(helper.workflow_selection_data(workflow, 0)).to include(log_time: true, fresh: true)
+        expect(helper.workflow_selection_data(workflow, nil)).to include(fresh: true)
       end
 
-      it "leaves logged rows out" do
-        expect(helper.time_log_checkbox_data(3600)).to eq({})
+      it "keeps logged development rows loggable but not fresh" do
+        expect(helper.workflow_selection_data(workflow, 3600)).to include(log_time: true, fresh: false)
+      end
+
+      it "marks non-development rows as unable to log time" do
+        allow(workflow).to receive(:development?).and_return(false)
+        expect(helper.workflow_selection_data(workflow, 0)).to include(log_time: false, fresh: false)
       end
     end
   end

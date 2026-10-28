@@ -21,9 +21,11 @@ module TimeLogsHelper
     end
   end
 
-  # Only rows with nothing logged yet are targets of the header select-all checkbox.
-  def time_log_checkbox_data(seconds)
-    seconds.to_i.positive? ? {} : { select_all_target: "row" }
+  # Data for a row's selection checkbox: only development workflows can log time, and only those with
+  # nothing logged yet are "fresh" (targets of "Select all non time logged").
+  def workflow_selection_data(workflow, seconds)
+    log_time = workflow.development?
+    { range_select_target: "box", action: "click->range-select#click", log_time: log_time, fresh: log_time && !seconds.to_i.positive? }
   end
 
   # Seconds logged in Jira as hours, e.g. 5400 => "1.5", 3600 => "1".

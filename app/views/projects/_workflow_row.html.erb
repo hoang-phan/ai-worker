@@ -1,8 +1,5 @@
   <tr>
-    <td><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "bulk-delete-form", data: { range_select_target: "box", action: "click->range-select#click" }, aria: { label: "Select #{workflow.label} for deletion" } %></td>
-    <% if project.jira? %>
-      <td><% if workflow.development? %><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "time-log-form", data: time_log_checkbox_data(logged_seconds), aria: { label: "Select #{workflow.label}" } %><% end %></td>
-    <% end %>
+    <td><%= tag.input type: "checkbox", name: "workflow_ids[]", value: workflow.id, form: "workflow-selection-form", data: workflow_selection_data(workflow, logged_seconds), aria: { label: "Select #{workflow.label}" } %></td>
     <td class="numeric">
       <%= workflow.position %>
       <%= inline_button_to "↑", move_project_workflow_path(project, workflow, direction: "up", status: status_filter), method: :post, class: "link-action", title: "Move up (higher priority)", disabled: workflow == first %>

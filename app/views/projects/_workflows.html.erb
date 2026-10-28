@@ -1,3 +1,5 @@
 <%= render "projects/workflows/status_filter", project: project, workflow_list: workflow_list %>
-<%= render "projects/workflows/time_log_bar", project: project, workflow_list: workflow_list %>
-<%= render "projects/workflows/table", project: project, workflow_list: workflow_list %>
+<div data-controller="range-select bulk-delete" data-action="range-select:changed->bulk-delete#update">
+  <%= render "projects/workflows/selection_bar", project: project, workflow_list: workflow_list %>
+  <%= render "projects/workflows/table", project: project, workflow_list: workflow_list %>
+</div>

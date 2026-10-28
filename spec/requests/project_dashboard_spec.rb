@@ -34,19 +34,20 @@ RSpec.describe "Project dashboard", type: :request do
       expect(response.body).not_to include("Current stage", "<th>Branch</th>", "hidden-branch", ">View PR<", ">Edit<")
     end
 
-    it "shows time-log status and makes only unlogged tickets selectable by the header checkbox" do
+    it "shows time-log status with a single selection checkbox per row" do
       logged = build_jira_workflow(project, jira_ticket: "SPEC-1", github_reviewer: "someone")
       unlogged = build_jira_workflow(project, jira_ticket: "SPEC-2", github_reviewer: "someone")
       TimeLog.create!(ticket_key: "SPEC-1", jira_worklog_id: "1", started_at: Time.current, seconds: 3600)
 
       get project_path(project)
 
-      unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
-      logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*form="time-log-form"[^>]*>/)[0]
+      unlogged_checkbox = response.body.match(/<input[^>]*value="#{unlogged.id}"[^>]*>/)[0]
+      logged_checkbox = response.body.match(/<input[^>]*value="#{logged.id}"[^>]*>/)[0]
 
-      expect(response.body).to include("1 h</span>", "Not logged", 'id="time-log-form"', 'aria-label="Select all tickets without logged time"')
-      expect(unlogged_checkbox).to include('data-select-all-target="row"')
-      expect(logged_checkbox).not_to include("data-select-all-target")
+      expect(response.body).to include("1 h</span>", "Not logged", 'id="workflow-selection-form"', "Select all non time logged")
+      expect(response.body.scan('name="workflow_ids[]"').size).to eq(2)
+      expect(unlogged_checkbox).to include('data-fresh="true"', 'data-log-time="true"')
+      expect(logged_checkbox).to include('data-fresh="false"', 'data-log-time="true"')
     end
 
     it "renders the Jira and Bugsnag sync sections for a jira project" do
@@ -64,7 +65,7 @@ RSpec.describe "Project dashboard", type: :request do
       get project_path(personal)
 
       expect(Nokogiri::HTML(response.body).text).to include("Brainstorm", "3 days ago · created 2 · 0 pending")
-      expect(response.body).not_to include("Jira syncs", 'id="time-log-form"')
+      expect(response.body).not_to include("Jira syncs", 'id="workflow-selection-form"')
     end
 
     it "renders the workflow empty state" do

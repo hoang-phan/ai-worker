@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Deletion checkboxes (target "box"): Shift-click ticks/unticks the range between the clicked box and the
+// Workflow selection checkboxes (target "box"): Shift-click ticks/unticks the range between the clicked box and the
 // closest other ticked box (by row distance), like a file list. Dispatches range-select:changed on any change.
 export default class extends Controller {
   static targets = ["box"]
@@ -20,6 +20,20 @@ export default class extends Controller {
 
   toggleAll(event) {
     this.boxTargets.forEach((box) => { box.checked = event.target.checked })
+    this.dispatch("changed")
+  }
+
+  selectAll() {
+    this.setChecked(() => true)
+  }
+
+  // Selects only workflows that can log time and have nothing logged yet; clears every other selection.
+  selectFresh() {
+    this.setChecked((box) => box.dataset.fresh === "true")
+  }
+
+  setChecked(predicate) {
+    this.boxTargets.forEach((box) => { box.checked = predicate(box) })
     this.dispatch("changed")
   }
 
