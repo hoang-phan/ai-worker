@@ -4,10 +4,10 @@ module Brainstorm
   # with a stronger model and higher effort than workflow runs (BRAINSTORM_MODEL / BRAINSTORM_EFFORT env). It
   # writes result.json; `poll` reads it once the process has finished and `import` turns it into workflows.
   #
-  # It only runs while the project has no pending workflow (`Workflow.queued`): proposals wait for you to Start them.
   # Implementing workflows don't block it, but they aren't in the code yet, so the agent is shown just those to avoid
   # proposing the same thing twice (done ones are already in the code it reads). To keep its context small it gets
   # one short line per workflow (`Workflow#brief`), newest first and capped; the full list is in history.md.
+  # SyncCycle gating (pending-workflow wait, blockers, last-run stamp) lives on Brainstorm::CycleSource.
   #
   # State lives in tmp/brainstorms/<project id>/: pid, started_at, result.json, history.md, agent.log.
   class Planner
@@ -31,31 +31,10 @@ module Brainstorm
       env["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
     end
 
-    def initialize(project, clock: -> { Time.current }, root: ROOT, lifecycle: nil)
+    def initialize(project, root: ROOT, lifecycle: nil)
       @project = project
-      @clock = clock
       @dir = Pathname(root).join(project.id.to_s)
       @lifecycle = lifecycle || RunLifecycle.new(dir: dir, stale_after: STALE_AFTER)
-    end
-
-    def blockers
-      Projects::RunBlockers.new(project).messages(:personal_kind, :brainstorm_goal, :local_directory)
-    end
-
-    # Pending workflows; brainstorming waits until this is zero.
-    def queued_count
-      project.workflows.queued.count
-    end
-
-    # Why brainstorming must wait right now (nil when it may run): pending workflows have to be started or deleted first.
-    def wait_reason
-      queued = queued_count
-      "#{queued} workflow(s) still pending; start or delete them first." if queued.positive?
-    end
-
-    # Stamps the project's last-run time; callers invoke it after a successful `start`.
-    def record_start!
-      project.update!(brainstorm_last_run_at: clock.call)
     end
 
     def start
@@ -77,7 +56,7 @@ module Brainstorm
 
     private
 
-    attr_reader :project, :dir, :clock, :lifecycle
+    attr_reader :project, :dir, :lifecycle
 
     # Workflows that are not in the code yet (the only ones the agent can't see by reading it).
     def in_flight

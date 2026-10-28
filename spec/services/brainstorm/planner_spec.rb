@@ -1,13 +1,12 @@
 require "rails_helper"
 
 RSpec.describe Brainstorm::Planner do
-  subject(:planner) { described_class.new(project, clock: clock, root: root, lifecycle: lifecycle) }
+  subject(:planner) { described_class.new(project, root: root, lifecycle: lifecycle) }
 
   let(:root) { Pathname.new(make_tmpdir("planner-spec")) }
   let(:project) { Project.new(id: 987_654, name: "Spec project", kind: :personal, local_directory: root.to_s, brainstorm_goal: "improve things") }
   let(:dir) { root.join("987654") }
   let(:lifecycle) { instance_double(Brainstorm::RunLifecycle, running?: false, last_started_at: nil, start: true, poll: nil, result_path: dir.join("result.json")) }
-  let(:clock) { -> { Time.current } }
 
   describe ".model" do
     it "defaults brainstorms to gpt-6-sol when BRAINSTORM_MODEL is unset" do
@@ -16,44 +15,6 @@ RSpec.describe Brainstorm::Planner do
 
     it "uses BRAINSTORM_MODEL when set" do
       expect(described_class.model(env: { "BRAINSTORM_MODEL" => "claude-opus-5-5" })).to eq("claude-opus-5-5")
-    end
-  end
-
-  describe "#wait_reason" do
-    let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
-
-    def add_workflow(**attrs)
-      build_task_workflow(project, **{ task_description: "do it" }.merge(attrs))
-    end
-
-    it "is nil when nothing is pending" do
-      expect(planner.wait_reason).to be_nil
-    end
-
-    it "names the number of pending development workflows" do
-      2.times { add_workflow(status: :pending) }
-
-      expect(planner.wait_reason).to eq("2 workflow(s) still pending; start or delete them first.")
-    end
-
-    it "ignores implementing and runbook workflows" do
-      add_workflow(status: :implementing)
-      add_workflow(kind: :runbook, status: :pending)
-
-      expect(planner.wait_reason).to be_nil
-    end
-  end
-
-  describe "#record_start!" do
-    let(:project) { build_personal_project(local_directory: root.to_s, brainstorm_goal: "improve things") }
-
-    it "stamps brainstorm_last_run_at with the current time" do
-      at = Time.zone.local(2026, 1, 2, 3, 4, 5)
-      planner = described_class.new(project, clock: -> { at }, root: root, lifecycle: lifecycle)
-
-      planner.record_start!
-
-      expect(project.reload.brainstorm_last_run_at).to eq(at)
     end
   end
 

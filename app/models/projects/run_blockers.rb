@@ -1,6 +1,6 @@
 module Projects
   # The project readiness checks shared by the agent-run services (Bugsnag::TriageSync,
-  # Jira::TicketSync, Slack::ReviewSync, Brainstorm::Planner). Each check returns its
+  # Jira::TicketSync, Slack::ReviewSync, Brainstorm::CycleSource). Each check returns its
   # message when the project is not ready, nil otherwise; `messages` collects them.
   class RunBlockers
     def initialize(project)
