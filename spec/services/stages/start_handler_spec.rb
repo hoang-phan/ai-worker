@@ -8,7 +8,7 @@ RSpec.describe Stages::StartHandler, type: :service do
   let(:stage_type) { :implementation }
   let(:stage) { build_stage(workflow, stage_type) }
   let(:github) { instance_double(Github::Client) }
-  let(:git) { class_double(Git::BranchService, create_branch!: nil, checkout_remote_branch!: nil, update_with_main!: :updated) }
+  let(:git) { class_double(Git::BranchService, create_branch!: nil, checkout_remote_branch!: nil, ensure_on_branch!: nil, update_with_main!: :updated) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ]) }
   let(:launcher) { spy("Stages::AiRunLauncher") }
@@ -111,7 +111,7 @@ RSpec.describe Stages::StartHandler, type: :service do
     it "delegates to Stages::CiCheckStart" do
       handler.call
 
-      expect(built["ci_check"]).to contain_exactly(hash_including(stage: stage, project: project, launcher: launcher))
+      expect(built["ci_check"]).to contain_exactly(hash_including(workflow: workflow, stage: stage, project: project, git: git, launcher: launcher))
       expect(built.keys).to eq([ "ci_check" ])
     end
   end
@@ -186,7 +186,7 @@ RSpec.describe Stages::StartHandler, type: :service do
     starters = {
       "pr_check" => [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
       "pr_review" => [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
-      "ci_check" => [ Stages::CiCheckStart, %i[stage project launcher] ],
+      "ci_check" => [ Stages::CiCheckStart, %i[workflow stage project git launcher] ],
       "uat_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :uat } ],
       "local_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :local } ],
       "runbook_step" => [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]

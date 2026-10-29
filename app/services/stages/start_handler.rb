@@ -13,7 +13,7 @@ module Stages
     STARTERS = {
       "pr_check" => [ Stages::PrCheckRun, %i[workflow stage project github git handoff prompt launcher] ],
       "pr_review" => [ Stages::PrReviewStart, %i[workflow stage project github git prompt launcher] ],
-      "ci_check" => [ Stages::CiCheckStart, %i[stage project launcher] ],
+      "ci_check" => [ Stages::CiCheckStart, %i[workflow stage project git launcher] ],
       "uat_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :uat }.freeze ],
       "local_test" => [ Stages::BrowserTestStart, %i[workflow project kind prompt git launcher], { kind: :local }.freeze ],
       "runbook_step" => [ Stages::RunbookStepStart, %i[workflow stage github prompt launcher] ]

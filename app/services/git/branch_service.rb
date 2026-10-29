@@ -23,6 +23,12 @@ module Git
       new(project, branch_name).checkout_remote!
     end
 
+    # CI flow: the clone is shared with other workflows (a PR review leaves it on someone else's branch), so put it
+    # back on the workflow's own local branch before anything runs against HEAD. No-op when already there.
+    def self.ensure_on_branch!(project, branch_name)
+      new(project, branch_name).ensure_on_branch!
+    end
+
     # Task flow: publish whatever the agent committed on the current branch.
     # Returns :pushed, or :up_to_date when there is nothing ahead of origin.
     # A rejected push (origin moved) is retried once after a rebase; never forces.
@@ -61,6 +67,12 @@ module Git
       shell.run!([ "git", "fetch", "origin", branch_name ])
       existed = checkout_branch!(start_point: "origin/#{branch_name}")
       shell.run!([ "git", "pull", "--ff-only", "origin", branch_name ]) if existed
+    end
+
+    def ensure_on_branch!
+      return if shell.run!([ "git", "rev-parse", "--abbrev-ref", "HEAD" ]).strip == branch_name
+
+      shell.checkout!([ "git", "checkout", branch_name ])
     end
 
     private

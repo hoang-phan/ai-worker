@@ -17,6 +17,25 @@ RSpec.describe Git::BranchService do
 
   def current_branch = git(clone, "rev-parse", "--abbrev-ref", "HEAD").strip
 
+  describe ".ensure_on_branch!" do
+    it "puts the clone back on the workflow's branch when it was left elsewhere" do
+      git(clone, "checkout", "-b", "feature/mine")
+      git(clone, "checkout", "-b", "someone-elses-pr")
+
+      described_class.ensure_on_branch!(project, "feature/mine")
+
+      expect(current_branch).to eq("feature/mine")
+    end
+
+    it "does nothing when already on the branch" do
+      git(clone, "checkout", "-b", "feature/mine")
+
+      described_class.ensure_on_branch!(project, "feature/mine")
+
+      expect(current_branch).to eq("feature/mine")
+    end
+  end
+
   describe ".create_branch!" do
     it "creates a new branch from an updated main" do
       commit_file(other, "new.txt", "from origin\n")
