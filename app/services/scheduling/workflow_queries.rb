@@ -12,10 +12,6 @@ module Scheduling
     # merge (`merged`) or a UAT browser test (`uat_testing`). Mid-run they're polled like any other run.
     POLLING_STATUSES = %i[merged uat_testing].freeze
 
-    # Statuses that hold the post-merge phase shut even when nothing is processing: code is being
-    # written or tested in the clone, so merged PRs must wait. `reviewing` is deliberately absent.
-    BUSY_STATUSES = %i[implementing local_testing ci_checking ci_verifying opening_pr].freeze
-
     def active
       Workflow.where(status: ACTIVE_STATUSES).includes(:project).order(:position).to_a
     end
@@ -28,8 +24,11 @@ module Scheduling
       Workflow.where(processing: true).includes(:project).map { |workflow| Planner.clone_key(workflow.project) }
     end
 
+    # Status is deliberately ignored: the active runner has already started whatever it could this
+    # tick, so a workflow that is merely queued (e.g. `implementing` behind a head waiting on review)
+    # must not keep merged PRs from getting their Jira update.
     def work_in_progress?
-      Workflow.where(status: BUSY_STATUSES).exists? || Workflow.where(processing: true).exists?
+      Workflow.where(processing: true).exists?
     end
 
     # Done development workflows whose PR may have been merged.

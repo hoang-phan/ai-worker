@@ -70,26 +70,18 @@ RSpec.describe Scheduling::WorkflowQueries do
   end
 
   describe ".work_in_progress?" do
-    it "is false when idle or only reviewing/done" do
+    it "is false when no agent is running, whatever the statuses" do
       workflow(status: :reviewing)
       workflow(status: :done, position: 2)
+      workflow(status: :implementing, position: 3)
+      workflow(status: :local_testing, position: 4)
 
       expect(described_class.work_in_progress?).to be(false)
     end
 
-    it "counts implementing, local_testing and any processing workflow" do
-      implementing = workflow(status: :implementing)
-      expect(described_class.work_in_progress?).to be(true)
-      implementing.update!(status: :local_testing)
-      expect(described_class.work_in_progress?).to be(true)
-      implementing.update!(status: :reviewing)
-      expect(described_class.work_in_progress?).to be(false)
-      implementing.update!(processing: true)
-      expect(described_class.work_in_progress?).to be(true)
-    end
-
-    it "counts local_testing on its own" do
-      workflow(status: :local_testing)
+    it "is true when any workflow is processing" do
+      running = workflow(status: :implementing)
+      running.update!(processing: true)
 
       expect(described_class.work_in_progress?).to be(true)
     end

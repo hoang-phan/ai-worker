@@ -1,6 +1,6 @@
 module Scheduling
-  # Merged PRs are only processed when the scheduler is otherwise idle: nothing implementing or
-  # running an agent (workflows merely waiting on review count as idle). First `done` workflows
+  # Merged PRs are only processed when the scheduler is otherwise idle: no agent running
+  # (workflows waiting on review, or queued behind another workflow, count as idle). First `done` workflows
   # whose PR got merged become `merged`, then one `merged` workflow at a time gets its Jira ticket
   # updated (the run is polled by ActiveWorkflowRunner on later ticks, and holds the idle check
   # shut until it finishes). One workflow's failure is logged and never stops the rest.
