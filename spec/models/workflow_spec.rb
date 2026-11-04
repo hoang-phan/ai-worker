@@ -55,7 +55,7 @@ RSpec.describe Workflow, type: :model do
     end
   end
 
-  describe "#local_test_before_review? and #post_pr_status" do
+  describe "#local_test_before_review?" do
     let(:ready_project) { build_jira_project(local_url: "http://localhost:3000", local_username: "u", local_password: "p") }
     let(:no_login_project) { build_jira_project(local_url: "http://localhost:3000") }
 
@@ -63,20 +63,17 @@ RSpec.describe Workflow, type: :model do
       wf = build_jira_workflow(ready_project)
       wf.stages.create!(stage_type: :local_test)
       expect(wf).to be_local_test_before_review
-      expect(wf.post_pr_status).to eq(:local_testing)
     end
 
     it "is false without the local_test stage, even with credentials" do
       wf = build_jira_workflow(ready_project)
       expect(wf).not_to be_local_test_before_review
-      expect(wf.post_pr_status).to eq(:reviewing)
     end
 
     it "is false without the local login, even with the stage" do
       wf = build_jira_workflow(no_login_project)
       wf.stages.create!(stage_type: :local_test)
       expect(wf).not_to be_local_test_before_review
-      expect(wf.post_pr_status).to eq(:reviewing)
     end
 
     it "is false for pr_review and runbook workflows even on a ready project" do
@@ -85,7 +82,6 @@ RSpec.describe Workflow, type: :model do
         wf.stages.create!(stage_type: :local_test)
         wf.kind = kind
         expect(wf).not_to be_local_test_before_review
-        expect(wf.post_pr_status).to eq(:reviewing)
       end
     end
   end

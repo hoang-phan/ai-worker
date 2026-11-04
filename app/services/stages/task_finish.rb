@@ -9,7 +9,7 @@ module Stages
     end
 
     def call(output)
-      workflow.finish_ai_run!(status: :done)
+      workflow.stage_complete!(stage)
       stage.log_run!("task_completed", output: output)
       queue_follow_ups(output)
       push_task_commits

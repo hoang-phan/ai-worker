@@ -1,6 +1,6 @@
 module Stages
   # The success path of a simple_implementation run (ci_loop flow): the work is committed and there is no PR yet, so
-  # the workflow moves on to the PR stage (the check posts its result to the PR's commit, so the commit must be pushed
+  # the workflow moves on to the next stage (the PR stage) (the check posts its result to the PR's commit, so the commit must be pushed
   # before the check runs).
   class SimpleImplementationFinish
     def initialize(workflow:, stage:)
@@ -9,7 +9,7 @@ module Stages
     end
 
     def call(output)
-      workflow.finish_ai_run!(status: :opening_pr)
+      workflow.stage_complete!(stage)
       stage.log_run!("ran_implementation", output: output)
     end
 

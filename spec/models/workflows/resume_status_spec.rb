@@ -3,62 +3,86 @@ require "rails_helper"
 RSpec.describe Workflows::ResumeStatus do
   let_jira_project("resume-status-spec")
   let(:workflow) { build_jira_workflow(project) }
-  let(:ci_status) { nil }
-  let(:ci_loop_resume) { instance_double(Workflows::CiLoopResume, status: ci_status) }
+  let(:pr_url) { "https://github.com/org/repo/pull/7" }
 
-  def status = described_class.new(workflow, ci_loop_resume: ci_loop_resume).call
+  def target(wf = workflow) = described_class.new(wf).call
 
-  it "is implementing without a PR" do
-    expect(status).to eq(:implementing)
+  def stage_of(type, wf = workflow) = wf.stages.find_by!(stage_type: type)
+
+  it "is the first stage without a PR or any run" do
+    expect(target).to have_attributes(status: :implementing, stage: stage_of(:implementation))
   end
 
-  it "is reviewing for a development workflow with a PR" do
-    workflow.update!(github_pr_url: "https://github.com/org/repo/pull/7")
+  it "is the review stage once a PR exists" do
+    workflow.update!(github_pr_url: pr_url)
 
-    expect(status).to eq(:reviewing)
+    expect(target).to have_attributes(status: :reviewing, stage: stage_of(:pr_check))
+  end
+
+  it "is the stored current stage ahead of any other rule" do
+    workflow.update!(github_pr_url: pr_url, current_stage_id: stage_of(:implementation).id)
+
+    expect(target).to have_attributes(status: :implementing, stage: stage_of(:implementation), origin: stage_of(:implementation))
+  end
+
+  it "is the stage of the newest run when no stage is stored" do
+    enable_local_testing(workflow)
+    workflow.update!(github_pr_url: pr_url)
+    stage_of(:local_test).log_run!("started")
+
+    expect(target).to have_attributes(status: :local_testing, stage: stage_of(:local_test))
+  end
+
+  it "ignores 'resumed' runs when finding the newest run" do
+    workflow.update!(github_pr_url: pr_url)
+    stage_of(:implementation).log_run!("ran_implementation")
+    stage_of(:pr_check).log_run!("resumed")
+
+    expect(target.stage).to eq stage_of(:implementation)
   end
 
   it "is implementing for a PR-review workflow with a PR" do
-    review = build_pr_review_workflow(project, github_pr_url: "https://github.com/org/repo/pull/7")
+    review = build_pr_review_workflow(project, github_pr_url: pr_url)
 
-    expect(described_class.new(review, ci_loop_resume: ci_loop_resume).call).to eq(:implementing)
+    expect(target(review)).to have_attributes(status: :implementing, stage: stage_of(:pr_review, review))
   end
 
-  it "is local_testing when the newest local test run never finished" do
-    local_test = build_stage(workflow, :local_test)
-    local_test.log_run!("started")
+  it "is uat_testing when a UAT test was scheduled, ahead of everything else" do
+    workflow.update!(uat_test_at: 1.hour.ago, current_stage_id: stage_of(:pr_check).id)
 
-    expect(status).to eq(:local_testing)
+    expect(target).to have_attributes(status: :uat_testing, stage: nil)
   end
 
-  it "is reviewing when the newest local test run completed" do
-    local_test = build_stage(workflow, :local_test)
-    local_test.log_run!("local_test_completed")
-    workflow.update!(github_pr_url: "https://github.com/org/repo/pull/7")
+  it "leaves a runbook's stored stage alone" do
+    runbook = build_runbook_workflow(project)
 
-    expect(status).to eq(:reviewing)
+    expect(target(runbook)).to have_attributes(status: :implementing, stage: nil)
   end
 
-  it "is uat_testing when a UAT test was scheduled, ahead of local_testing" do
-    local_test = build_stage(workflow, :local_test)
-    local_test.log_run!("started")
-    workflow.update!(uat_test_at: 1.hour.ago)
+  describe "an exhausted CI loop" do
+    let(:project) { build_ci_project(ci_max_rounds: 2) }
+    let(:workflow) { build_ci_workflow(project, github_pr_url: pr_url) }
 
-    expect(status).to eq(:uat_testing)
-  end
+    it "restarts at the verify stage's failure target, the check" do
+      verify = stage_of(:ci_verify)
+      workflow.update!(current_stage_id: verify.id)
+      verify.log_run!("ci_verify_failed")
+      verify.log_run!("ci_rounds_exhausted")
 
-  it "uses the CI loop resume status ahead of local testing" do
-    local_test = build_stage(workflow, :local_test)
-    local_test.log_run!("started")
-    allow(ci_loop_resume).to receive(:status).and_return(:ci_verifying)
+      expect(target).to have_attributes(status: :ci_checking, stage: stage_of(:ci_check), origin: verify)
+    end
 
-    expect(status).to eq(:ci_verifying)
-  end
+    it "resumes a verify error at the verify stage" do
+      workflow.update!(current_stage_id: stage_of(:ci_verify).id)
+      stage_of(:ci_verify).log_run!("failed")
 
-  it "uses UAT testing ahead of the CI loop resume status" do
-    workflow.update!(uat_test_at: 1.hour.ago)
-    allow(ci_loop_resume).to receive(:status).and_return(:ci_verifying)
+      expect(target).to have_attributes(status: :ci_verifying, stage: stage_of(:ci_verify))
+    end
 
-    expect(status).to eq(:uat_testing)
+    it "resumes opening the PR" do
+      workflow.update!(current_stage_id: stage_of(:pr_create).id)
+
+      expect(target).to have_attributes(status: :opening_pr, stage: stage_of(:pr_create))
+    end
   end
 end

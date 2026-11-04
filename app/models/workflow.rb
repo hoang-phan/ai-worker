@@ -70,12 +70,18 @@ class Workflow < ApplicationRecord
   delegate :start!, :resume!, :resume_status, :can_rollback_to_review?, :rollback_to_review!, :can_run_stage?,
            :can_skip_stage?, :skip_stage!, :request_stage_run!, :can_advance?, to: :transitions
 
+  # Non-runbook workflows run stage by stage (Workflows::StageFlow); each also ends the agent run. stage_complete!: on to
+  # the next stage (or done). stage_route_failed!: the stage's expected negative result, to its failure target.
+  delegate :complete!, :route_failed!, :enter!, to: :stage_flow, prefix: :stage
+
   # The runbook state machine lives in Workflows::RunbookNavigator.
   delegate :addable_test_stages, :add_test_stage!, to: :test_stage_adder
 
   delegate :start_runbook!, :advance!, :next_runbook_stage, :previous_runbook_stage, to: :runbook_actions
 
   def current_stage = Workflows::CurrentStage.new(self).call
+
+  def stage_flow = Workflows::StageFlow.new(self)
 
   # Development workflows on a project set up for local testing (credentials saved) that have the local_test stage:
   # the PR goes to local testing before review.
@@ -84,9 +90,6 @@ class Workflow < ApplicationRecord
 
   # Same for the post-merge UAT test.
   def uat_test_stage? = development? && project.uat_test_ready? && stages.exists?(stage_type: :uat_test)
-
-  # Where a workflow goes once its PR is up and checked.
-  def post_pr_status = local_test_before_review? ? :local_testing : :reviewing
 
   # Jira-project development workflows that got a PR: the ones whose ticket
   # moves to UAT/Releaseable once the PR is merged.

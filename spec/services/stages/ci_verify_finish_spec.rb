@@ -21,8 +21,8 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
 
     finish("fixed some\nCI_VERDICT: FAILED")
 
-    expect(workflow.reload).to have_attributes(status: "ci_checking").and have_finished_ai_run
-    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
+    expect(workflow.reload).to have_attributes(status: "ci_checking", current_stage_id: check_stage.id).and have_finished_ai_run
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed failure_routed]
   end
 
   it "goes back to the check when completed rounds are one below ci_max_rounds" do
@@ -31,7 +31,7 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
     finish("CI_VERDICT: FAILED")
 
     expect(workflow.reload.status).to eq "ci_checking"
-    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed failure_routed]
     expect(stage_actions(stage)).not_to include("ci_rounds_exhausted")
   end
 
@@ -72,6 +72,20 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
     finish("CI_VERDICT: PASSED\nCI_VERDICT: FAILED")
 
     expect(workflow.reload.status).to eq "ci_checking"
-    expect(stage_actions(stage)).to eq %w[ci_verify_failed]
+    expect(stage_actions(stage)).to eq %w[ci_verify_failed failure_routed]
+  end
+
+  it "goes to the failure stage selected on the verify stage instead of the check" do
+    stage.update!(failure_stage_id: workflow.stages.find_by!(stage_type: :pr_create).id)
+
+    finish("CI_VERDICT: FAILED")
+
+    expect(workflow.reload).to have_attributes(status: "opening_pr", current_stage_id: workflow.stages.find_by!(stage_type: :pr_create).id)
+  end
+
+  it "moves to the next stage of the pipeline on PASSED" do
+    finish("CI_VERDICT: PASSED")
+
+    expect(workflow.reload.current_stage_id).to eq workflow.stages.find_by!(stage_type: :pr_check).id
   end
 end

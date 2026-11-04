@@ -22,6 +22,42 @@ RSpec.describe Stage, type: :model do
     end
   end
 
+  describe "failure stage" do
+    let(:review) { workflow.stages.find_by!(stage_type: :pr_check) }
+    let(:implementation) { workflow.stages.find_by!(stage_type: :implementation) }
+
+    it "accepts another pipeline stage of the same workflow, or the stage itself" do
+      expect(review.update(failure_stage: implementation)).to be true
+      expect(review.update(failure_stage: review)).to be true
+    end
+
+    it "rejects a stage of another workflow" do
+      other = build_jira_workflow(project).stages.find_by!(stage_type: :pr_check)
+
+      expect(review.update(failure_stage: other)).to be false
+      expect(review.errors[:failure_stage_id]).to be_present
+    end
+
+    it "rejects a stage outside the pipeline" do
+      jira = workflow.stages.create!(stage_type: :jira_update)
+
+      expect(review.update(failure_stage: jira)).to be false
+    end
+
+    it "is cleared when the selected stage is destroyed" do
+      review.update!(failure_stage: implementation)
+
+      implementation.destroy!
+
+      expect(review.reload.failure_stage_id).to be_nil
+    end
+
+    it "is only offered for the stage types that can fail" do
+      expect(review).to be_failure_capable
+      expect(implementation).not_to be_failure_capable
+    end
+  end
+
   describe "run history delegation" do
     it "orders actions by id descending, whatever created_at says" do
       stage.stage_runs.create!(action: "started")

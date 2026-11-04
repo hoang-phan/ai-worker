@@ -57,6 +57,7 @@ class StagesController < ApplicationController
   def stage_params
     permitted = %i[prompt_template_id prompt command]
     permitted += %i[name run_mode channel position auto_advance wait_for_workflow] if @workflow.runbook?
+    permitted << :failure_stage_id if @stage&.failure_capable? && !@workflow.runbook?
     params.require(:stage).permit(*permitted)
   end
 end

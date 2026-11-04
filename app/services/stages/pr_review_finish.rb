@@ -7,7 +7,7 @@ module Stages
     end
 
     def call(output)
-      workflow.finish_ai_run!(status: :done)
+      workflow.stage_complete!(stage)
       stage.log_run!("review_completed", output: output)
     end
 

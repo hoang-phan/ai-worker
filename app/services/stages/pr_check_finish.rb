@@ -14,11 +14,14 @@ module Stages
       parsed_output = AiCli::Output.new(output)
       github.request_review!(workflow.github_pr_url, handoff.reviewers)
       retest = retest?(parsed_output)
-      workflow.finish_ai_run!(local_test_feedback: nil, **(retest ? { status: :local_testing } : {}))
+      # The fix is in: ask for another look (back to this stage by default, its failure target) or retest it locally first.
+      target = if retest then workflow.stage_enter!(local_test_stage, local_test_feedback: nil)
+      else workflow.stage_route_failed!(stage, local_test_feedback: nil)
+      end
       stage.log_run!("requested_changes_fixed", output: output)
       record_lessons(parsed_output.lessons)
       stage.log_run!("local_test_retest_scheduled") if retest
-      handoff.notify_reviewers!(again: true, fixed: parsed_output.fixed_summary) unless retest
+      handoff.notify_reviewers!(again: true, fixed: parsed_output.fixed_summary) if target && !retest
     end
 
     private
@@ -42,7 +45,11 @@ module Stages
     end
 
     def completed_local_test_rounds
-      workflow.stages.find_by(stage_type: :local_test)&.completed_local_test_rounds.to_i
+      local_test_stage&.completed_local_test_rounds.to_i
+    end
+
+    def local_test_stage
+      workflow.stages.find_by(stage_type: :local_test)
     end
   end
 end

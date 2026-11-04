@@ -28,14 +28,24 @@ module StagesHelper
     workflow.runbook? ? stage.display_name : stage.stage_type
   end
 
-  # run_mode / "waits for ..." / advance-mode badges beside a stage row's name; only "waits for" shows outside runbooks.
+  # run_mode / "waits for ..." / advance-mode badges beside a stage row's name; only "waits for" and the failure target show outside runbooks.
   def stage_row_badges(workflow, stage)
     runbook = workflow.runbook?
     safe_join([
       (badge(stage.run_mode) if runbook),
       (badge("waits for #{stage.wait_for_workflow}") if stage.wait_for_workflow.present?),
-      (badge(stage.auto_advance? ? "→ auto" : "⏸ then Next") if runbook)
+      (badge(stage.auto_advance? ? "→ auto" : "⏸ then Next") if runbook),
+      (badge("on failure → #{workflow.stage_flow.failure_target(stage).display_name}") if !runbook && stage.failure_capable?)
     ].compact, " ")
+  end
+
+  # Failure-target choices for a stage's select: the workflow's pipeline stages, plus a blank for the type's default.
+  def stage_failure_options(workflow)
+    workflow.stage_flow.pipeline.map { |candidate| [ candidate.display_name, candidate.id ] }
+  end
+
+  def stage_failure_default_name(workflow, stage)
+    workflow.stage_flow.default_failure_target(stage).display_name
   end
 
   # Slack channel for a runbook stage, prompt template name otherwise.

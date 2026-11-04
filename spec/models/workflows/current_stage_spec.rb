@@ -25,6 +25,35 @@ RSpec.describe Workflows::CurrentStage do
     end
   end
 
+  describe "stage by stage" do
+    let(:review) { workflow.stages.find_by!(stage_type: :pr_check) }
+
+    it "returns the stored stage while the status is the one that stage maps to" do
+      workflow.update!(status: :reviewing, current_stage_id: review.id)
+
+      expect(call).to eq review
+    end
+
+    it "ignores a stored stage the status no longer labels (the status was moved by hand)" do
+      workflow.update!(status: :implementing, current_stage_id: review.id)
+
+      expect(call).to eq workflow.stages.find_by!(stage_type: :implementation)
+    end
+
+    it "has no stage once the workflow is done or errored, whatever was stored" do
+      %i[done errored].each do |status|
+        workflow.update!(status: status, current_stage_id: review.id)
+        expect(call).to be_nil
+      end
+    end
+
+    it "uses the status for the post-merge Jira update" do
+      workflow.update!(status: :merged, current_stage_id: review.id)
+
+      expect(call.stage_type).to eq "jira_update"
+    end
+  end
+
   it "returns the seeded implementation stage of a jira development workflow" do
     expect(call).to eq(workflow.stages.find_by!(stage_type: :implementation))
   end

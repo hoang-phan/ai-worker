@@ -1,0 +1,5 @@
+<div class="field">
+  <%= f.label :failure_stage_id, "When this stage fails, go back to" %>
+  <%= f.select :failure_stage_id, stage_failure_options(workflow), { include_blank: "Default (#{stage_failure_default_name(workflow, stage)})" } %>
+  <p class="hint">A failure is an expected negative result (changes requested, checks failing), not an error: errors retry this stage. A stage sent back too many times parks the workflow as errored.</p>
+</div>

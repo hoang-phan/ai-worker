@@ -5,7 +5,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   let(:workflow) do
     build_jira_workflow(project, jira_ticket: "PCF-1", branch_name: "pr-check-finish", github_pr_url: "https://github.com/acme/widgets/pull/1", status: :reviewing, **running_ai_run)
   end
-  let(:stage) { build_stage(workflow, :pr_check) }
+  let(:stage) { workflow.stages.find_by!(stage_type: :pr_check) }
   let(:github) { instance_double(Github::Client, request_review!: nil) }
   let(:handoff) { instance_double(Stages::ReviewHandoff, reviewers: [ "octocat" ], notify_reviewers!: nil) }
 
@@ -16,12 +16,12 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   it "schedules a retest, clears feedback, and does not notify reviewers" do
     enable_local_testing(workflow)
     workflow.update!(local_test_feedback: "The login button is broken")
-    build_stage(workflow, :local_test)
 
     finish("LOCAL_RETEST: YES\nFIXED_SUMMARY_BEGIN\n- fixed login\nFIXED_SUMMARY_END")
 
     expect(github).to have_received(:request_review!).with(workflow.github_pr_url, handoff.reviewers)
     expect(workflow.reload).to have_attributes(status: "local_testing", local_test_feedback: nil).and have_finished_ai_run
+    expect(workflow.current_stage_id).to eq workflow.stages.find_by!(stage_type: :local_test).id
     expect(stage_actions(stage)).to eq(%w[requested_changes_fixed local_test_retest_scheduled])
     expect(handoff).not_to have_received(:notify_reviewers!)
   end
@@ -34,7 +34,8 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
 
     expect(github).to have_received(:request_review!).with(workflow.github_pr_url, handoff.reviewers)
     expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: nil)
-    expect(stage_actions(stage)).to eq(%w[requested_changes_fixed])
+    expect(workflow.current_stage_id).to eq stage.id
+    expect(stage_actions(stage)).to eq(%w[failure_routed requested_changes_fixed])
     expect(handoff).to have_received(:notify_reviewers!).with(again: true, fixed: "- clarified the comment")
   end
 
@@ -60,7 +61,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
       allow(project).to receive(:update_column).and_raise(ActiveRecord::StatementInvalid, "boom")
 
       expect { finish(lessons_output("Prefer services")) }.not_to raise_error
-      expect(stage_actions(stage)).to eq(%w[requested_changes_fixed])
+      expect(stage_actions(stage)).to eq(%w[failure_routed requested_changes_fixed])
     end
   end
 end

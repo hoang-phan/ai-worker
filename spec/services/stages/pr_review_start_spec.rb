@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe Stages::PrReviewStart, type: :service do
   let(:project) { instance_double(Project) }
-  let(:workflow) { instance_double(Workflow, github_pr_url: "https://github.com/acme/widgets/pull/1", update!: true) }
+  let(:workflow) { instance_double(Workflow, github_pr_url: "https://github.com/acme/widgets/pull/1", stage_complete!: true) }
   let(:stage) { instance_double(Stage, log_run!: nil) }
   let(:prompt) { instance_double(Prompts::StagePrompt, body: "the prompt") }
   let(:github) { instance_double(Github::Client, checkout_pr!: nil) }
@@ -20,7 +20,7 @@ RSpec.describe Stages::PrReviewStart, type: :service do
 
       start
 
-      expect(workflow).to have_received(:update!).with(status: :done)
+      expect(workflow).to have_received(:stage_complete!).with(stage)
       expect(stage).to have_received(:log_run!).with("pr_not_open_skipped")
       expect(launcher).not_to have_received(:call)
       expect(git).not_to have_received(:checkout_remote_branch!)

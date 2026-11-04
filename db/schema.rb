@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_04_110000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -110,6 +110,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_100000) do
     t.string "channel"
     t.text "command"
     t.datetime "created_at", null: false
+    t.integer "failure_stage_id"
     t.string "name"
     t.integer "position"
     t.text "prompt"
@@ -119,6 +120,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_100000) do
     t.datetime "updated_at", null: false
     t.string "wait_for_workflow"
     t.integer "workflow_id", null: false
+    t.index ["failure_stage_id"], name: "index_stages_on_failure_stage_id"
     t.index ["prompt_template_id"], name: "index_stages_on_prompt_template_id"
     t.index ["workflow_id"], name: "index_stages_on_workflow_id"
   end

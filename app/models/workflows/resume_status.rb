@@ -1,28 +1,44 @@
 module Workflows
+  # Where an errored workflow goes back to.
   class ResumeStatus
-    def initialize(workflow, ci_loop_resume: Workflows::CiLoopResume.new(workflow))
+    # status: the in-flight status to resume in; stage: the pipeline stage to put the workflow on (nil: leave
+    # current_stage_id alone); origin: the stage that errored, when known.
+    Target = Struct.new(:status, :stage, :origin, keyword_init: true)
+
+    def initialize(workflow, flow: Workflows::StageFlow.new(workflow))
       @workflow = workflow
-      @ci_loop_resume = ci_loop_resume
+      @flow = flow
     end
 
-    # The in-flight status an errored workflow goes back to: reviewing once a PR
-    # exists (personal-project and PR-review workflows never reach it), otherwise implementing.
+    # A scheduled UAT test resumes the UAT test. A runbook resumes at its stored stage. Otherwise the workflow goes back
+    # to the stage that errored (the one it was on, else the newest with a run, else review once a PR exists, else the
+    # first), except that an exhausted CI loop restarts at the verify stage's failure target (the check) with a fresh budget.
     def call
-      return :uat_testing if @workflow.uat_test_at.present?
+      return Target.new(status: :uat_testing) if @workflow.uat_test_at.present?
+      return Target.new(status: :implementing) if @workflow.runbook?
 
-      ci_status = @ci_loop_resume.status
-      return ci_status if ci_status
-      return :local_testing if local_test_unfinished?
+      origin = errored_stage
+      return Target.new(status: :implementing) unless origin
 
-      @workflow.development? && @workflow.github_pr_url.present? ? :reviewing : :implementing
+      stage = origin.last_action == "ci_rounds_exhausted" ? @flow.failure_target(origin) : origin
+      Target.new(status: @flow.status_for(stage), stage: stage, origin: origin)
     end
 
     private
 
-    # An errored workflow whose newest local test run started but never finished goes back to it, not to review
-    # (also true for a retest after a fix round: earlier completed rounds don't count).
-    def local_test_unfinished?
-      @workflow.stages.find_by(stage_type: :local_test)&.local_test_unfinished? || false
+    def errored_stage
+      pipeline = @flow.pipeline
+      stored = pipeline.find { |stage| stage.id == @workflow.current_stage_id }
+      return stored if stored
+
+      from_runs(pipeline) || (pull_request_stage(pipeline) if @workflow.development? && @workflow.github_pr_url.present?) || pipeline.first
     end
+
+    def from_runs(pipeline)
+      run = StageRun.where(stage_id: pipeline.map(&:id)).where.not(action: "resumed").order(:id).last
+      run && pipeline.find { |stage| stage.id == run.stage_id }
+    end
+
+    def pull_request_stage(pipeline) = pipeline.find { |stage| stage.stage_type == "pr_check" }
   end
 end

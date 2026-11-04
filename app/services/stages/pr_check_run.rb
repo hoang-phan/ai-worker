@@ -44,7 +44,7 @@ module Stages
     end
 
     def close_approved
-      workflow.update!(status: :done)
+      workflow.stage_complete!(stage)
       stage.log_run!("approved_closed")
     end
 

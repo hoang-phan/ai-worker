@@ -30,6 +30,11 @@ module Stages
       @actions.take_while { |action| action != "resumed" }.count("ci_check_completed")
     end
 
+    # `failure_routed` rounds since the last `resumed`: how often the stage ended "failed" and sent the workflow back.
+    def routed_failure_rounds
+      @actions.take_while { |action| action != "resumed" }.count("failure_routed")
+    end
+
     # A local test run that started but whose newest run isn't a completion (earlier completed rounds don't count).
     def local_test_unfinished?
       last = last_action

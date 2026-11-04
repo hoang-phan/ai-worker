@@ -9,14 +9,22 @@ RSpec.describe Stages::PrOpenedFinish, type: :service do
   let(:github) { instance_double(Github::Client, find_pr_url: pr_url) }
   let(:handoff) { instance_double(Stages::ReviewHandoff, enable_auto_merge!: nil, notify_reviewers!: nil) }
   let(:stage) { workflow.stages.find_by!(stage_type: :pr_create) }
+  # The standard flow's stage that opens the PR is the implementation itself, followed by (local testing and) the review.
+  let(:standard_project) { build_jira_project }
+  let(:standard_workflow) { build_jira_workflow(standard_project, status: :implementing, **running_ai_run) }
+  let(:implementation) { standard_workflow.stages.find_by!(stage_type: :implementation) }
 
-  def finish = described_class.new(workflow: workflow, stage: stage, project: project, github: github, handoff: handoff).call("out", action: "pr_created")
+  def finish
+    described_class.new(workflow: standard_workflow, stage: implementation, project: standard_project, github: github, handoff: handoff)
+                   .call("out", action: "ran_implementation")
+  end
 
   it "records the PR, starts review, logs pr_created and hands the PR over" do
     finish
 
-    expect(workflow.reload).to have_attributes(status: "reviewing", github_pr_url: pr_url).and have_finished_ai_run
-    expect(stage_actions(stage)).to eq %w[pr_created]
+    expect(standard_workflow.reload).to have_attributes(status: "reviewing", github_pr_url: pr_url).and have_finished_ai_run
+    expect(standard_workflow.current_stage_id).to eq standard_workflow.stages.find_by!(stage_type: :pr_check).id
+    expect(stage_actions(implementation)).to eq %w[ran_implementation]
     expect(handoff).to have_received(:enable_auto_merge!).with(pr_url)
     expect(handoff).to have_received(:notify_reviewers!)
   end
@@ -26,19 +34,20 @@ RSpec.describe Stages::PrOpenedFinish, type: :service do
                    .call("out", action: "pr_created", checks_follow: true)
 
     expect(workflow.reload).to have_attributes(status: "ci_checking", github_pr_url: pr_url).and have_finished_ai_run
+    expect(workflow.current_stage_id).to eq workflow.stages.find_by!(stage_type: :ci_check).id
     expect(stage_actions(stage)).to eq %w[pr_created]
     expect(handoff).to have_received(:enable_auto_merge!).with(pr_url)
     expect(handoff).not_to have_received(:notify_reviewers!)
   end
 
   it "queues local testing instead of handing over when the project is local-test ready" do
-    enable_local_testing(workflow)
-    expect(project).to be_local_test_ready
+    enable_local_testing(standard_workflow)
+    expect(standard_project).to be_local_test_ready
 
     finish
 
-    expect(workflow.reload).to have_attributes(status: "local_testing", github_pr_url: pr_url).and have_finished_ai_run
-    expect(stage_actions(stage)).to eq %w[pr_created]
+    expect(standard_workflow.reload).to have_attributes(status: "local_testing", github_pr_url: pr_url).and have_finished_ai_run
+    expect(stage_actions(implementation)).to eq %w[ran_implementation]
     expect(handoff).not_to have_received(:enable_auto_merge!)
     expect(handoff).not_to have_received(:notify_reviewers!)
   end

@@ -10,6 +10,10 @@
       <%= render "stages/form/runbook_fields", f: f, stage: stage, workflow: workflow, project: project %>
     <% end %>
 
+    <% if stage.failure_capable? && !workflow.runbook? %>
+      <%= render "stages/form/failure_field", f: f, stage: stage, workflow: workflow %>
+    <% end %>
+
     <% if stage.ci_check? %>
       <%= render "stages/form/command_field", f: f, stage: stage, workflow: workflow, project: project %>
     <% else %>

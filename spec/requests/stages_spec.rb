@@ -29,6 +29,38 @@ RSpec.describe "Stages", type: :request do
     end
   end
 
+  describe "failure stage" do
+    let(:review) { development_workflow.stages.find_by!(stage_type: :pr_check) }
+    let(:implementation) { development_workflow.stages.find_by!(stage_type: :implementation) }
+
+    it "offers the pipeline stages with the default on the stage types that can fail" do
+      get edit_project_workflow_stage_path(project, development_workflow, review)
+
+      document = Nokogiri::HTML(response.body)
+      expect(document.at_css("select#stage_failure_stage_id option[value='']").text).to include("Default (Pr check)")
+      expect(document.css("select#stage_failure_stage_id option").map(&:text)).to include("Implementation", "Pr check")
+
+      get edit_project_workflow_stage_path(project, development_workflow, implementation)
+      expect(Nokogiri::HTML(response.body).at_css("select#stage_failure_stage_id")).to be_nil
+    end
+
+    it "saves the selected failure stage and ignores it on a stage that cannot fail" do
+      patch project_workflow_stage_path(project, development_workflow, review), params: { stage: { failure_stage_id: implementation.id } }
+      expect(review.reload.failure_stage_id).to eq implementation.id
+
+      patch project_workflow_stage_path(project, development_workflow, implementation), params: { stage: { failure_stage_id: review.id } }
+      expect(implementation.reload.failure_stage_id).to be_nil
+    end
+
+    it "shows the failure target on the workflow page" do
+      review.update!(failure_stage_id: implementation.id)
+
+      get project_workflow_path(project, development_workflow)
+
+      expect(response.body).to include("on failure → Implementation")
+    end
+  end
+
   describe "stage prompt form" do
     def expect_prompt_form(template)
       document = Nokogiri::HTML(response.body)

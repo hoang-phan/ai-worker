@@ -1,11 +1,9 @@
 require "rails_helper"
 
 RSpec.describe Stages::TaskFinish, type: :service do
-  let_jira_project("task-finish-spec")
-  let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "TASK-1", branch_name: "task-finish", status: :implementing, **running_ai_run)
-  end
-  let(:stage) { build_stage(workflow, :task) }
+  let_personal_project("task-finish-spec")
+  let(:workflow) { build_task_workflow(project, status: :implementing, **running_ai_run) }
+  let(:stage) { workflow.stages.find_by!(stage_type: :task) }
   let(:git) { class_double(Git::BranchService, push_current!: :pushed) }
 
   def finish(output = "agent output")

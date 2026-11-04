@@ -2,10 +2,8 @@ require "rails_helper"
 
 RSpec.describe Stages::PrReviewFinish, type: :service do
   let_jira_project("pr-review-finish-spec")
-  let(:workflow) do
-    build_jira_workflow(project, jira_ticket: "REV-1", branch_name: "pr-review-finish", status: :implementing, **running_ai_run)
-  end
-  let(:stage) { build_stage(workflow, :pr_review) }
+  let(:workflow) { build_pr_review_workflow(project, status: :implementing, **running_ai_run) }
+  let(:stage) { workflow.stages.find_by!(stage_type: :pr_review) }
 
   it "resets AI-run state, marks the workflow done and logs review_completed" do
     described_class.new(workflow: workflow, stage: stage).call("agent output")

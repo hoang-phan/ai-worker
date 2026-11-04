@@ -17,7 +17,7 @@ module Stages
       info = github.pr_info(workflow.github_pr_url)
 
       unless info["state"] == "OPEN"
-        workflow.update!(status: :done)
+        workflow.stage_complete!(stage)
         return stage.log_run!("pr_not_open_skipped")
       end
 

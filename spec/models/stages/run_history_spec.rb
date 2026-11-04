@@ -73,6 +73,16 @@ RSpec.describe Stages::RunHistory do
     end
   end
 
+  describe "#routed_failure_rounds" do
+    it "counts failure_routed rows newer than the newest resumed action" do
+      expect(history("failure_routed", "started", "failure_routed", "resumed", "failure_routed").routed_failure_rounds).to eq(2)
+    end
+
+    it "is zero for an empty history" do
+      expect(history.routed_failure_rounds).to eq(0)
+    end
+  end
+
   describe "#local_test_unfinished?" do
     it "is true when the newest run isn't a completion" do
       expect(history("started", "local_test_completed")).to be_local_test_unfinished

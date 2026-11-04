@@ -13,9 +13,16 @@ RSpec.describe Workflows::Transitions do
   end
 
   describe "#start!" do
-    it "moves a pending development workflow to implementing" do
+    it "moves a pending development workflow to implementing, on its first stage" do
       expect(transitions.start!).to be true
       expect(workflow.reload).to be_implementing
+      expect(workflow.current_stage_id).to eq workflow.stages.find_by!(stage_type: :implementation).id
+    end
+
+    it "starts a ci_loop workflow at its first stage in the pipeline order" do
+      ci = build_ci_workflow(build_ci_project(name: "start-ci-spec", repo_full_name: "org/repo"), status: :pending)
+      expect(Workflows::Transitions.new(ci).start!).to be true
+      expect(ci.reload).to have_attributes(status: "implementing", current_stage_id: ci.stages.find_by!(stage_type: :simple_implementation).id)
     end
 
     it "starts a runbook at its first stage" do
@@ -49,6 +56,7 @@ RSpec.describe Workflows::Transitions do
 
       ci_workflow.reload
       expect(ci_workflow).to be_ci_verifying
+      expect(ci_workflow.current_stage_id).to eq ci_workflow.stages.find_by!(stage_type: :ci_verify).id
       expect(ci_workflow.ci_output_path).to be_nil
       expect(ci_workflow.ci_exit_status).to be_nil
       expect(stage.stage_runs.pluck(:action)).to eq(%w[stage_skipped])
@@ -115,35 +123,6 @@ RSpec.describe Workflows::Transitions do
     end
   end
 
-  describe "#resume!" do
-    before { workflow.update!(status: :errored) }
-
-    it "refuses a workflow that is not errored" do
-      workflow.update!(status: :reviewing)
-      expect { expect(transitions.resume!).to be false }.not_to change(StageRun, :count)
-      expect(workflow.reload).to be_reviewing
-    end
-
-    it "uses ResumeStatus and logs one 'resumed' StageRun on the resulting current stage" do
-      workflow.update!(github_pr_url: pr_url)
-      resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
-      transitions = described_class.new(workflow, resume_status: resume_status)
-
-      expect { expect(transitions.resume!).to be true }.to change(StageRun, :count).by(1)
-      expect(workflow.reload).to be_reviewing
-      expect(stage_actions(workflow.stages.find_by(stage_type: :pr_check))).to eq(%w[resumed])
-    end
-
-    it "updates a runbook and logs one 'resumed' StageRun on its current stage" do
-      runbook = build_runbook_workflow(project)
-      step = build_runbook_stage(runbook, name: "One", position: 1)
-      runbook.update!(status: :errored, current_stage_id: step.id)
-      expect { expect(Workflows::Transitions.new(runbook).resume!).to be true }.to change(StageRun, :count).by(1)
-      expect(runbook.reload).to be_implementing
-      expect(stage_actions(step)).to eq(%w[resumed])
-    end
-  end
-
   describe "#rollback_to_review!" do
     before { workflow.update!(status: :done, github_pr_url: pr_url) }
 
@@ -169,15 +148,6 @@ RSpec.describe Workflows::Transitions do
       runbook = build_runbook_workflow(project, status: :done, github_pr_url: pr_url)
       expect(Workflows::Transitions.new(runbook).rollback_to_review!).to be false
       expect(runbook.reload).to be_done
-    end
-  end
-
-  describe "#resume_status" do
-    it "forwards to ResumeStatus" do
-      resume_status = instance_double(Workflows::ResumeStatus, call: :reviewing)
-      transitions = described_class.new(workflow, resume_status: resume_status)
-
-      expect(transitions.resume_status).to eq(:reviewing)
     end
   end
 

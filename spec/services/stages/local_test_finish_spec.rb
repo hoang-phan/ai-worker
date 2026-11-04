@@ -25,7 +25,7 @@ RSpec.describe Stages::LocalTestFinish, type: :service do
     finish("LOCAL_TEST_FEEDBACK_BEGIN\nThe login button is broken\nLOCAL_TEST_FEEDBACK_END\nLOCAL_TEST_RESULT: FAILED")
 
     expect(workflow.reload).to have_attributes(status: "reviewing", local_test_feedback: "The login button is broken")
-    expect(stage_actions(stage)).to eq(%w[local_test_completed])
+    expect(stage_actions(stage)).to eq(%w[failure_routed local_test_completed])
     expect(handoff).not_to have_received(:enable_auto_merge!)
     expect(handoff).to have_received(:notify_reviewers!).with(no_args)
   end
