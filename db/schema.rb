@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_23_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_04_100000) do
   create_table "bugsnag_syncs", force: :cascade do |t|
     t.boolean "auto_sync", default: false, null: false
     t.string "bugsnag_project", null: false
@@ -62,7 +62,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_100000) do
     t.string "local_directory"
     t.text "local_instructions"
     t.text "local_password"
-    t.boolean "local_test_enabled", default: false, null: false
+    t.boolean "local_stage_auto_include", default: false, null: false
     t.string "local_url"
     t.string "local_username"
     t.string "name"
@@ -78,8 +78,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_23_100000) do
     t.text "test_instructions"
     t.text "uat_instructions"
     t.text "uat_password"
+    t.boolean "uat_stage_auto_include", default: false, null: false
     t.integer "uat_test_delay_minutes", default: 120, null: false
-    t.boolean "uat_test_enabled", default: false, null: false
     t.string "uat_url"
     t.string "uat_username"
     t.datetime "updated_at", null: false

@@ -14,7 +14,7 @@ RSpec.describe Stages::PrCheckFinish, type: :service do
   end
 
   it "schedules a retest, clears feedback, and does not notify reviewers" do
-    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+    enable_local_testing(workflow)
     workflow.update!(local_test_feedback: "The login button is broken")
     build_stage(workflow, :local_test)
 

@@ -19,8 +19,6 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
     expect(workflow.reload).to have_finished_ai_run
   end
 
-  let(:uat_attributes) { { uat_test_enabled: true, uat_url: "https://uat.example.com", uat_test_delay_minutes: 30 } }
-
   it "raises without a JIRA_RESULT line and leaves the workflow untouched" do
     expect { finish("agent output") }
       .to raise_error(AiCli::CommandError, "agent finished without a JIRA_RESULT line, treating the Jira update as failed")
@@ -29,8 +27,10 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
     expect(stage_actions(stage)).to be_empty
   end
 
-  context "when the project has UAT testing ready" do
-    let(:project_attributes) { uat_attributes }
+  context "when the workflow has the UAT test stage" do
+    let(:project_attributes) { { uat_test_delay_minutes: 30 } }
+
+    before { enable_uat_testing(workflow) }
 
     it "schedules the UAT test for a UAT outcome" do
       run_at = now + 30.minutes
@@ -54,6 +54,16 @@ RSpec.describe Stages::JiraUpdateFinish, type: :service do
 
       expect(workflow.reload).to have_attributes(status: "jira_updated", uat_test_at: nil)
       expect(stage_actions(stage)).to eq(%w[jira_updated])
+    end
+  end
+
+  context "when the project has UAT credentials but the workflow has no UAT stage" do
+    before { project.update!(uat_url: "https://uat.example.com", uat_username: "tester", uat_password: "secret") }
+
+    it "marks the workflow jira_updated even for a UAT outcome" do
+      finish("JIRA_RESULT: UAT")
+
+      expect(workflow.reload).to have_attributes(status: "jira_updated", uat_test_at: nil)
     end
   end
 

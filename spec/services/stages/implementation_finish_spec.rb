@@ -27,7 +27,7 @@ RSpec.describe Stages::ImplementationFinish, type: :service do
   end
 
   it "waits for the local test before auto-merge or reviewer notification on development workflows" do
-    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+    enable_local_testing(workflow)
 
     finish
 

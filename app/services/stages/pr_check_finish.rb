@@ -34,7 +34,7 @@ module Stages
 
     def retest?(parsed_output)
       Stages::LocalTestPolicy.retest_after_fix?(
-        local_test_ready: project.local_test_ready?,
+        local_test_ready: workflow.local_test_stage?,
         completed_rounds: completed_local_test_rounds,
         feedback_pending: workflow.local_test_feedback.present?,
         retest_requested: parsed_output.retest_requested?

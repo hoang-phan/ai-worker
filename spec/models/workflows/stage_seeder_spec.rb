@@ -62,3 +62,35 @@ RSpec.describe Workflows::StageSeeder do
     end
   end
 end
+
+RSpec.describe Workflows::StageSeeder, "optional test stages" do
+  let_jira_project("stage-seeder-test-stages-spec", repo_full_name: "org/repo")
+  let(:local_login) { { local_url: "http://localhost:3000", local_username: "u", local_password: "p" } }
+  let(:uat_login) { { uat_url: "https://uat.example.com", uat_username: "u", uat_password: "p" } }
+
+  def stage_types(workflow) = workflow.stages.map(&:stage_type)
+
+  it "adds local_test and uat_test when the project has credentials and auto-include on" do
+    project.update!(local_stage_auto_include: true, uat_stage_auto_include: true, **local_login, **uat_login)
+
+    expect(stage_types(build_jira_workflow(project))).to eq(%w[implementation pr_check local_test uat_test])
+  end
+
+  it "adds them to ci_loop workflows too" do
+    ci = build_ci_project(local_stage_auto_include: true, **local_login)
+
+    expect(stage_types(build_ci_workflow(ci))).to eq(%w[simple_implementation pr_create ci_check ci_verify pr_check local_test])
+  end
+
+  it "adds nothing without the auto-include opt-in, even with credentials" do
+    project.update!(**local_login, **uat_login)
+
+    expect(stage_types(build_jira_workflow(project))).to eq(%w[implementation pr_check])
+  end
+
+  it "adds nothing with auto-include on but no credentials" do
+    project.update!(local_stage_auto_include: true, uat_stage_auto_include: true)
+
+    expect(stage_types(build_jira_workflow(project))).to eq(%w[implementation pr_check])
+  end
+end

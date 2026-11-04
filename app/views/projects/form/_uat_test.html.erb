@@ -1,9 +1,9 @@
 <fieldset class="field">
   <legend>UAT test by the agent (optional)</legend>
-  <p class="field-hint">Jira projects only. When the post-merge update moves a ticket to UAT, the agent waits the delay below, then opens the UAT site in a headless browser, runs the ticket's "How to test" steps, records a video and trace, attaches them to the ticket and posts the result as a comment. Needs <code>JIRA_EMAIL</code> and <code>JIRA_ACCESS_TOKEN</code> in <code>.env</code> for the attachments. Use a low-privilege test account, never production.</p>
+  <p class="field-hint">Jira projects only. Saving the UAT URL, username and password makes the UAT test stage available: a workflow runs it only if it has the stage, either included automatically (checkbox below) or added by hand from the workflow page. When the post-merge update moves a ticket to UAT, the agent waits the delay below, then opens the UAT site in a headless browser, runs the ticket's "How to test" steps, records a video and trace, attaches them to the ticket and posts the result as a comment. Needs <code>JIRA_EMAIL</code> and <code>JIRA_ACCESS_TOKEN</code> in <code>.env</code> for the attachments. Use a low-privilege test account, never production.</p>
 
   <div class="field">
-    <label><%= f.check_box :uat_test_enabled %> Test tickets on UAT automatically</label>
+    <label><%= f.check_box :uat_stage_auto_include %> Add the UAT test stage to every new workflow automatically</label>
   </div>
 
   <div class="field">

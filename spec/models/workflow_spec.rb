@@ -56,17 +56,25 @@ RSpec.describe Workflow, type: :model do
   end
 
   describe "#local_test_before_review? and #post_pr_status" do
-    let(:ready_project) { build_jira_project(local_test_enabled: true, local_url: "http://localhost:3000") }
-    let(:plain_project) { build_jira_project(local_test_enabled: false, local_url: "http://localhost:3000") }
+    let(:ready_project) { build_jira_project(local_url: "http://localhost:3000", local_username: "u", local_password: "p") }
+    let(:no_login_project) { build_jira_project(local_url: "http://localhost:3000") }
 
-    it "is true for a development workflow on a local-test-ready project" do
+    it "is true for a development workflow with the local_test stage on a project with local credentials" do
       wf = build_jira_workflow(ready_project)
+      wf.stages.create!(stage_type: :local_test)
       expect(wf).to be_local_test_before_review
       expect(wf.post_pr_status).to eq(:local_testing)
     end
 
-    it "is false when the project has local testing disabled" do
-      wf = build_jira_workflow(plain_project)
+    it "is false without the local_test stage, even with credentials" do
+      wf = build_jira_workflow(ready_project)
+      expect(wf).not_to be_local_test_before_review
+      expect(wf.post_pr_status).to eq(:reviewing)
+    end
+
+    it "is false without the local login, even with the stage" do
+      wf = build_jira_workflow(no_login_project)
+      wf.stages.create!(stage_type: :local_test)
       expect(wf).not_to be_local_test_before_review
       expect(wf.post_pr_status).to eq(:reviewing)
     end
@@ -74,10 +82,21 @@ RSpec.describe Workflow, type: :model do
     it "is false for pr_review and runbook workflows even on a ready project" do
       %i[pr_review runbook].each do |kind|
         wf = build_jira_workflow(ready_project)
+        wf.stages.create!(stage_type: :local_test)
         wf.kind = kind
         expect(wf).not_to be_local_test_before_review
         expect(wf.post_pr_status).to eq(:reviewing)
       end
+    end
+  end
+
+  describe "#uat_test_stage?" do
+    it "needs UAT credentials on the project and the uat_test stage" do
+      wf = build_jira_workflow(project)
+      expect(wf).not_to be_uat_test_stage
+
+      enable_uat_testing(wf)
+      expect(wf).to be_uat_test_stage
     end
   end
 end

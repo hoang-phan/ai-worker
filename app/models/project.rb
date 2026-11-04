@@ -48,8 +48,10 @@ class Project < ApplicationRecord
   # Instance form of the `with_jira_site` scope.
   def jira_site? = jira? && jira_base_url.present?
 
+  # Saving the local URL and login makes local testing available; a workflow runs it only when it has the stage
+  # (`local_stage_auto_include` seeds it into new workflows, otherwise it is added by hand).
   def local_test_ready?
-    jira? && local_test_enabled? && local_url.present?
+    jira? && local_url.present? && local_username.present? && local_password.present?
   end
 
   # `slack_user_map` is one `github-login=SlackUserID` per line (commas work too), used to tag reviewers in Slack.
@@ -67,7 +69,8 @@ class Project < ApplicationRecord
     update_column(:agent_lessons, Projects::AgentLessons.new(agent_lessons).merge(lessons))
   end
 
+  # Same rule as local_test_ready?, with the UAT URL and login (`uat_stage_auto_include`).
   def uat_test_ready?
-    uat_test_enabled? && uat_url.present?
+    jira? && uat_url.present? && uat_username.present? && uat_password.present?
   end
 end

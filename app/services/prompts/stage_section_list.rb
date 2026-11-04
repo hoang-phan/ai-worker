@@ -24,7 +24,7 @@ module Prompts
         ),
         Prompts::StageSections::LocalFeedback.new(
           stage_type: stage_type,
-          local_test_ready: stage.pr_check? && project.local_test_ready?,
+          local_test_ready: stage.pr_check? && workflow.local_test_stage?,
           feedback: workflow.local_test_feedback
         ),
         Prompts::StageSections::FixedSummary.new(

@@ -54,7 +54,7 @@ RSpec.describe Prompts::StageSectionList do
 
     it "includes this workflow's local-test feedback for a pr_check on a ready project" do
       stage.update!(stage_type: :pr_check, prompt: "Fix")
-      project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+      enable_local_testing(workflow)
       workflow.update!(local_test_feedback: "Login button is broken")
 
       expect(section_list.to_s).to include(
@@ -66,7 +66,7 @@ RSpec.describe Prompts::StageSectionList do
 
     it "does not include local-test feedback outside pr_check even when the project is ready" do
       stage.update!(prompt: "Do it")
-      project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+      enable_local_testing(workflow)
       workflow.update!(local_test_feedback: "Login button is broken")
 
       expect(section_list.to_s).not_to include("Login button is broken", "LOCAL_RETEST:", "<local_test_feedback>")

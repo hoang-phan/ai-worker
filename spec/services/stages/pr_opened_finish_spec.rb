@@ -32,7 +32,7 @@ RSpec.describe Stages::PrOpenedFinish, type: :service do
   end
 
   it "queues local testing instead of handing over when the project is local-test ready" do
-    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+    enable_local_testing(workflow)
     expect(project).to be_local_test_ready
 
     finish

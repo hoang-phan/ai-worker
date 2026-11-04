@@ -1,9 +1,9 @@
 <fieldset class="field">
   <legend>Local test by the agent (optional)</legend>
-  <p class="field-hint">Jira projects only. After implementation opens the PR, a separate stage has the agent start the project's development server (<code>RAILS_ENV=development</code>), run the same "How to test" steps in a headless browser as the UAT test does, fix what its change broke, and post the result on the PR before it goes to review. The shared test instructions (above, in the main section) apply too. It writes to this project's own development database, so keep the instructions to safe, additive test data.</p>
+  <p class="field-hint">Jira projects only. Saving the local URL, username and password makes the local test stage available: a workflow runs it only if it has the stage, either included automatically (checkbox below) or added by hand from the workflow page. After implementation opens the PR, a separate stage has the agent start the project's development server (<code>RAILS_ENV=development</code>), run the same "How to test" steps in a headless browser as the UAT test does, fix what its change broke, and post the result on the PR before it goes to review. The shared test instructions (above, in the main section) apply too. It writes to this project's own development database, so keep the instructions to safe, additive test data.</p>
 
   <div class="field">
-    <label><%= f.check_box :local_test_enabled %> Test PRs locally before review</label>
+    <label><%= f.check_box :local_stage_auto_include %> Add the local test stage to every new workflow automatically</label>
   </div>
 
   <div class="field">

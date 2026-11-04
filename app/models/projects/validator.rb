@@ -12,9 +12,7 @@ module Projects
       format_allow_blank(project, :slack_review_channel, with: /\A[CG][A-Z0-9]{8,}\z/, message: "must be a Slack channel ID like C0B5XFY2F0T")
       format_allow_blank(project, :uat_url, with: HTTP_URL, message: "must be a full URL like https://uat.example.com")
       numericality(project, :uat_test_delay_minutes, only_integer: true, greater_than_or_equal_to: 0)
-      require_presence(project, :uat_url) if project.uat_test_enabled?
       format_allow_blank(project, :local_url, with: HTTP_URL, message: "must be a full URL like http://localhost:3000")
-      require_presence(project, :local_url) if project.local_test_enabled?
       require_presence(project, :ci_command, message: "is required for the ci_loop flow") if project.flow_ci_loop?
       flow_needs_jira(project) unless project.jira?
       numericality(project, :ci_max_rounds, only_integer: true, greater_than: 0, less_than_or_equal_to: 20)

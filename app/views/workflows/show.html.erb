@@ -20,6 +20,9 @@
     <% if @workflow.can_skip_stage? %>
       <%= button_to "Skip stage", skip_stage_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary", form: { data: { turbo_confirm: "Skip this stage and move on to the next one?" } } %>
     <% end %>
+    <% @workflow.addable_test_stages.each do |stage_type| %>
+      <%= button_to Workflows::TestStageAdder::LABELS.fetch(stage_type), test_stage_project_workflow_path(@project, @workflow, stage_type: stage_type), method: :post, class: "btn btn-secondary" %>
+    <% end %>
     <% if @workflow.runbook? %>
       <%= inline_button_to "Clone", clone_project_workflow_path(@project, @workflow), method: :post, class: "btn btn-secondary" %>
     <% end %>

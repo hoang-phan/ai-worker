@@ -57,6 +57,17 @@ module RecordHelper
     workflow.stages.create!({ stage_type: stage_type, name: stage_type.to_s }.merge(attrs))
   end
 
+  # Makes local / UAT testing available (credentials saved) and gives the workflow its optional test stage.
+  def enable_local_testing(workflow)
+    workflow.project.update!(local_url: "http://localhost:3000", local_username: "tester", local_password: "secret")
+    workflow.stages.find_or_create_by!(stage_type: :local_test)
+  end
+
+  def enable_uat_testing(workflow, **project_attrs)
+    workflow.project.update!({ uat_url: "https://uat.example.com", uat_username: "tester", uat_password: "secret" }.merge(project_attrs))
+    workflow.stages.find_or_create_by!(stage_type: :uat_test)
+  end
+
   def build_runbook_stage(workflow, **attrs)
     workflow.stages.create!({ stage_type: :runbook_step, name: "Step" }.merge(attrs))
   end

@@ -16,9 +16,9 @@ RSpec.describe Projects::SettingsParams do
         ci_instructions test_instructions agent_lessons
         jira_base_url jira_assignee jira_tester
         slack_review_enabled slack_mention slack_review_channel slack_user_map
-        uat_test_enabled uat_url uat_instructions uat_username uat_password uat_test_delay_minutes
+        uat_stage_auto_include uat_url uat_instructions uat_username uat_password uat_test_delay_minutes
         flow ci_command ci_max_rounds ci_verify_instructions pr_instructions
-        local_test_enabled local_url local_instructions local_username local_password
+        local_stage_auto_include local_url local_instructions local_username local_password
         brainstorm_enabled brainstorm_goal brainstorm_max_workflows brainstorm_auto_start
       ]
       params = ActionController::Parameters.new(project: attributes.index_with { |attribute| "value for #{attribute}" })

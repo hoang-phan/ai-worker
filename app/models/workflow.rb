@@ -71,12 +71,19 @@ class Workflow < ApplicationRecord
            :can_skip_stage?, :skip_stage!, :request_stage_run!, :can_advance?, to: :transitions
 
   # The runbook state machine lives in Workflows::RunbookNavigator.
+  delegate :addable_test_stages, :add_test_stage!, to: :test_stage_adder
+
   delegate :start_runbook!, :advance!, :next_runbook_stage, :previous_runbook_stage, to: :runbook_actions
 
   def current_stage = Workflows::CurrentStage.new(self).call
 
-  # Development workflows on a project set up for local testing: the PR goes to local testing before review.
-  def local_test_before_review? = development? && project.local_test_ready?
+  # Development workflows on a project set up for local testing (credentials saved) that have the local_test stage:
+  # the PR goes to local testing before review.
+  def local_test_stage? = development? && project.local_test_ready? && stages.exists?(stage_type: :local_test)
+  alias_method :local_test_before_review?, :local_test_stage?
+
+  # Same for the post-merge UAT test.
+  def uat_test_stage? = development? && project.uat_test_ready? && stages.exists?(stage_type: :uat_test)
 
   # Where a workflow goes once its PR is up and checked.
   def post_pr_status = local_test_before_review? ? :local_testing : :reviewing
@@ -92,6 +99,8 @@ class Workflow < ApplicationRecord
 
   # Built per call, not memoized: Transitions reads live state.
   def transitions = Workflows::Transitions.new(self)
+
+  def test_stage_adder = Workflows::TestStageAdder.new(self)
 
   def workflow_label = Workflows::Label.new(self)
 

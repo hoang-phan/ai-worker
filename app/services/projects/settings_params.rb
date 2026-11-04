@@ -12,14 +12,14 @@ class Projects::SettingsParams
     slack_review_enabled slack_mention slack_review_channel slack_user_map
   ].freeze
   UAT_TEST_ATTRIBUTES = %i[
-    uat_test_enabled uat_url uat_instructions uat_username uat_password
+    uat_stage_auto_include uat_url uat_instructions uat_username uat_password
     uat_test_delay_minutes
   ].freeze
   CI_LOOP_ATTRIBUTES = %i[
     flow ci_command ci_max_rounds ci_verify_instructions pr_instructions
   ].freeze
   LOCAL_TEST_ATTRIBUTES = %i[
-    local_test_enabled local_url local_instructions local_username local_password
+    local_stage_auto_include local_url local_instructions local_username local_password
   ].freeze
   BRAINSTORM_ATTRIBUTES = %i[
     brainstorm_enabled brainstorm_goal brainstorm_max_workflows brainstorm_auto_start

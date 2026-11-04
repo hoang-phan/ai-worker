@@ -5,7 +5,7 @@ RSpec.describe Projects::Validator do
 
   describe "uat_url" do
     it "allows blank when UAT testing is off" do
-      expect(project(uat_url: "", uat_test_enabled: false)).to be_valid
+      expect(project(uat_url: "")).to be_valid
     end
 
     it "must be a full HTTP URL" do
@@ -15,19 +15,18 @@ RSpec.describe Projects::Validator do
       expect(errors[:uat_url]).to eq([ "must be a full URL like https://uat.example.com" ])
     end
 
-    it "is required when UAT testing is enabled" do
-      expect(errors_for(project(uat_test_enabled: true, uat_url: "")).details[:uat_url])
-        .to eq([ { error: :blank } ])
+    it "accepts a full URL" do
+      expect(project(uat_url: "https://uat.example.com")).to be_valid
     end
 
-    it "accepts a full URL when UAT testing is enabled" do
-      expect(project(uat_test_enabled: true, uat_url: "https://uat.example.com")).to be_valid
+    it "is not required by the auto-include option (credentials, not a flag, make testing available)" do
+      expect(project(uat_stage_auto_include: true, uat_url: "")).to be_valid
     end
   end
 
   describe "local_url" do
     it "allows blank when local testing is off" do
-      expect(project(local_url: "", local_test_enabled: false)).to be_valid
+      expect(project(local_url: "")).to be_valid
     end
 
     it "must be a full HTTP URL" do
@@ -37,13 +36,12 @@ RSpec.describe Projects::Validator do
       expect(errors[:local_url]).to eq([ "must be a full URL like http://localhost:3000" ])
     end
 
-    it "is required when local testing is enabled" do
-      expect(errors_for(project(local_test_enabled: true, local_url: "")).details[:local_url])
-        .to eq([ { error: :blank } ])
+    it "accepts a full URL" do
+      expect(project(local_url: "http://localhost:3000")).to be_valid
     end
 
-    it "accepts a full URL when local testing is enabled" do
-      expect(project(local_test_enabled: true, local_url: "http://localhost:3000")).to be_valid
+    it "is not required by the auto-include option" do
+      expect(project(local_stage_auto_include: true, local_url: "")).to be_valid
     end
   end
 

@@ -16,7 +16,7 @@ module Stages
       raise AiCli::CommandError, "agent finished without a JIRA_RESULT line, treating the Jira update as failed" unless outcome
 
       # A ticket that went to UAT is tested by the agent after the project's delay, if the project opted in.
-      if outcome.casecmp?("UAT") && project.uat_test_ready?
+      if outcome.casecmp?("UAT") && workflow.uat_test_stage?
         run_at = clock.call + project.uat_test_delay_minutes.minutes
         workflow.finish_ai_run!(status: :uat_waiting, uat_test_at: run_at)
         stage.log_run!("jira_updated", output: output)

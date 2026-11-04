@@ -19,7 +19,7 @@ jira_sync:
   queue: default
 
 jira_sync_off_hours:
-  cron: "0 0-4,14-23 * * * Asia/Ho_Chi_Minh"
+  cron: "*/5 0-4,14-23 * * * Asia/Ho_Chi_Minh"
   class: "JiraSyncJob"
   active_job: true
   queue: default

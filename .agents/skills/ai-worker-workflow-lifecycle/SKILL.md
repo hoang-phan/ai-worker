@@ -1,6 +1,6 @@
 ---
 name: ai-worker-workflow-lifecycle
-description: Owns Workflow status transitions, stage resolution, start, resume, and rollback. Use for app/models/workflows/{transitions,resume_status,ci_loop_resume,current_stage,stage_resolver,stage_seeder}.rb, app/models/workflow.rb, or WorkflowTransitionsController.
+description: Owns Workflow status transitions, stage resolution, start, resume, and rollback. Use for app/models/workflows/{transitions,resume_status,ci_loop_resume,current_stage,stage_resolver,stage_seeder,test_stage_adder}.rb, app/models/workflow.rb, or WorkflowTransitionsController.
 ---
 
 # ai-worker-workflow-lifecycle
@@ -13,7 +13,8 @@ What `uat_testing` / `local_testing` runs do once resumed: `ai-worker-browser-te
 
 - `app/models/workflows/stage_resolver.rb` — `Workflows::StageResolver.stage_type_for(status:, kind:, personal:, ci_loop: false)` is a pure lookup. Map precedence: `kind == pr_review` -> `PR_REVIEW_STAGE_TYPE_BY_STATUS`, then `personal` -> `SIMPLE_STAGE_TYPE_BY_STATUS`, then `ci_loop` -> `CI_LOOP_STAGE_TYPE_BY_STATUS`, else `STAGE_TYPE_BY_STATUS` (`implementing` -> `implementation`, `reviewing` -> `pr_check`, `merged` -> `jira_update`, `uat_testing` -> `uat_test`, `local_testing` -> `local_test`, plus the ci_loop statuses). Unmapped statuses (`pending`, `done`, ...) give nil. `LAZY_STAGE_TYPES` (`jira_update uat_test local_test ci_check ci_verify pr_create simple_implementation`) are not seeded.
 - `app/models/workflows/current_stage.rb` — `Workflow#current_stage`: a runbook's stage at `current_stage_id`, else the resolver's type with `ci_loop: development? && project.ci_loop_ready?`; nil when unmapped; lazy types via `find_or_create_by!`, others `find_by`.
-- `app/models/workflows/stage_seeder.rb` — `Workflows::StageSeeder#call` seeds on create: runbook copies, `pr_review` -> `pr_review`, personal -> `task`, `ci_loop_ready?` -> the five ci_loop stages, else `implementation` + `pr_check`.
+- `app/models/workflows/stage_seeder.rb` — `Workflows::StageSeeder#call` seeds on create: runbook copies, `pr_review` -> `pr_review`, personal -> `task`, `ci_loop_ready?` -> the five ci_loop stages, else `implementation` + `pr_check`. Standard and ci_loop workflows also get `local_test` / `uat_test` when the project saved that kind's credentials and ticked its `*_stage_auto_include`.
+- `app/models/workflows/test_stage_adder.rb` — `Workflows::TestStageAdder`: adds the optional `local_test` / `uat_test` stage by hand. `addable_test_stages` / `add_test_stage!` (delegated from `Workflow`) need a development workflow, the project's credentials (`local_test_ready?` / `uat_test_ready?`), no existing stage and a status before the PR handoff (local) or the Jira update (UAT). A workflow only runs the testing when it has the stage (`Workflow#local_test_stage?` / `uat_test_stage?`).
 - `app/models/workflows/transitions.rb` — the manual transitions, each returning true when applied, false when the guard fails. Its `resume_status:` keyword seam defaults to a fresh `ResumeStatus` for the workflow:
   - `start!`: only `pending?`; a runbook calls `start_runbook!`, otherwise `implementing`.
   - `resume!`: only `errored?`; in one transaction sets `resume_status` and logs `'resumed'` on `current_stage` (nil-safe).
@@ -28,6 +29,7 @@ What `uat_testing` / `local_testing` runs do once resumed: `ai-worker-browser-te
 - `app/models/workflows/ci_loop_resume.rb` — `Workflows::CiLoopResume#status`: nil unless development and `ci_loop_ready?`, else derived from the newest non-`resumed` StageRun.
 - `app/models/workflow.rb` — `delegate :start!, :resume!, :resume_status, :can_rollback_to_review?, :rollback_to_review!, ... to: :transitions`; `current_stage` builds `CurrentStage`.
 - `app/controllers/workflow_transitions_controller.rb` — `start`, `resume`, `rollback_to_review`: call the model method and redirect with a notice when true, an alert when false. No logic of its own.
+- `app/controllers/workflow_test_stages_controller.rb` — `create` (`POST test_stage`): `Workflow#add_test_stage!(params[:stage_type])`, notice or alert.
 
 ## Invariants
 
@@ -43,4 +45,5 @@ What `uat_testing` / `local_testing` runs do once resumed: `ai-worker-browser-te
 - `ci_loop_resume_spec.rb` — newest-run -> status table, nil cases.
 - `current_stage_spec.rb` — runbook, personal, pr_review, ci_loop, lazy creation once, nil for terminal statuses.
 - `stage_resolver_spec.rb` — every status map and `LAZY_STAGE_TYPES`; `stage_seeder_spec.rb` — seeded stages per kind and runbook copy.
+- `test_stage_adder_spec.rb` and `spec/requests/workflow_test_stages_spec.rb` — manual add of the optional test stages.
 - `spec/requests/workflow_transitions_spec.rb` — POST start / resume / rollback_to_review redirects and flashes.

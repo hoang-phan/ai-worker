@@ -53,7 +53,7 @@ RSpec.describe Stages::CiVerifyFinish, type: :service do
   end
 
   it "goes on to local testing without pinging reviewers on PASSED when the project is local-test ready" do
-    project.update!(local_test_enabled: true, local_url: "http://localhost:3000")
+    enable_local_testing(workflow)
 
     finish("CI_VERDICT: PASSED")
 
