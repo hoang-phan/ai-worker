@@ -4,6 +4,13 @@
     <div class="page-header__actions">
       <%= link_to "Add stage", new_project_workflow_stage_path(project, workflow), class: "btn btn-secondary" %>
     </div>
+  <% elsif (addable_types = workflow.stage_order.addable_types).any? %>
+    <div class="page-header__actions">
+      <%= form_with url: add_stage_project_workflow_path(project, workflow), method: :post, html: { style: "display:inline" } do |f| %>
+        <%= f.select :stage_type, addable_types.map { |stage_type| [ stage_type.humanize, stage_type ] }, {}, "aria-label": "Stage type" %>
+        <%= f.submit "Add stage", class: "btn btn-secondary" %>
+      <% end %>
+    </div>
   <% end %>
 </div>
 
@@ -20,7 +27,7 @@
       </tr>
     </thead>
     <tbody>
-      <% workflow.stages.each do |stage| %>
+      <% stage_table_rows(workflow).each do |stage| %>
         <% stage_badge = current_stage_badge(workflow, stage, current_stage) %>
         <tr>
           <td>
@@ -32,6 +39,14 @@
           <td>
             <% if stage_runnable?(workflow, stage, current_stage) %>
               <%= inline_button_to "Run", run_stage_project_workflow_path(project, workflow), method: :post, class: "btn btn-primary" %>
+            <% end %>
+            <% unless workflow.runbook? %>
+              <% %w[up down].each do |direction| %>
+                <% if workflow.stage_order.movable?(stage, direction) %>
+                  <% arrow = direction == "up" ? "↑" : "↓" %>
+                  <%= inline_button_to arrow, move_stage_project_workflow_path(project, workflow, stage_id: stage.id, direction: direction), method: :post, class: "btn btn-secondary", "aria-label": "Move #{direction}" %>
+                <% end %>
+              <% end %>
             <% end %>
             <%= link_to "Edit", edit_project_workflow_stage_path(project, workflow, stage), class: "btn btn-secondary" %>
             <% if workflow.runbook? %>

@@ -1,7 +1,7 @@
 module Brainstorm
   # Brainstorms new workflows for a personal project from its standing goal ("improve the UI", "raise test
   # coverage", "suggest useful features" ...). One detached agent run in the project's local clone, read-only,
-  # with a stronger model and higher effort than workflow runs (BRAINSTORM_MODEL / BRAINSTORM_EFFORT env). It
+  # optionally with a stronger model and higher effort than workflow runs (BRAINSTORM_MODEL / BRAINSTORM_EFFORT env; unset = the agent's default). It
   # writes result.json; `poll` reads it once the process has finished and `import` turns it into workflows.
   #
   # Implementing workflows don't block it, but they aren't in the code yet, so the agent is shown just those to avoid
@@ -13,8 +13,6 @@ module Brainstorm
   class Planner
     ROOT = AgentRuns::StateRoot.join("brainstorms")
     STALE_AFTER = 45.minutes
-    DEFAULT_MODEL = "gpt-6-sol".freeze
-    DEFAULT_EFFORT = "high".freeze
     TASK_LENGTH = Workflows::ProposalNormalizer::TASK_LENGTH
     # Read-only: the agent may look at the code and git history, and write the result file, nothing else.
     ALLOWED_TOOLS = [ "Read", "Grep", "Glob", "Write", "Bash(git log:*)", "Bash(git ls-files:*)", "Bash(git status:*)", "Bash(git diff:*)" ].freeze
@@ -23,12 +21,13 @@ module Brainstorm
 
     delegate :running?, :last_started_at, to: :lifecycle
 
+    # nil when unset: the run then gets no --model / --effort and uses the agent CLI's own default model.
     def self.model(env: ENV)
-      env["BRAINSTORM_MODEL"].presence || DEFAULT_MODEL
+      env["BRAINSTORM_MODEL"].presence
     end
 
     def self.effort(env: ENV)
-      env["BRAINSTORM_EFFORT"].presence || DEFAULT_EFFORT
+      env["BRAINSTORM_EFFORT"].presence
     end
 
     def initialize(project, root: ROOT, lifecycle: nil)

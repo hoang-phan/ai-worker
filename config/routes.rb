@@ -24,6 +24,8 @@ Rails.application.routes.draw do
         post :rollback_to_review, to: "workflow_transitions#rollback_to_review"
         post :skip_stage, to: "workflow_transitions#skip_stage"
         post :test_stage, to: "workflow_test_stages#create"
+        post :add_stage, to: "workflow_stage_orders#create"
+        post :move_stage, to: "workflow_stage_orders#move"
         post :run_stage, to: "workflow_runbooks#run_stage"
         post :advance, to: "workflow_runbooks#advance"
         post :clone, to: "workflow_runbooks#clone"

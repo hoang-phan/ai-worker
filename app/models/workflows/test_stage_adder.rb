@@ -30,7 +30,12 @@ module Workflows
     def add_test_stage!(stage_type)
       return false unless addable?(stage_type)
 
-      workflow.stages.create!(stage_type: stage_type.to_s)
+      stage_type = stage_type.to_s
+      if Workflows::StageFlow.pipeline_type?(stage_type)
+        workflow.stage_order.insert!(stage_type)
+      else
+        workflow.stages.create!(stage_type: stage_type, position: workflow.next_stage_position)
+      end
       true
     end
 

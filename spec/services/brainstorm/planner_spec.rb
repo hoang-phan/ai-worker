@@ -9,12 +9,19 @@ RSpec.describe Brainstorm::Planner do
   let(:lifecycle) { instance_double(Brainstorm::RunLifecycle, running?: false, last_started_at: nil, start: true, poll: nil, result_path: dir.join("result.json")) }
 
   describe ".model" do
-    it "defaults brainstorms to gpt-6-sol when BRAINSTORM_MODEL is unset" do
-      expect(described_class.model(env: {})).to eq("gpt-6-sol")
+    it "is nil when BRAINSTORM_MODEL is unset or blank, so no --model is passed" do
+      expect(described_class.model(env: {})).to be_nil
+      expect(described_class.model(env: { "BRAINSTORM_MODEL" => "" })).to be_nil
     end
 
     it "uses BRAINSTORM_MODEL when set" do
       expect(described_class.model(env: { "BRAINSTORM_MODEL" => "claude-opus-5-5" })).to eq("claude-opus-5-5")
+    end
+  end
+
+  describe ".effort" do
+    it "is nil when BRAINSTORM_EFFORT is unset" do
+      expect(described_class.effort(env: {})).to be_nil
     end
   end
 

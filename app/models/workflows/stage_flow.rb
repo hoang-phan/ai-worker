@@ -7,7 +7,7 @@ module Workflows
   # failure target, see #failure_target), or in error (a broken run: the same stage is retried, see Stages::FailureHandler).
   # Post-merge work (`merged` -> jira_update, `uat_*` -> uat_test) is not part of the pipeline and stays status-driven.
   class StageFlow
-    # The pipeline's stage types in the order they run. A workflow has at most one stage of each type, and only some of
+    # The pipeline's stage types in their default order (stages can be reordered by position). A workflow has at most one stage of each type, and only some of
     # them (a standard workflow: implementation, [local_test], pr_check; ci_loop: simple_implementation, pr_create,
     # ci_check, ci_verify, [local_test], pr_check; personal: task; PR review: pr_review).
     PIPELINE_ORDER = %w[implementation simple_implementation task pr_review pr_create ci_check ci_verify local_test pr_check].freeze
@@ -33,21 +33,26 @@ module Workflows
       @workflow = workflow
     end
 
-    # The workflow's runnable pipeline stages in running order. local_test only counts while the project can still run it.
-    def pipeline
+    # The workflow's pipeline-type stages in running order: by `position`, then by PIPELINE_ORDER (so workflows whose
+    # stages were never ordered by hand, all at position 0, keep the type order). Includes stages that can't run now.
+    def ordered_stages
       @workflow.stages.to_a
-               .select { |stage| self.class.pipeline_type?(stage.stage_type) && runnable?(stage) }
-               .sort_by { |stage| PIPELINE_ORDER.index(stage.stage_type) }
+               .select { |stage| self.class.pipeline_type?(stage.stage_type) }
+               .sort_by { |stage| [ stage.position.to_i, PIPELINE_ORDER.index(stage.stage_type) ] }
     end
+
+    # The runnable stages of ordered_stages. local_test only counts while the project can still run it.
+    def pipeline = ordered_stages.select { |stage| runnable?(stage) }
 
     def first_stage = pipeline.first
 
     # The pipeline stage after `stage`, nil after the last one.
     def stage_after(stage)
-      rank = PIPELINE_ORDER.index(stage.stage_type)
-      return nil unless rank
+      ordered = ordered_stages
+      index = ordered.index(stage)
+      return nil unless index
 
-      pipeline.find { |candidate| PIPELINE_ORDER.index(candidate.stage_type) > rank }
+      ordered.drop(index + 1).find { |candidate| runnable?(candidate) }
     end
 
     # Where a failed `stage` goes: the stage selected on it, else its type's default, else itself (a retry). Never a

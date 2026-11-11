@@ -41,6 +41,28 @@ RSpec.describe Stages::FailureHandler, type: :service do
     expect(workflow.reload.status).to eq("implementing")
   end
 
+  context "with a runbook workflow" do
+    let(:workflow) do
+      build_jira_workflow(project, jira_ticket: "FAIL-2", branch_name: "failure-handler-rb", status: :implementing,
+                                   kind: :runbook, auto_run: true, **running_ai_run)
+    end
+    let(:stage) { workflow.stages.create!(stage_type: :runbook_step, name: "Step", run_mode: :message, channel: "#c", prompt: "hi") }
+
+    it "keeps auto_run below the threshold so the next tick retries" do
+      handle
+
+      expect(workflow.reload).to have_attributes(auto_run: true, status: "implementing")
+    end
+
+    it "stops auto_run when parked as errored at the threshold" do
+      2.times { stage.stage_runs.create!(action: "failed") }
+
+      handle
+
+      expect(workflow.reload).to have_attributes(auto_run: false, status: "errored")
+    end
+  end
+
   it "parks the workflow as errored at the threshold" do
     2.times { stage.stage_runs.create!(action: "failed") }
     stage.stage_runs.create!(action: "started")

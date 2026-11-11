@@ -14,6 +14,7 @@ Scope: workflow CRUD/detail pages and stage forms. `WorkflowTransitionsControlle
 - `app/controllers/workflow_images_controller.rb` — deletes a workflow image.
 - `app/controllers/workflow_time_logs_controller.rb` — project workflow batch time-log action; follow `ai-worker-jira-worklogs` for time-log behavior.
 - `app/controllers/stages_controller.rb` — stage CRUD; runbook guards and params follow `ai-worker-runbooks`.
+- `app/controllers/workflow_stage_orders_controller.rb` — adds a pipeline stage and moves stages up/down on development workflows; ordering rules live in `app/models/workflows/stage_order.rb`.
 - `app/controllers/concerns/workflow_scoped.rb` — loads a workflow after `ProjectScoped`; `StagesController` supplies `params[:workflow_id]` through `workflow_id_param`.
 - `app/helpers/stages_helper.rb` — stage form options and runbook/development stage-table helpers, including `stage_runnable?` and `current_stage_badge`.
 - `app/helpers/workflow_pages_helper.rb` — `workflow_details_partial`, `workflow_advance_label`, and `runbook_copy_source_options` for workflow pages.
@@ -44,6 +45,7 @@ Scope: workflow CRUD/detail pages and stage forms. `WorkflowTransitionsControlle
 - `spec/requests/workflow_runbooks_spec.rb` — workflow runbook action requests; semantics belong to `ai-worker-runbooks`.
 - `spec/requests/workflow_images_spec.rb` — image deletion requests.
 - `spec/requests/workflow_time_logs_spec.rb` — batch time-log requests.
+- `spec/requests/workflow_stage_orders_spec.rb` — add/move stage requests.
 - `spec/requests/stages_spec.rb` — stage form and CRUD requests; runbook behavior belongs to `ai-worker-runbooks`.
 - `spec/helpers/stages_helper_spec.rb` — stage form and table helper coverage.
 - `spec/helpers/workflow_pages_helper_spec.rb` — workflow-page helper coverage.

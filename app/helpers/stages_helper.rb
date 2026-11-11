@@ -9,6 +9,15 @@ module StagesHelper
     stage.candidate_templates.map { |template| [ template.name, template.id, { data: { body: template.body } } ] }
   end
 
+  # Rows of the workflow page's stage table, in running order.
+  def stage_table_rows(workflow)
+    workflow.runbook? ? workflow.stages : workflow.stage_order.display_stages
+  end
+
+  def stage_type_label(stage_type)
+    "Add #{stage_type.humanize.downcase} stage"
+  end
+
   def stage_runnable?(workflow, stage, current_stage = workflow.current_stage)
     workflow.can_run_stage? && current_stage == stage
   end

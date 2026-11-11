@@ -82,6 +82,7 @@ class Workflow < ApplicationRecord
   def current_stage = Workflows::CurrentStage.new(self).call
 
   def stage_flow = Workflows::StageFlow.new(self)
+  def stage_order = Workflows::StageOrder.new(self)
 
   # Development workflows on a project set up for local testing (credentials saved) that have the local_test stage:
   # the PR goes to local testing before review.
